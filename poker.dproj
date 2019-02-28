@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{2e315415-e930-4177-840c-7863eae5a9bc}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+    <DCC_DependencyCheckOutputName>poker.exe</DCC_DependencyCheckOutputName>
+    <MainSource>poker.dpr</MainSource>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Version>7.0</Version>
+    <DCC_DebugInformation>False</DCC_DebugInformation>
+    <DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
+    <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+    <DCC_Define>RELEASE</DCC_Define>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <Version>7.0</Version>
+    <DCC_Define>DEBUG</DCC_Define>
+    <DCC_UnitSearchPath>src</DCC_UnitSearchPath>
+    <DCC_ResourcePath>src</DCC_ResourcePath>
+    <DCC_ObjPath>src</DCC_ObjPath>
+    <DCC_IncludePath>src</DCC_IncludePath>
+    <DCC_IntegerOverflowCheck>True</DCC_IntegerOverflowCheck>
+    <DCC_RangeChecking>True</DCC_RangeChecking>
+  </PropertyGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality</Borland.Personality>
+    <Borland.ProjectType />
+    <BorlandProject>
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">0</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">1049</VersionInfo><VersionInfo Name="CodePage">1251</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName">ViSla</VersionInfoKeys><VersionInfoKeys Name="FileDescription">Расписной покер</VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="InternalName">Расписной покер</VersionInfoKeys><VersionInfoKeys Name="LegalCopyright">ViSla</VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks">ViSla</VersionInfoKeys><VersionInfoKeys Name="OriginalFilename">poker.exe</VersionInfoKeys><VersionInfoKeys Name="ProductName">Расписной покер</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="Comments">Старый добрый расписной покер</VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">poker.dpr</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
+  <ItemGroup>
+    <DelphiCompile Include="poker.dpr">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="src\engine.pas" />
+    <DCCReference Include="src\engine_net.pas" />
+    <DCCReference Include="src\example.pas">
+      <Form>frmExample</Form>
+    </DCCReference>
+    <DCCReference Include="src\gchart.pas">
+      <Form>FGameChart</Form>
+    </DCCReference>
+    <DCCReference Include="src\humanParams.pas">
+      <Form>FHumanParams</Form>
+    </DCCReference>
+    <DCCReference Include="src\imgUtils.pas" />
+    <DCCReference Include="src\load.pas">
+      <Form>FLoad</Form>
+    </DCCReference>
+    <DCCReference Include="src\main.pas">
+      <Form>FMain</Form>
+    </DCCReference>
+    <DCCReference Include="src\msg_box.pas">
+      <Form>FGameMsg</Form>
+    </DCCReference>
+    <DCCReference Include="src\network.pas">
+      <Form>dmNetwork</Form>
+    </DCCReference>
+    <DCCReference Include="src\players.pas">
+      <Form>FPlayers</Form>
+    </DCCReference>
+    <DCCReference Include="src\querypass.pas">
+      <Form>FQueryPass</Form>
+    </DCCReference>
+    <DCCReference Include="src\robotParams.pas">
+      <Form>FRobotParams</Form>
+    </DCCReference>
+    <DCCReference Include="src\selimage.pas">
+      <Form>FSelImage</Form>
+    </DCCReference>
+    <DCCReference Include="src\selPlayer.pas">
+      <Form>FSelPlayer</Form>
+    </DCCReference>
+    <DCCReference Include="src\settings.pas">
+      <Form>FSettings</Form>
+    </DCCReference>
+    <DCCReference Include="src\start.pas">
+      <Form>FStartDialog</Form>
+    </DCCReference>
+    <DCCReference Include="src\utils.pas" />
+    <DCCReference Include="src\wjoker.pas">
+      <Form>FWalkJoker</Form>
+    </DCCReference>
+  </ItemGroup>
+</Project>
