@@ -26,7 +26,17 @@ class Handler(object):
         self.response = None
 
     def _route(self, addr):
-        return routers.get(addr.lower())
+        addr = addr.lower()
+
+        if addr in routers:
+            return routers[addr]
+
+        for k in routers:
+            if isinstance(k, (list, tuple)):
+                if addr in k:
+                    return routers[k]
+
+        return None
 
     def _get_request_method(self):
         # вытягивает метод из исходной строки запроса, если запрос не удалось распарсить, иначе из запроса

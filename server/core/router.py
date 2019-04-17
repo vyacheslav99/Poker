@@ -2,5 +2,5 @@ from . import handlers
 
 
 routers = {
-    '/': handlers.index
+    ('/', '/api', '/api/status'): handlers.index
 }
