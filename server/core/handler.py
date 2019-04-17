@@ -4,7 +4,7 @@ import time
 import socket, errno
 import json
 
-from . import config
+from . import config, utils
 from .helpers import Request, Response, HTTPException
 from .router import routers
 
@@ -43,7 +43,7 @@ class Handler(object):
         if self.request:
             return self.request.method
         else:
-            return self.raw_request.decode('utf-8').split('\r\n')[0].split(' ')[0] or 'GET'
+            return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or 'GET'
 
     def _create_response(self):
         if self.__can_stop:
@@ -104,7 +104,7 @@ class Handler(object):
         self.response = self._create_response()
 
         if self.response:
-            self.raw_response = str(self.response).encode('utf-8')
+            self.raw_response = bytes(self.response)
             logging.info(self.__log_format_str.format(thread_id=self.id, client_ip=self.client_ip,
                                                       client_port=self.client_port,
                                                       method=self._get_request_method(),

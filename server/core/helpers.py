@@ -3,6 +3,7 @@ import datetime
 import urllib
 import json
 
+from . import utils
 
 class HTTPException(Exception):
 
@@ -26,7 +27,7 @@ class Request(object):
         self._parse_request_str()
 
     def _parse_request_str(self):
-        data = self._raw_request.decode('utf-8').split('\r\n')
+        data = utils.decode(self._raw_request).split('\r\n')
         logging.debug(data[0])
         self._method, self._uri, self._protocol = data[0].split(' ')
 
@@ -39,7 +40,7 @@ class Request(object):
             params = params.split('&')
             for param in params:
                 p, v = param.split('=', 1)
-                self._params[p] = v
+                self._params[p] = urllib.parse.unquote(v)
 
         self._uri = urllib.parse.unquote(self._uri)
 
@@ -95,6 +96,8 @@ class Request(object):
 
 class Response(object):
 
+    __encodings = ('utf-8', 'cp1251')
+
     def __init__(self, code, status, protocol=None, headers=None, body=None):
         self._protocol = protocol or 'HTTP/1.1'
         self._code = code
@@ -134,12 +137,25 @@ class Response(object):
 
     @property
     def body(self):
+        # return str representation
+
         if isinstance(self._body, str):
             return self._body
         elif isinstance(self._body, bytes):
-            return self._body.decode('utf-8')
+            return utils.decode(self._body)
         else:
             return str(self._body)
+
+    @property
+    def bytes(self):
+        # return bytes representation
+
+        if isinstance(self._body, bytes):
+            return self._body
+        elif isinstance(self._body, str):
+            return self._body.encode()
+        else:
+            return str(self._body).encode()
 
     @protocol.setter
     def protocol(self, protocol):
@@ -163,7 +179,7 @@ class Response(object):
     @body.setter
     def body(self, body):
         self._body = body
-        self.set_header('Content-Length', len(self.body) if body else 0)
+        self.set_header('Content-Length', len(self.bytes) if body else 0)
 
     def __str__(self):
         data = ['{0} {1} {2}'.format(self._protocol, self._code, self._status)]
@@ -173,3 +189,12 @@ class Response(object):
             data.append(self.body)
 
         return '\r\n'.join(data)
+
+    def __bytes__(self):
+        data = [('{0} {1} {2}'.format(self._protocol, self._code, self._status)).encode()]
+        data.extend(('{0}: {1}'.format(*head)).encode() for head in self._headers.items())
+        data.append(b'')
+        if self._body is not None:
+            data.append(self.bytes)
+
+        return b'\r\n'.join(data)
