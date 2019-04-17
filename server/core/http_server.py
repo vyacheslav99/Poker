@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-
 import socket, errno
 import logging
 import threading
 import datetime, time
 import random
 
-import config
-from handler import Handler
+from . import config
+from .handler import Handler
 
 
 class Worker(object):
@@ -25,6 +23,7 @@ class Worker(object):
 
     def _do_process(self):
         # данный метод вызывается из потока
+
         while not self._break:
             try:
                 client_ip, client_port, sock = self._queue.pop(0)
@@ -109,7 +108,7 @@ class HTTPServer(object):
         self.wrk_svc_thread.start()
 
     def _init_workers(self):
-        for i in xrange(self.init_handlers):
+        for i in range(self.init_handlers):
             self.wrk_pool.append(Worker(i))
 
     def _get_worker(self):
@@ -122,8 +121,8 @@ class HTTPServer(object):
             self.wrk_pool.append(Worker(len(self.wrk_pool) - 1))
             return self.wrk_pool[-1]
 
-        # а вот тут можно поменять концепцию и не сбрасывать коннект, а добавить в очередь любому занятому обработчику,
-        # он его обработает, как только дойдет очередь. В принципе настройку этого поведения можно вынести в конфиг
+        # тут можно не сбрасывать коннект, а добавить в очередь любому занятому обработчику,
+        # он его обработает, как только дойдет очередь
         if config.WHEN_REACHED_LIMIT == 0:
             return None
         else: # elif config.WHEN_REACHED_LIMIT == 1:
@@ -136,10 +135,9 @@ class HTTPServer(object):
     def _check_workers(self):
         if config.HANDLERS_CLEAN_POLICY != 0:
             # очистка лишних обработчиков.
-            # Тут я предвижу необходимость блокировки, т.к. пока проверятся все условия,
-            # есть вероятность, что ему закинут новый коннект...
             dt = datetime.datetime.now()
             i = 0
+
             while len(self.wrk_pool) > self.init_handlers and i < len(self.wrk_pool):
                 self.wrk_pool[i].lock()
                 if self.wrk_pool[i].is_free() and self.wrk_pool[i].is_empty() and (
@@ -162,6 +160,7 @@ class HTTPServer(object):
 
     def _do_wrk_service(self):
         # выполняется в отдельном потоке!
+
         while self.active:
             try:
                 self._check_workers()
@@ -183,7 +182,7 @@ class HTTPServer(object):
             try:
                 conn.setblocking(0)
                 self._accept_connection(conn, *addr)
-                # возврат завершившихся workers в пул вынесем в отдельный поток
+                # возврат завершившихся workers в пул вынесен в отдельный поток
                 # self._check_workers()
             except Exception:
                 logging.exception('Error on accept connection at {0}:{1}!'.format(*addr))

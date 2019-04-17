@@ -2,7 +2,7 @@ import os
 import logging
 
 
-DEBUG = True
+DEBUG = False
 PORT = 6895
 LISTEN_ADDR = '127.0.0.1'
 
@@ -30,7 +30,7 @@ HANDLERS_CLEAN_TIME = 3
 # 1 - каждое новое соединение будет добавляться в очередь случайно выбранному занятому обработчику, и т.о. будет обработано позже.
 WHEN_REACHED_LIMIT = 1
 
-DOCUMENT_ROOT = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker'))
+DOCUMENT_ROOT = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'server'))
 
 LOGGING = {
     'filename': None,
