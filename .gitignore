@@ -1,14 +1,12 @@
-__history
 __history/
-/data
 data/
 *.dcu
 *.exe
 *.identcache
 *.dproj.local
+*.dsk
 logs/
 *.pyc
 *.bat
-config.py
 __pycache__/
 .idea/
