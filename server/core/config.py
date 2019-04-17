@@ -3,7 +3,7 @@ import logging
 
 
 DEBUG = False
-PORT = 6895
+PORT = 2100
 LISTEN_ADDR = '127.0.0.1'
 
 # INIT_HANDLERS: кол-во дочерних потоков, создаваемых сразу при инициализации сервера -

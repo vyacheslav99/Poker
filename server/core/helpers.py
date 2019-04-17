@@ -4,6 +4,14 @@ import urllib
 import json
 
 
+class HTTPException(Exception):
+
+    def __init__(self, http_code, code, message):
+        self.http_code = http_code
+        self.code = code
+        self.message = message
+
+
 class Request(object):
 
     def __init__(self, request_str):

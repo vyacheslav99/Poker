@@ -5,7 +5,7 @@ import socket, errno
 import json
 
 from . import config
-from .helpers import Request, Response
+from .helpers import Request, Response, HTTPException
 from .router import routers
 
 
@@ -69,10 +69,14 @@ class Handler(object):
                         resp = Response(200, 'OK', headers=Response.default_headers({'Content-Type': 'text/html'}), body=resp)
                 return resp
             else:
-                return self._error_response(404, 'Handler not registered', 'bad_request',
+                return self._error_response(405, 'Method Not Allowed', 'bad_request',
                                             f'Handler for route <{self.request.uri}> not registered')
-        except Exception as e:
+        except HTTPException as e:
             logging.exception('[{0}] Error on prepare response to {1}:{2}'.format(
+                self.id, self.client_ip, self.client_port))
+            return self._error_response(e.http_code, 'Internal Server Error', e.code, e.message)
+        except Exception as e:
+            logging.exception('[{0}] Unhandled exception on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
             return self._error_response(500, 'Internal Server Error', 'internal_error',
                                         traceback.format_exc() if config.DEBUG else f'{e}')

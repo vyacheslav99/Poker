@@ -1,7 +1,8 @@
 import os
 import mimetypes
 
-from .helpers import Request, Response
+from . import config
+from .helpers import Request, Response, HTTPException
 
 
 def index(request):
@@ -12,21 +13,21 @@ def get_content_type(file_name):
     return mimetypes.guess_type(file_name)[0] or 'application/octet-stream'
 
 
-# так вернем файл, если надо будет
-# return self._create_file_response(self.request.method, os.path.join(path, 'index.html'))
-# return self._create_file_response(self.request.method, 'index.html',
-#                                   file_data=self._render_directory_index(path))
-def create_file_response(request, file_name, file_data=None):
-    resp = Response(200, 'OK', protocol=request.protocol, headers={'Content-Type': get_content_type(file_name)})
+def get_file(request):
+    if not request.is_json():
+        raise HTTPException(400, 'bad_request', 'application/json header is missing')
 
-    if not file_data and request.method in ('GET', 'POST'):
-        with open(file_name, 'rb') as f:
-            file_data = f.read()
+    file_path = os.path.normpath(os.path.join(config.DOCUMENT_ROOT, request.json.get('file_name', '')))
 
-    if request.method in ('GET', 'POST'):
-        resp.body = file_data
+    if os.path.isfile(file_path):
+        resp = Response(200, 'OK', protocol=request.protocol, headers={'Content-Type': get_content_type(file_path)})
 
-    resp.set_header('Content-Length',
-                    len(file_data) or (os.path.getsize(file_name) if os.path.exists(file_name) else 0))
+        if request.method in ('GET', 'POST'):
+            with open(file_path, 'rb') as f:
+                resp.body = f.read()
+        elif request.method == 'HEAD':
+            resp.set_header('Content-Length', os.path.getsize(file_path))
 
-    return resp
+        return resp
+    else:
+        raise HTTPException(404, 'not_found', f'Requested file <{request.json.get("file_name", "")}> not found')
