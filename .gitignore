@@ -10,3 +10,4 @@ logs/
 *.bat
 __pycache__/
 .idea/
+Pipfile.lock

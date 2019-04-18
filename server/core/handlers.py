@@ -1,5 +1,4 @@
 import os
-import mimetypes
 
 from . import config, utils
 from .helpers import Request, Response, HTTPException
