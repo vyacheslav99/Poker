@@ -31,4 +31,4 @@ def get_file(request):
 
         return resp
     else:
-        raise HTTPException(404, 'not_found', f'Requested file <{file_name}> not found')
+        raise HTTPException(404, 'Not Found', 'file_not_exists', f'Requested file <{file_name}> not found')

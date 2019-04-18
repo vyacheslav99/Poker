@@ -7,7 +7,8 @@ from . import utils
 
 class HTTPException(Exception):
 
-    def __init__(self, http_code, code, message):
+    def __init__(self, http_code, http_status, code, message):
+        self.http_status = http_status
         self.http_code = http_code
         self.code = code
         self.message = message

@@ -25,21 +25,23 @@ class Handler(object):
         self.request = None
         self.response = None
 
-    def _route(self, addr):
+    def _route(self, addr, method):
         addr = addr.lower()
+        method = method.upper()
 
-        if addr in routers:
+        if addr in routers.get(method, {}):
             return routers[addr]
 
-        for k in routers:
+        for k in routers.get(method, {}):
             if isinstance(k, (list, tuple)):
                 if addr in k:
-                    return routers[k]
+                    return routers[method][k]
 
         return None
 
     def _get_request_method(self):
         # вытягивает метод из исходной строки запроса, если запрос не удалось распарсить, иначе из запроса
+
         if self.request:
             return self.request.method
         else:
@@ -55,11 +57,7 @@ class Handler(object):
         try:
             self.request = Request(self.raw_request)
 
-            if self.request.method not in ('GET', 'POST', 'HEAD'):
-                return self._error_response(405, 'Method Not Allowed', 'bad_request',
-                                            f'Request method <{self.request.method}> not allowed')
-
-            handler_ = self._route(self.request.uri)
+            handler_ = self._route(self.request.uri, self.request.method)
             if callable(handler_):
                 resp = handler_(self.request)
                 if not isinstance(resp, Response):
@@ -70,11 +68,11 @@ class Handler(object):
                 return resp
             else:
                 return self._error_response(405, 'Method Not Allowed', 'bad_request',
-                                            f'Handler for route <{self.request.uri}> not registered')
+                                            f'Handler for route <{self.request.method} {self.request.uri}> not registered')
         except HTTPException as e:
             logging.exception('[{0}] Error on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(e.http_code, 'Internal Server Error', e.code, e.message)
+            return self._error_response(e.http_code, e.http_status, e.code, e.message)
         except Exception as e:
             logging.exception('[{0}] Unhandled exception on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
