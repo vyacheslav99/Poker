@@ -10,11 +10,16 @@ def index(request):
 
 
 def get_file(request):
-    if request.is_json():
-        #raise HTTPException(400, 'bad_request', 'application/json header is missing')
-        file_name = request.json.get('file_name', '')
-    else:
+    if request.method == 'POST':
+        if request.is_json():
+            file_name = request.json.get('file_name', '')
+        else:
+            raise HTTPException(400, 'Bad Request', 'bad_request', 'application/json header is missing')
+    else:  # GET
         file_name = request.params.get('file_name', '')
+
+    if file_name.startswith(('/', '\\')):
+        file_name = file_name[1:]
 
     file_path = os.path.normpath(os.path.join(config.DOCUMENT_ROOT, file_name))
 
@@ -23,11 +28,10 @@ def get_file(request):
                         headers={'Content-Type': utils.get_content_type(file_path),
                                  'Content-Disposition': f"attachment; filename={os.path.split(file_name)[1]}"})
 
-        if request.method in ('GET', 'POST'):
-            with open(file_path, 'rb') as f:
-                resp.body = f.read()
-        elif request.method == 'HEAD':
-            resp.set_header('Content-Length', os.path.getsize(file_path))
+        with open(file_path, 'rb') as f:
+            resp.body = f.read()
+        # elif request.method == 'HEAD':
+        #     resp.set_header('Content-Length', os.path.getsize(file_path))
 
         return resp
     else:

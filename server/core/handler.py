@@ -30,7 +30,7 @@ class Handler(object):
         method = method.upper()
 
         if addr in routers.get(method, {}):
-            return routers[addr]
+            return routers[method][addr]
 
         for k in routers.get(method, {}):
             if isinstance(k, (list, tuple)):
