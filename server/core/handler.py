@@ -10,7 +10,6 @@ from .router import routers
 
 
 class Handler(object):
-    """ Класс обработчик соединения с клиентом """
 
     __log_format_str = '[{thread_id}] - {client_ip}:{client_port} "{method} {uri} {protocol}" {code} {len_response}'
 

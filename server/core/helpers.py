@@ -97,8 +97,6 @@ class Request(object):
 
 class Response(object):
 
-    __encodings = ('utf-8', 'cp1251')
-
     def __init__(self, code, status, protocol=None, headers=None, body=None):
         self._protocol = protocol or 'HTTP/1.1'
         self._code = code
