@@ -10,6 +10,10 @@ def index(request):
 
 
 def get_file(request):
+    # todo: Перенести весь этот функционал в ядро игры, здесь оставить только дергание соотв. функции
+    # пока что файлы не выдаем, т.к. непонятно, какие вобще выдавать, и будет ли вобще такая надобность
+    raise HTTPException(403, 'Forbidden', 'forbidden', 'Forbidden')
+
     if request.method == 'POST':
         if request.is_json():
             file_name = request.json.get('file_name', '')
