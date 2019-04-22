@@ -437,8 +437,8 @@ object FMain: TFMain
     AllowedOperations = []
     AllowedSelections = []
     AutoFitColWidths = True
-    DataGrouping.GroupLevels = <>
     DataSource = dsoGameStat
+    DynProps = <>
     EvenRowColor = clWindow
     Flat = True
     Font.Charset = DEFAULT_CHARSET
@@ -446,27 +446,20 @@ object FMain: TFMain
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
-    FooterColor = clWindow
-    FooterFont.Charset = DEFAULT_CHARSET
-    FooterFont.Color = clWindowText
-    FooterFont.Height = -11
-    FooterFont.Name = 'Tahoma'
-    FooterFont.Style = []
+    FooterParams.Color = clWindow
+    GridLineParams.VertEmptySpaceStyle = dessNonEh
     IndicatorOptions = []
     Options = [dgTitles, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit]
     OptionsEh = [dghFixed3D, dghHighlightFocus, dghRowHighlight]
     ParentFont = False
     ReadOnly = True
     TabOrder = 1
-    TitleFont.Charset = DEFAULT_CHARSET
-    TitleFont.Color = clWindowText
-    TitleFont.Height = -11
-    TitleFont.Name = 'Tahoma'
-    TitleFont.Style = [fsBold]
-    UseMultiTitle = True
+    TitleParams.MultiTitle = True
     Columns = <
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'DEAL_NAME'
         Font.Charset = DEFAULT_CHARSET
@@ -479,6 +472,8 @@ object FMain: TFMain
       end
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P0ORDER'
         Font.Charset = DEFAULT_CHARSET
@@ -492,6 +487,8 @@ object FMain: TFMain
       end
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P0TAKE'
         Font.Charset = DEFAULT_CHARSET
@@ -504,6 +501,8 @@ object FMain: TFMain
         Width = 20
       end
       item
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P0POINTS'
         Font.Charset = DEFAULT_CHARSET
@@ -517,6 +516,8 @@ object FMain: TFMain
       end
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P1ORDER'
         Font.Charset = DEFAULT_CHARSET
@@ -530,6 +531,8 @@ object FMain: TFMain
       end
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P1TAKE'
         Font.Charset = DEFAULT_CHARSET
@@ -542,6 +545,8 @@ object FMain: TFMain
         Width = 20
       end
       item
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P1POINTS'
         Font.Charset = DEFAULT_CHARSET
@@ -555,6 +560,8 @@ object FMain: TFMain
       end
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P2ORDER'
         Font.Charset = DEFAULT_CHARSET
@@ -568,6 +575,8 @@ object FMain: TFMain
       end
       item
         AutoFitColWidth = False
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P2TAKE'
         Font.Charset = DEFAULT_CHARSET
@@ -580,6 +589,8 @@ object FMain: TFMain
         Width = 20
       end
       item
+        CellButtons = <>
+        DynProps = <>
         EditButtons = <>
         FieldName = 'P2POINTS'
         Font.Charset = DEFAULT_CHARSET
@@ -803,19 +814,10 @@ object FMain: TFMain
     Height = 21
     Hint = #1059#1082#1072#1078#1080#1090#1077' '#1082#1086#1083#1080#1095#1077#1089#1090#1074#1086' '#1074#1079#1103#1090#1086#1082', '#1082#1086#1090#1086#1088#1086#1077' '#1074#1099' '#1086#1073#1103#1079#1091#1077#1090#1077#1089#1100' '#1074#1079#1103#1090#1100'.'
     Style = csDropDownList
-    ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
     TabOrder = 2
     OnKeyDown = cbBetKeyDown
-  end
-  object bgImage: TJvBackground
-    Image.TileWidth = 0
-    Image.TileHeight = 0
-    Clients.Clients = (
-      'FMain')
-    Left = 64
-    Top = 56
   end
   object ilBacks: TImageList
     Height = 96
@@ -962,7 +964,7 @@ object FMain: TFMain
     Left = 168
     Top = 56
     Bitmap = {
-      494C010104000C001C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010104000C00200010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1289,7 +1291,7 @@ object FMain: TFMain
     Left = 392
     Top = 56
     Bitmap = {
-      494C010105000C00180014001400FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105000C001C0014001400FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000500000002800000001002000000000000032
       000000000000000000000000000000000000EDF1F1FFEDF1F1FFEDF1F1FFEDF1
       F1FFEDF1F1FFEDF1F1FFEDF1F1FFEDF1F1FFEDF1F1FFEDF1F1FFEDF1F1FFEDF1
