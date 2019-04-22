@@ -1,8 +1,13 @@
-__history
 __history/
-/data
 data/
 *.dcu
 *.exe
 *.identcache
 *.dproj.local
+*.dsk
+logs/
+*.pyc
+*.bat
+__pycache__/
+.idea/
+Pipfile.lock
