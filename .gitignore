@@ -5,6 +5,7 @@ data/
 *.identcache
 *.dproj.local
 *.dsk
+poker.stat
 logs/
 *.pyc
 *.bat
