@@ -8,4 +8,4 @@ def get_content_type(file_name):
 
 def decode(byte_str):
     enc = chardet.detect(byte_str)
-    return byte_str.decode(enc['encoding'])
+    return byte_str.decode(enc['encoding'] or 'utf-8')
