@@ -9,9 +9,10 @@ class GameException(Exception):
 
 class Deal(object):
 
-    player = None
-    type_ = None
-    cards = None
+    def __init__(self, player:Player, type_:int, cards:int):
+        self.player = player
+        self.type_ = type_
+        self.cards = cards
 
 
 class Player(object):
@@ -26,12 +27,20 @@ class Player(object):
     money = 0
 
     # статистика
-    total_money = 0  # сумма всех выигрышей
-    total_games = 0  # +1 в начале игры
-    completed_games = 0  # +1 при завершении игры
-    interrupted_games = 0  # +1 при прерывании игры
-    winned_games = 0  # +1 при выигрыше (набрано больше всех)
-    failed_games = 0  # +1 при проигрыше (не набрал больше всех)
+    total_money = 0         # сумма всех выигрышей
+    total_games = 0         # +1 в начале игры
+    completed_games = 0     # +1 при завершении игры
+    interrupted_games = 0   # +1 при прерывании игры
+    winned_games = 0        # +1 при выигрыше (набрано больше всех)
+    failed_games = 0        # +1 при проигрыше (не набрал больше всех)
+
+    # игровые переменные
+    order = 0               # заказ в текущем кругу
+    take = 0                # взято в текущем кругу
+    scores = 0              # очки в текущем кругу
+    total_scores = 0        # общий счет в текущей игре на текущий момент
+    cards = []              # карты на руках
+    order_cards = []        # карты, на которые сделан заказ (только ИИ)
 
     def __init__(self, params=None):
         if params:

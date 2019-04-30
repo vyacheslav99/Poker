@@ -1,12 +1,13 @@
 """ Реализация собственно игрового движка """
 
 from game import const
-from game.helpers import GameException, Player
+from game.helpers import GameException, Player, Deal
 
 
 class Engine(object):
 
     def __init__(self, players:list, bet:float, **options):
+        # игроки и опции игры
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (копеек)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
@@ -31,6 +32,73 @@ class Engine(object):
         self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
         self._take_block_bonus = options['take_block_bonus']            # вкл/выкл приемию за сыгранные все игры блока
 
+        # переменные внутреннего состояния
+        self._started = False
+        self._game_record = []          # таблица с записью хода игры
+        self._deals = []                # массив раздач
+        self._step = None               # № шага в круге (шаг - это действие одного игрока, всего шагов 3 или 4 (по кол-ву игроков))
+        self._curr_deal = None          # текущая раздача
+        self._table = []                # карты на столе
+        self._curr_player = None        # игрок, чей сейчас ход
+        self._trump = None              # козырная масть
+        self._is_bet = True             # какое сейчас действие - делаются ставки (true) или ходы (false)
+        # self._to_next_deal = True       # флаг, что нужно перейти к следующей раздаче в процедуре next
+        # self._can_stop = False          # флаг, что следующим ходом игра закрывается
+        # self._prv_step = None           # предыдущий шаг в круге
+        # self._prv_deal = None           # предыдущая раздача
+        self._last_walk_player = None   # последний ходивший игрок
+        self._released_cards = []       # массив вышедших карт
+
+    def _inc_index(self, idx, max_val, increment=1):
+        idx += increment
+        if idx == max_val:
+            idx = 0
+
+        return idx
+
+    def _reset_state(self):
+        self._started = False
+        self._game_record = []
+        self._deals = []
+        self._step = 0
+        self._curr_deal = None
+        self._table = []
+        self._curr_player = None
+        self._trump = None
+        self._is_bet = True
+        # self._to_next_deal = True
+        # self._can_stop = False
+        # self._prv_step = None
+        # self._prv_deal = None
+        self._last_walk_player = None
+        self._released_cards = []
+
+    def _init_record(self):
+        cap = {}
+        fields = {'order': 'Заказ', 'take': 'Взятки', 'scores': 'Очки', 'total': 'Счет'}
+
+        for p in self.players:
+            cap[f'{p.id}'] = fields
+
+        self._game_record.append(cap)
+
+    def _init_deals(self):
+        player_idx = 0
+
+        for dt in self._deal_types:
+            if dt == const.DEAL_NORMAL_ASC:
+                for n in range(1, 37):
+                    self._deals.append(Deal(player_idx, dt, n))
+                    player_idx = self._inc_index(player_idx, len(self.players))
+            elif dt == const.DEAL_NORMAL_DESC:
+                for n in range(36, 0, -1):
+                    self._deals.append(Deal(player_idx, dt, n))
+                    player_idx = self._inc_index(player_idx, len(self.players))
+            else:
+                for n in range(1, len(self.players) + 1):
+                    self._deals.append(Deal(player_idx, dt, 1 if dt == const.DEAL_BROW else 36))
+                    player_idx = self._inc_index(player_idx, len(self.players))
+
     @property
     def players(self):
         return self._players
@@ -54,7 +122,11 @@ class Engine(object):
         self._players = players
 
     def start(self):
-        self._deals = []
+        self._reset_state()
+        self._init_deals()
+        self._init_record()
+        self._started = True
+        self.next()
 
     def stop(self):
         pass
