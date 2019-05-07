@@ -14,6 +14,31 @@ class Deal(object):
         self.type_ = type_
         self.cards = cards
 
+class Card(object):
+
+    def __init__(self, lear:int, value:int, is_joker=False):
+        self._lear = lear
+        self._value = value
+        self._is_joker = is_joker  # value == 7 and lear == const.LEAR_SPADES
+
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def lear(self):
+        return self._lear
+
+    @property
+    def joker(self):
+        return self._is_joker
+
+    def __str__(self):
+        if self.joker:
+            return f'Joker ({const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]})'
+        else:
+            return f'{const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]}'
+
 
 class Player(object):
 

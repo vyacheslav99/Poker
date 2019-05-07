@@ -1,7 +1,9 @@
 """ Реализация собственно игрового движка """
 
+import random
+
 from game import const
-from game.helpers import GameException, Player, Deal
+from game.helpers import GameException, Player, Deal, Card
 
 
 class Engine(object):
@@ -28,24 +30,23 @@ class Engine(object):
 
         # всякие штрафы/бонусы
         self._gold_mizer_on_null = options['gold_mizer_on_null']        # вкл/выкл штраф/бонус за 0 взяток на золоте/мизере
-        self._on_all_order = options['on_all_order']                    # вкл/выкл бонус/штраф, если заказ = кол-ву карт в раздаче и взял/не взял
+        self._on_all_order = options['on_all_order']                    # вкл/выкл бонус/штраф, если заказ = кол-ву карт в раунде и взял/не взял
         self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
-        self._take_block_bonus = options['take_block_bonus']            # вкл/выкл приемию за сыгранные все игры блока
+        self._take_block_bonus = options['take_block_bonus']            # вкл/выкл приемию за сыгранные все раунды блока
 
         # переменные внутреннего состояния
         self._started = False
         self._game_record = []          # таблица с записью хода игры
         self._deals = []                # массив раздач
-        self._step = 0                  # № шага в круге (шаг - это действие одного игрока, всего шагов 3 или 4 (по кол-ву игроков))
+        self._step = 0                  # № шага (хода) в круге (шаг - это ход/заказ одного игрока, всего шагов 3 или 4 (по кол-ву игроков))
         self._curr_deal = -1            # индекс текущей раздачи в массиве раздач
         self._table = []                # карты на столе
         self._curr_player = None        # игрок, чей сейчас ход
-        self._trump = None              # козырная масть
-        self._is_bet = True             # какое сейчас действие - делаются ставки (true) или ходы (false)
+        self._trump = None              # козырная масть в текущем раунде
+        self._is_bet = True             # определяет тип хода в круге - заказ (true) или ход картой (false)
         self._to_next_deal = True       # флаг, что нужно перейти к следующей раздаче в процедуре next
         # self._can_stop = False          # флаг, что следующим ходом игра заканчивается
         # self._prv_step = -1             # предыдущий шаг в круге
-        # self._prv_deal = -1             # предыдущая раздача
         self._take_player = None        # игрок, забравший взятку
         self._released_cards = []       # массив вышедших карт (для ИИ)
 
@@ -66,7 +67,7 @@ class Engine(object):
         self._game_record.append(cap)
 
     def _init_deals(self):
-        player_idx = 0
+        player_idx = random.randint(0, len(self.players))
 
         for dt in self._deal_types:
             if dt == const.DEAL_NORMAL_ASC:
@@ -91,9 +92,28 @@ class Engine(object):
             self.stop()
             return
 
+        deal = self._deals[self._curr_deal]
         self._take_player = None
-        self._curr_player = self._deals[self._curr_deal].player
-        #todo: тут я остановился
+        self._curr_player = deal.player
+        self._is_bet = deal.type_ not in (const.DEAL_MIZER, const.DEAL_GOLD)
+
+        # сформируем колоду для раздачи
+        deck = [Card(l, v) for l in range(4) for v in range(6, 15)]
+        # перетасуем колоду
+        random.shuffle(deck)
+
+        # выберем козырь
+        if deal.type_ == const.DEAL_NO_TRUMP:
+            self._trump = const.LEAR_NOTHING
+        else:
+            trump_idx = random.randrange(len(deck) + 1)
+            self._trump = deck[trump_idx].lear
+
+            if deal.cards < 36:
+                # раздаем не всю колоду, надо запомнить козырную для ИИ и убрать ее из колоды,
+                # т.к. по правилам она кладется на стол
+                self._released_cards.append(deck[trump_idx])
+                deck.pop(trump_idx)
 
     def start(self):
         self._init_deals()
