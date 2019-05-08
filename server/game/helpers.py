@@ -10,16 +10,16 @@ class GameException(Exception):
 class Deal(object):
 
     def __init__(self, player:Player, type_:int, cards:int):
-        self.player = player
-        self.type_ = type_
-        self.cards = cards
+        self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
+        self.type_ = type_      # тип раздачи
+        self.cards = cards      # количество карт, раздаваемых одному игроку
 
 class Card(object):
 
     def __init__(self, lear:int, value:int, is_joker=False):
-        self._lear = lear
-        self._value = value
-        self._is_joker = is_joker  # value == 7 and lear == const.LEAR_SPADES
+        self._lear = lear           # масть
+        self._value = value         # достоинство, номинал
+        self._is_joker = is_joker   # Джокер или нет (value == 7 and lear == const.LEAR_SPADES)
 
     @property
     def value(self):
@@ -54,18 +54,20 @@ class Player(object):
     # статистика
     total_money = 0         # сумма всех выигрышей
     total_games = 0         # +1 в начале игры
-    completed_games = 0     # +1 при завершении игры
+    completed_games = 0     # +1 при завершении игры (доведения игры до конца)
     interrupted_games = 0   # +1 при прерывании игры
-    winned_games = 0        # +1 при выигрыше (набрано больше всех)
-    failed_games = 0        # +1 при проигрыше (не набрал больше всех)
+    winned_games = 0        # +1 при выигрыше (набрал больше всех)
+    failed_games = 0        # +1 при проигрыше (если ушел в минус)
+    neutral_games = 0       # +1 при если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
 
     # игровые переменные
-    order = 0               # заказ в текущем кругу
-    take = 0                # взято в текущем кругу
-    scores = 0              # очки в текущем кругу
+    order = -1              # заказ в текущей партии
+    take = 0                # взято в текущей партии
+    scores = 0              # очки в текущей партии
     total_scores = 0        # общий счет в текущей игре на текущий момент
     cards = []              # карты на руках
-    order_cards = []        # карты, на которые сделан заказ (только ИИ)
+    order_cards = []        # карты, на которые сделан заказ (заполняется только у ИИ)
+    pass_counter = 0        # счетчик пасов, заказанных подряд
 
     def __init__(self, params=None):
         if params:

@@ -17,6 +17,7 @@ class Engine(object):
         self._strong_joker = options['strong_joker']                    # джокер играет строго по масти или нет (берет козыря, когда выдан за некозырную масть или нет)
         self._joker_major_lear = options['joker_major_lear']            # джокер может/нет требовать "по старшей карте масти"
         self._joker_minor_lear = options['joker_minor_lear']            # джокер может/нет требовать "по младшей карте масти"
+        self._joker_as_any_card = options['joker_as_any_card']          # джокер можно выдавать за любую карту или можешь только сказать "забираю/скидываю"
 
         # параметры для расчета очков
         self._base_fail_coef = -1                                       # базовый коэффициент для не взятой (недобора), мизера и прочих минусов (минусующий)
@@ -38,52 +39,100 @@ class Engine(object):
         self._started = False
         self._game_record = []          # таблица с записью хода игры
         self._deals = []                # массив раздач
-        self._step = 0                  # № шага (хода) в круге (шаг - это ход/заказ одного игрока, всего шагов 3 или 4 (по кол-ву игроков))
+        self._step = -1                 # № шага (хода) в круге (шаг - это ход/заказ одного игрока, всего шагов 3 или 4 (по кол-ву игроков))
         self._curr_deal = -1            # индекс текущей раздачи в массиве раздач
         self._table = []                # карты на столе
         self._curr_player = None        # игрок, чей сейчас ход
         self._trump = None              # козырная масть в текущем раунде
         self._is_bet = True             # определяет тип хода в круге - заказ (true) или ход картой (false)
         self._to_next_deal = True       # флаг, что нужно перейти к следующей раздаче в процедуре next
-        # self._can_stop = False          # флаг, что следующим ходом игра заканчивается
+        self._can_stop = False          # флаг, что следующим ходом игра заканчивается
         # self._prv_step = -1             # предыдущий шаг в круге
         self._take_player = None        # игрок, забравший взятку
         self._released_cards = []       # массив вышедших карт (для ИИ)
 
     def _inc_index(self, idx, max_val, increment=1):
-        idx += increment
-        if idx == max_val:
-            idx = 0
+        """
+        Циклическое приращение индекса (начинает с начала, если достиг максимума). Полезно для перебора игроков например.
+        Наращивает всегда по одному, проверяя на макс. значение каждый раз (даже если increment > 1).
+        Что позволяет пройти несколько кругов приращения
+        """
+
+        for _ in range(increment):
+            idx += 1
+            if idx >= max_val:
+                idx = 0
 
         return idx
 
+    def _enum_players(self, start=0):
+        """
+        Функция-итератор. Перебирает игроков по кругу 1 раз, начиная от переданного индекса, заканчивая предыдущим ему
+
+        :returns player:Player, index:int, is_last:bool
+        """
+
+        i = start
+
+        for x in range(self.party_size()):
+            yield self._players[i], i, x == self.party_size() - 1
+            i += 1
+
+            if i >= self.party_size() - 1:
+                i = 0
+
+    def _reset(self):
+        """ Сброс состояния внутренних переменных до начального """
+        self._started = False
+        self._game_record = []
+        self._deals = []
+        self._step = -1
+        self._curr_deal = -1
+        self._table = []
+        self._curr_player = None
+        self._trump = None
+        self._is_bet = True
+        self._to_next_deal = True
+        self._can_stop = False
+        # self._prv_step = -1
+        self._take_player = None
+        self._released_cards = []
+
     def _init_record(self):
+        """ Инициализирует таблицу игровых результатов, добавляет в нее одну строку - шапку """
+
         cap = {}
         fields = {'order': 'Заказ', 'take': 'Взятки', 'scores': 'Очки', 'total': 'Счет'}
 
-        for p in self.players:
+        for p in self._players:
             cap[f'{p.id}'] = fields
 
         self._game_record.append(cap)
 
     def _init_deals(self):
-        player_idx = random.randint(0, len(self.players))
+        """ Формирование очереди раздач на всю партию """
+
+        # Первым ходящим выбирается случайный игрок, а далее все по кругу
+        player_idx = random.randint(0, self.party_size())
+        max_player_cards = 36 / self.party_size()
 
         for dt in self._deal_types:
             if dt == const.DEAL_NORMAL_ASC:
-                for n in range(1, 37):
+                for n in range(1, max_player_cards + 1):
                     self._deals.append(Deal(player_idx, dt, n))
-                    player_idx = self._inc_index(player_idx, len(self.players))
+                    player_idx = self._inc_index(player_idx, self.party_size())
             elif dt == const.DEAL_NORMAL_DESC:
-                for n in range(36, 0, -1):
+                for n in range(max_player_cards, 0, -1):
                     self._deals.append(Deal(player_idx, dt, n))
-                    player_idx = self._inc_index(player_idx, len(self.players))
+                    player_idx = self._inc_index(player_idx, self.party_size())
             else:
-                for n in range(1, len(self.players) + 1):
-                    self._deals.append(Deal(player_idx, dt, 1 if dt == const.DEAL_BROW else 36))
-                    player_idx = self._inc_index(player_idx, len(self.players))
+                for n in range(1, len(self._players) + 1):
+                    self._deals.append(Deal(player_idx, dt, 1 if dt == const.DEAL_BROW else max_player_cards))
+                    player_idx = self._inc_index(player_idx, self.party_size())
 
     def _deal_cards(self):
+        """ Процедура раздачи карт в начале раунда + сброс некоторых переменных для нового раунда """
+
         self._curr_deal += 1
         self._to_next_deal = False
 
@@ -102,30 +151,155 @@ class Engine(object):
         # перетасуем колоду
         random.shuffle(deck)
 
-        # выберем козырь
+        # выберем козырь (тянем случайную карту из колоды)
         if deal.type_ == const.DEAL_NO_TRUMP:
             self._trump = const.LEAR_NOTHING
         else:
-            trump_idx = random.randrange(len(deck) + 1)
-            self._trump = deck[trump_idx].lear
+            card = random.randrange(len(deck) + 1)
 
-            if deal.cards < 36:
-                # раздаем не всю колоду, надо запомнить козырную для ИИ и убрать ее из колоды,
-                # т.к. по правилам она кладется на стол
-                self._released_cards.append(deck[trump_idx])
-                deck.pop(trump_idx)
+            if deck[card].joker:
+                # если вытянули джокера - то бескозырка
+                self._trump = const.LEAR_NOTHING
+            else:
+                self._trump = deck[card].lear
+
+            if deal.cards < 36 / self.party_size():
+                # если раздаем не всю колоду, надо запомнить козырную для ИИ и убрать ее из колоды,
+                # т.к. по правилам она кладется на стол и никому попасть не должна
+                self._released_cards.append(deck[card])
+                deck.pop(card)
+
+        # ну а теперь собственно раздадим карты, начинаем раздавать с первого игрока (определенного случайно при инициализации раздач)
+        for _ in range(deal.cards):
+            for player, pidx, last in self._enum_players(deal.player):
+                player.cards.append(deck.pop(0))
+
+    def _end_round(self):
+        pass
+
+    def _check_order(self, player, order):
+        """
+        Выполняет проверку, возможно ли этому игроку сделать такой заказ.
+
+        :return bool, message (сообщение с причиной, почему заказ невозможен)
+        """
+
+        if order < 0:
+            return False, 'Нельзя заказать отрицательное количество взяток'
+
+        if order > self._deals[self._curr_deal].cards:
+            return False, 'Нельзя заказать взяток больше, чем карт на руках'
+
+        # последний заказывающий не может заказать столько взяток, чтобы сумма всех заказов игроков была равна кол-ву карт на руках
+        if (self._step == self.party_size() - 1) and (
+            order + sum(p.order for p in self._players if p != player) == self._deals[self._curr_deal].cards):
+                return False, 'Сумма заказов всех игроков не может быть равна количеству карт на руках'
+
+        # если включена опция на ограничение трех пасов подряд, проверить
+        if self._third_pass_limit and order == 0 and player.pass_counter >= 2:
+            return False, 'Запрещено заказывать 3 паса подряд'
+
+        return True, None
+
+    def _check_beat(self, player, card):
+        """ Проверка, может ли этот игрок покрыть этой картой (это для случаев именно последующих за первым ходов) """
+
+        pass
 
     def start(self):
-        self._init_deals()
+        self._reset()
         self._init_record()
+        self._init_deals()
         self._deal_cards()
+        self._step = 0
         self._started = True
+        self.next()
 
     def stop(self):
-        pass
+        if self._started:
+            self._reset()
 
     def next(self):
+        if self._can_stop:
+            return
+
+        # если нужно перейти к следующему раунду
+        if self._to_next_deal:
+            self._end_round()
+            self._deal_cards()
+            self.next()
+            return
+
+        # если текущий ход одного из игроков-людей - ничего не делаем, ждем передачи хода
+        # (выполняется в процедуре give_walk, которая для человека будет дергаться извне)
+        if not self._players[self._curr_player].is_robot:
+            return
+
+        if self._is_bet:
+            # если сейчас этап заказов - делаем заказ и передаем ход следующему
+            self.make_order(self._players[self._curr_player], self._ai_calc_order())
+            self.give_walk()
+        else:
+            # сейчас этап ходов - делаем ход
+            if self._step == 0:
+                # если первый ход - вычислить, чем ходить и сделать ход
+                self.do_walk(self._players[self._curr_player].cards[self._ai_calc_walk()])
+            else:
+                # ход не первый - вычисляем, чем покрыть
+
+
+
+    def give_walk(self):
+        """ передача хода следующему игроку """
         pass
+
+    def make_order(self, player, order):
+        """
+        Фиксация заказа игрока. Выполняет проверки, что такой заказ допустим и записывает его игроку, если все ОК.
+        Если не ОК - вызывает исключение
+        """
+
+        can_make, cause = self._check_order(player, order)
+
+        if not can_make:
+            raise GameException(cause)
+
+        player.order = order
+
+        # актуализировать счетчик пасов
+        if order == 0:
+            player.pass_counter += 1
+        else:
+            player.pass_counter = 0
+
+    def do_walk(self, player, card_index):
+        """
+        Осуществить ход картой. Это именно заход первого игрока в круге
+
+        :param player: игрок (экзкмпляр Player)
+        :param card_index: индекс карты в картах игрока, которой ходим
+        """
+
+        if len(self._table) == self.party_size():
+            raise GameException('Все уже походили')
+
+        # извлечь карту у игрока
+        card = player.cards.pop(card_index)
+
+        # добавить карту в массивы вышедших и на стол
+        self._table.append(card)
+        self._released_cards.append(card)
+
+    def do_beat(self, player, card_index):
+        """
+        Покрыть карты на столе картой. Это ход, когда несколько карт уже лежат на столе
+
+        :param player: игрок (экзкмпляр Player)
+        :param card_index: индекс карты в картах игрока, которой ходим
+        """
+
+    def party_size(self):
+        return len(self._players)
 
     @property
     def players(self):
@@ -134,7 +308,7 @@ class Engine(object):
     @property.setter
     def set_players(self, players:list):
         if len(players) < 3:
-            raise GameException('Недостаточно игроков для начала игры!')
+            raise GameException('Недостаточно игроков для начала игры! Количество игроков не может быть меньше 3-х')
 
         if len(players) > 4:
             raise GameException('Игроков не может быть больше 4!')
@@ -148,3 +322,31 @@ class Engine(object):
             raise GameException('В игру не добавлено ни одного игрока-человека!')
 
         self._players = players
+
+    # --==** методы ИИ **==--
+
+    def _ai_calc_order(self) -> int:
+        """
+        Расчитывает заказ на текущий раунд. Возвращает кол-во взяток, которые предполагает взять.
+        Заполняет у игрока массив карт, на которые рассчитывает взять
+        """
+
+        pass
+
+    def _ai_calc_walk(self) -> int:
+        """
+        Вычисляет, чем походить. Для случаев, когда ходишь первый. Возвращает индекс карты в массиве карт игрока.
+        Если выберет джокера, то вернет объект, содержащий индекс карты и действия по джокеру: действие, за какую карту выдает,
+        требования, если есть.
+        """
+
+        pass
+
+    def _ai_calc_beat(self) -> int:
+        """
+        Вычисляет, чем покрыть карты на столе. Для случаев, когда ходишь НЕ первый. Возвращает индекс карты в массиве карт игрока.
+        Если выберет джокера, то вернет объект, содержащий индекс карты и действия по джокеру: действие, за какую карту выдает,
+        требования, если есть.
+        """
+
+        pass

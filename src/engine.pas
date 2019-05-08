@@ -2180,6 +2180,7 @@ var
   f: boolean;
   
 begin
+  // передача хода
   f := FBet;
   if FCurrStep = Length(Party) - 1 then
   begin
