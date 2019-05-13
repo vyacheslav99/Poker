@@ -40,6 +40,15 @@ class Card(object):
             return f'{const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]}'
 
 
+class TableItem(object):
+
+    def __init__(self, order, card, is_joker=False, joker_action=None):
+        self.order = order                  # Очередность хода, т.е. порядковый номер, которым была положена карта.
+        self.card = card                    # Карта. Для игровой логики, т.е. если реально ходили джокером, то это та карта, за которую он выдан
+        self.is_joker = is_joker            # Джокер это реально или нет. Если джокрер, то мы знаем, что реальная карта - 7 пик
+        self.joker_action = joker_action    # Действие джокером, в т.ч. и требования джокера
+
+
 class Player(object):
 
     id = None
