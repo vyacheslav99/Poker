@@ -209,16 +209,43 @@ class Engine(object):
         """ Проверка, может ли игрок покрыть этой картой (это для случаев именно последующих за первым ходов) """
 
         player = self._players[self._curr_player]
-        card = player.cards[card_index]
-        # todo: метод недописан
+        card = joker_opts.get('card', player.cards[card_index])
+        tbl_ordered = self._order_table()
 
-    def _compare_cards(self, card1, card2, is_joker, joker_action):
+        # если первый ход сделан джокером, проверим требование по старшей/младшей карте масти
+        if tbl_ordered[0][1].is_joker:
+            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MAX and card != player.max_card(tbl_ordered[0][1].card.lear):
+                return False, f'Вы обязаны положить самую большую {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
+            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MIN and card != player.min_card(tbl_ordered[0][1].card.lear):
+                return False, f'Вы обязаны положить самую маленькую {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
+
+        # Если масть карты не совпадает с мастью первой на столе/заказанной джокером, проверить, может ли игрок кинуть эту масть
+        if card.lear != tbl_ordered[0][1].card.lear:
+            if player.lear_exists(tbl_ordered[0][1].card.lear):
+                return False, f'Вы обязаны положить {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
+            elif player.lear_exists(self._trump):
+                return False, f'Вы обязаны положить козыря'
+
+        return True, None
+
+    def _compare_cards_ti(self, card_low:TableItem, card_top:TableItem):
         """
-        Определяет, какая из 2-х карт побила. Первой считается card1, card2 та, что ложат сверху.
-        Вернет True, если побила card2, False - если бьет card1
-        Параметры card1 и card2 на самом деле элементы игрового стола - экзкмпляры TableItem()
+        Определяет, какая из 2-х карт побила. Первой считается card_low, а card_top та, что ложат сверху.
+        Вернет True, если побила card_top, False - если бьет card_low.
         """
-        pass
+
+        if card_low.card.lear == card_top.card.lear:
+            # Если масти одинаковые, победила та, которая больше
+            if card_top.card.value > card_low.card.value:
+                return True
+            elif card_top.card.value < card_low.card.value:
+                return False
+            else:
+                # карты равны - значит одна из них джокер - она и бьет
+                return card_top.is_joker
+        else:
+            # Если масти разные, бьет козырная, а если ее нет - то card_low (т.к. ей ходили, а card_top - крыли)
+            return card_top.card.lear == self._trump
 
     def start(self):
         self._reset()
@@ -328,8 +355,19 @@ class Engine(object):
                 if i == 0:
                     self._take_player, max_card = item
                 else:
-                    if self._compare_cards(max_card, item[1]):
+                    if self._compare_cards_ti(max_card, item[1]):
                         self._take_player, max_card = item
+
+            # запишем побившему +1 взятку
+            self._players[self._take_player].take += 1
+
+    def prepare_joker(self, joker_card, joker_action):
+        """
+        Внешний метод для обработки опций джокера, прилетающих от клиента.
+        Преобразование в joker_opts и подбор карты для случаев, когда сказал - самая большая/маленькая и карту не назвал.
+        Подбор происходит согласно договоренностей на игру по поведению джокера
+        """
+        pass
 
     def party_size(self):
         return len(self._players)

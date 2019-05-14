@@ -99,3 +99,26 @@ class Player(object):
 
     def as_dict(self):
         return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__)}
+
+    def lear_exists(self, lear):
+        """ Проверяет, есть ли у игрока карты заданной масти. Вернет True/False """
+
+        for card in cards:
+            if not card.joker and card.lear == lear:
+                return True
+
+        return False
+
+    def gen_lear_range(self, lear):
+        """ Сформировать список карт игрока заданной масти, отсортированный в порядке возрастания """
+        return [card for card in self.cards if not card.joker and card.lear == lear].sort(lambda x: x.value)
+
+    def max_card(self, lear):
+        """ Выдать максимальную карту заданной масти """
+        lr = self.gen_lear_range(lear)
+        return lr[-1] if lr else None
+
+    def min_card(self, lear):
+        """ Выдать минимальную карту заданной масти """
+        lr = self.gen_lear_range(lear)
+        return lr[0] if lr else None
