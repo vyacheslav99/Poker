@@ -70,9 +70,9 @@ class Player(object):
     neutral_games = 0       # +1 при если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
 
     # игровые переменные
-    order = -1              # заказ в текущей партии
-    take = 0                # взято в текущей партии
-    scores = 0              # очки в текущей партии
+    order = -1              # заказ в текущем раунде
+    take = 0                # взято в текущем раунде
+    scores = 0              # очки в текущем раунде
     total_scores = 0        # общий счет в текущей игре на текущий момент
     cards = []              # карты на руках
     order_cards = []        # карты, на которые сделан заказ (заполняется только у ИИ)
@@ -111,7 +111,7 @@ class Player(object):
 
     def gen_lear_range(self, lear):
         """ Сформировать список карт игрока заданной масти, отсортированный в порядке возрастания """
-        return [card for card in self.cards if not card.joker and card.lear == lear].sort(lambda x: x.value)
+        return sorted([card for card in self.cards if not card.joker and card.lear == lear], key=lambda x: x.value)
 
     def max_card(self, lear):
         """ Выдать максимальную карту заданной масти """

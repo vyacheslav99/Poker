@@ -46,7 +46,6 @@ class Engine(object):
         self._trump = None              # козырная масть в текущем раунде
         self._is_bet = True             # определяет тип хода в круге - заказ (true) или ход картой (false)
         self._to_next_deal = True       # флаг, что нужно перейти к следующей раздаче в процедуре next
-        self._can_stop = False          # флаг, что следующим ходом игра заканчивается
         self._take_player = None        # игрок, забравший взятку
         self._released_cards = []       # массив вышедших карт (для ИИ)
 
@@ -96,7 +95,6 @@ class Engine(object):
         self._trump = None
         self._is_bet = True
         self._to_next_deal = True
-        self._can_stop = False
         self._take_player = None
         self._released_cards = []
 
@@ -104,10 +102,9 @@ class Engine(object):
         """ Инициализирует таблицу игровых результатов, добавляет в нее одну строку - шапку """
 
         cap = {}
-        fields = {'order': 'Заказ', 'take': 'Взятки', 'scores': 'Очки', 'total': 'Счет'}
 
         for p in self._players:
-            cap[f'{p.id}'] = fields
+            cap[f'{p.id}'] = {'order': 'Заказ', 'take': 'Взятки', 'scores': 'Очки', 'total': 'Счет'}
 
         self._game_record.append(cap)
 
@@ -135,13 +132,11 @@ class Engine(object):
     def _deal_cards(self):
         """ Процедура раздачи карт в начале раунда + сброс некоторых переменных для нового раунда """
 
+        if not self._started:
+            return
+
         self._curr_deal += 1
         self._to_next_deal = False
-
-        # если № раздачи превысил размер массива раздач - конец игре
-        if self._curr_deal >= len(self._deals):
-            self.stop()
-            return
 
         deal = self._deals[self._curr_deal]
         self._take_player = None
@@ -176,8 +171,40 @@ class Engine(object):
             for player, pidx, last in self._enum_players(deal.player):
                 player.cards.append(deck.pop(0))
 
+    def _calc_scores(self, player:Player):
+        """ Расчет очков за раунд у игрока """
+        # todo: сделать!
+        return 0
+
     def _end_round(self):
-        pass
+        """ Завершение раунда, подведение итогов """
+
+        # посчитать итоги раунда, записать в таблицу игры
+        rec = {}
+
+        for p in self._players:
+            p.scores = self._calc_scores(p)
+            p.total_scores += p.scores
+            rec[f'{p.id}'] = {'order': p.order, 'take': p.take, 'scores': p.scores, 'total': p.total_scores}
+
+        self._game_record.append(rec)
+
+        # обнулить переменные раунда
+        self._table = {}
+        self._released_cards = []
+
+        for p in self._players:
+            p.order = -1
+            p.take = 0
+            p.scores = 0
+            p.cards = []
+            p.order_cards = []
+            p.pass_counter = 0
+
+        # если это последняя раздача (на момент окончания раунда номер текущей раздачи еще не поднят, так что текущий номер
+        # раздачи будет именно номером отыгранной раздачи) - завершаем игру
+        if self._curr_deal >= len(self._deals) - 1:
+            self.stop()
 
     def _check_order(self, order):
         """
@@ -214,9 +241,11 @@ class Engine(object):
 
         # если первый ход сделан джокером, проверим требование по старшей/младшей карте масти
         if tbl_ordered[0][1].is_joker:
-            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MAX and card != player.max_card(tbl_ordered[0][1].card.lear):
+            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MAX and card != player.max_card(tbl_ordered[0][1].card.lear) \
+                and player.lear_exists(tbl_ordered[0][1].card.lear):
                 return False, f'Вы обязаны положить самую большую {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
-            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MIN and card != player.min_card(tbl_ordered[0][1].card.lear):
+            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MIN and card != player.min_card(tbl_ordered[0][1].card.lear) \
+                and player.lear_exists(tbl_ordered[0][1].card.lear):
                 return False, f'Вы обязаны положить самую маленькую {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
 
         # Если масть карты не совпадает с мастью первой на столе/заказанной джокером, проверить, может ли игрок кинуть эту масть
@@ -257,11 +286,11 @@ class Engine(object):
         self.next()
 
     def stop(self):
-        if self._started:
-            self._reset()
+        # todo: сделать!
+        self._started = False
 
     def next(self):
-        if self._can_stop:
+        if not self._started:
             return
 
         # если нужно перейти к следующему раунду
@@ -367,6 +396,7 @@ class Engine(object):
         Преобразование в joker_opts и подбор карты для случаев, когда сказал - самая большая/маленькая и карту не назвал.
         Подбор происходит согласно договоренностей на игру по поведению джокера
         """
+        # todo: сделать!
         pass
 
     def party_size(self):
@@ -402,6 +432,7 @@ class Engine(object):
         Заполняет у игрока массив карт, на которые рассчитывает взять
         """
 
+        # todo: сделать!
         pass
 
     def _ai_calc_walk(self) -> int:
@@ -411,6 +442,7 @@ class Engine(object):
         требования, если есть. Обязательно вернет какую-нибудь карту, т.к. игрок обязан походить
         """
 
+        # todo: сделать!
         pass
 
     def _ai_calc_beat(self) -> int:
@@ -420,4 +452,5 @@ class Engine(object):
         требования, если есть. Обязательно вернет какую-нибудь карту, т.к. игрок обязан походить
         """
 
+        # todo: сделать!
         pass
