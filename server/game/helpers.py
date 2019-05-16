@@ -77,6 +77,8 @@ class Player(object):
     cards = []              # карты на руках
     order_cards = []        # карты, на которые сделан заказ (заполняется только у ИИ)
     pass_counter = 0        # счетчик пасов, заказанных подряд
+    order_is_dark = False   # текущий заказ был сделан в темную или нет
+    success_counter = 0     # счетчик успешно сыгранных подряд игр
 
     def __init__(self, params=None):
         if params:

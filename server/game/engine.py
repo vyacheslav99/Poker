@@ -13,6 +13,8 @@ class Engine(object):
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (копеек)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
+        self._dark_allowed = options['dark_allowed']                    # вкл/выкл возможность заказывать в темную (в обычных раздачах)
+        self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
         self._no_joker = options['no_joker']                            # игра без джокеров вкл/выкл
         self._strong_joker = options['strong_joker']                    # джокер играет строго по масти или нет (берет козыря, когда выдан за некозырную масть или нет)
         self._joker_major_lear = options['joker_major_lear']            # джокер может/нет требовать "по старшей карте масти"
@@ -21,18 +23,17 @@ class Engine(object):
 
         # параметры для расчета очков
         self._base_fail_coef = -1                                       # базовый коэффициент для не взятой (недобора), мизера и прочих минусов (минусующий)
+        self._fail_subtract_all = options['fail_subtract_all']          # способ расчета при недоборе: True - минусовать весь заказ / False - минусовать только недостающие (разницу между заказом и взятыми)
         self._pass_factor = options['pass_factor']                      # очки за сыгранный пас
         self._take_factor = 10                                          # очки за сыгранную взятку в обычной игре
         self._gold_mizer_factor = options['gold_mizer_factor']          # очки за взятку на золотой/мизере
         self._dark_notrump_factor = options['dark_notrump_factor']      # очки за сыгранную взятку на темной/бескозырке
         self._brow_factor = options['brow_factor']                      # очки за сыгранную взятку на лобовой
         self._dark_mult = options['dark_mult']                          # множитель для темной
-        self._brow_mult = options['brow_mult']                          # множитель для лобовой
 
         # всякие штрафы/бонусы
         self._gold_mizer_on_null = options['gold_mizer_on_null']        # вкл/выкл штраф/бонус за 0 взяток на золоте/мизере
         self._on_all_order = options['on_all_order']                    # вкл/выкл бонус/штраф, если заказ = кол-ву карт в раунде и взял/не взял
-        self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
         self._take_block_bonus = options['take_block_bonus']            # вкл/выкл приемию за сыгранные все раунды блока
 
         # переменные внутреннего состояния
@@ -173,8 +174,66 @@ class Engine(object):
 
     def _calc_scores(self, player:Player):
         """ Расчет очков за раунд у игрока """
-        # todo: сделать!
-        return 0
+
+        scores = 0
+        deal_type = self._deals[self._curr_deal].type_
+        block_end = self._curr_deal == len(self._deals) - 1 or \
+                    self._deals[self._curr_deal].type_ != self._deals[self._curr_deal + 1].type_
+
+        # определяем базовый множитель за взятку
+        if deal_type in (const.DEAL_NORMAL_ASC, const.DEAL_NORMAL_FULL, const.DEAL_NORMAL_DESC):
+            take_factor = self._take_factor
+        elif deal_type in (const.DEAL_NO_TRUMP, const.DEAL_DARK):
+            take_factor = self._dark_notrump_factor
+        elif deal_type in (const.DEAL_GOLD, const.DEAL_MIZER):
+            take_factor = self._gold_mizer_factor
+        elif deal_type == const.DEAL_BROW:
+            take_factor = self._brow_factor
+
+        # считаем базовые очки
+        if deal_type in (const.DEAL_GOLD, const.DEAL_MIZER):
+            scores = player.take * take_factor
+        elif player.take == player.order:
+            player.success_counter += 1
+            if player.take == 0:
+                scores = self._pass_factor
+            else:
+                scores = player.take * take_factor
+        elif player.take > player.order:
+            scores = player.take
+        elif player.take < player.order:
+            if self._fail_subtract_all:
+                scores = player.order * take_factor
+            else:
+                scores = (player.order - player.take) * take_factor
+
+        # Доп. бонус за то, что успешно сыграл все игры блока. Его надо посчитать тут, перед умножением за темную
+        if self._take_block_bonus and block_end and player.success_counter == self.party_size():
+            scores += take_factor * self.party_size()
+
+        # умножить, если заказ в темную
+        if deal_type == const.DEAL_DARK or player.order_is_dark:
+            scores *= self._dark_mult
+
+        # дополнительные бонусы/штрафы
+        # за 0 взяток на золотой/мизере
+        if self._gold_mizer_on_null and deal_type in (const.DEAL_GOLD, const.DEAL_MIZER) and player.take == 0:
+            scores += take_factor * 5
+
+        # за заказ равный кол-ву карт в раздаче (кроме случаев, когда раздается одна карта)
+        if self._on_all_order and deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER, const.DEAL_BROW) and \
+            player.order == self._deals[self._curr_deal].cards and self._deals[self._curr_deal].cards > 1:
+            scores *= 2
+
+        # минусуем итог, если недобор/мизер/причие минусующие условия
+        if deal_type == const.DEAL_MIZER or (player.take < player.order and player.order > 0) or \
+            (deal_type == const.DEAL_GOLD and self._gold_mizer_on_null and player.take == 0):
+            scores *= self._base_fail_coef
+
+        if block_end:
+            player.success_counter = 0
+
+        return scores
 
     def _end_round(self):
         """ Завершение раунда, подведение итогов """
@@ -199,14 +258,14 @@ class Engine(object):
             p.scores = 0
             p.cards = []
             p.order_cards = []
-            p.pass_counter = 0
+            p.order_is_dark = False
 
         # если это последняя раздача (на момент окончания раунда номер текущей раздачи еще не поднят, так что текущий номер
         # раздачи будет именно номером отыгранной раздачи) - завершаем игру
         if self._curr_deal >= len(self._deals) - 1:
             self.stop()
 
-    def _check_order(self, order):
+    def _check_order(self, order, is_dark=False):
         """
         Выполняет проверку, возможно ли игроку сделать такой заказ.
 
@@ -220,6 +279,10 @@ class Engine(object):
             return False, 'Нельзя заказать взяток больше, чем карт на руках'
 
         player = self._players[self._curr_player]
+
+        # если заказывал в темную, проверить - разрешено или нет это в текущей игре
+        if is_dark and not self._dark_allowed:
+            return False, 'Возможность заказывать в темную запрещена в этой партии'
 
         # последний заказывающий не может заказать столько взяток, чтобы сумма всех заказов игроков была равна кол-ву карт на руках
         if (self._step == self.party_size() - 1) and (
@@ -307,7 +370,7 @@ class Engine(object):
 
         if self._is_bet:
             # если сейчас этап заказов - делаем заказ и передаем ход следующему
-            self.make_order(self._ai_calc_order())
+            self.make_order(*self._ai_calc_order())
         else:
             # сейчас этап ходов - делаем ход
             if self._step == 0:
@@ -340,19 +403,20 @@ class Engine(object):
 
         self._step = self._inc_index(self._step, self.party_size())
 
-    def make_order(self, order):
+    def make_order(self, order, is_dark=False):
         """
         Фиксация заказа игрока. Выполняет проверки, что такой заказ допустим и записывает его игроку, если все ОК.
         Если не ОК - вызывает исключение
         """
 
-        can_make, cause = self._check_order(order)
+        can_make, cause = self._check_order(order, is_dark)
 
         if not can_make:
             raise GameException(cause)
 
         player = self._players[self._curr_player]
         player.order = order
+        player.order_is_dark = is_dark
 
         # актуализировать счетчик пасов
         if order == 0:
@@ -428,12 +492,12 @@ class Engine(object):
 
     def _ai_calc_order(self) -> int:
         """
-        Расчитывает заказ на текущий раунд. Возвращает кол-во взяток, которые предполагает взять.
+        Расчитывает заказ на текущий раунд. Возвращает кол-во взяток, которые предполагает взять и в темную делается заказ или нет.
         Заполняет у игрока массив карт, на которые рассчитывает взять
         """
 
-        # todo: сделать!
-        pass
+        # todo: сделать! Для теста сделать пока случайный выбор из кол-ва карт на руках
+        return 0, False
 
     def _ai_calc_walk(self) -> int:
         """
@@ -442,8 +506,8 @@ class Engine(object):
         требования, если есть. Обязательно вернет какую-нибудь карту, т.к. игрок обязан походить
         """
 
-        # todo: сделать!
-        pass
+        # todo: сделать! Пока случайно
+        return 0, {}
 
     def _ai_calc_beat(self) -> int:
         """
@@ -452,5 +516,5 @@ class Engine(object):
         требования, если есть. Обязательно вернет какую-нибудь карту, т.к. игрок обязан походить
         """
 
-        # todo: сделать!
-        pass
+        # todo: сделать! Пока случайно
+        return 0, {}
