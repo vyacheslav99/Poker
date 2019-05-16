@@ -7,7 +7,7 @@ from server.http_server import HTTPServer
 
 
 def main():
-    # todo: Перенести это потом в ядро игры
+    # todo: Перенести это потом в модуль хранилища
     # if not os.path.exists(config.DOCUMENT_ROOT):
     #     os.makedirs(config.DOCUMENT_ROOT, exist_ok=True)
 
