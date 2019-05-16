@@ -2,8 +2,8 @@ import os
 import logging
 import argparse
 
-from core import config
-from core.http_server import HTTPServer
+from server import config
+from server.http_server import HTTPServer
 
 
 def main():

@@ -13,12 +13,12 @@ class Engine(object):
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (копеек)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
+        self._game_sum_by_diff = options['game_sum_by_diff']            # переключить подведение итогов игры: по разнице между игроками или по старшим очкам, что жопистее
         self._dark_allowed = options['dark_allowed']                    # вкл/выкл возможность заказывать в темную (в обычных раздачах)
         self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
         self._no_joker = options['no_joker']                            # игра без джокеров вкл/выкл
         self._strong_joker = options['strong_joker']                    # джокер играет строго по масти или нет (берет козыря, когда выдан за некозырную масть или нет)
-        self._joker_major_lear = options['joker_major_lear']            # джокер может/нет требовать "по старшей карте масти"
-        self._joker_minor_lear = options['joker_minor_lear']            # джокер может/нет требовать "по младшей карте масти"
+        self._joker_demand_peak = options['joker_demand_peak']          # джокер может/нет требовать "по старшей/младшей карте масти"
         self._joker_as_any_card = options['joker_as_any_card']          # джокер можно выдавать за любую карту или можешь только сказать "забираю/скидываю"
 
         # параметры для расчета очков
@@ -349,8 +349,10 @@ class Engine(object):
         self.next()
 
     def stop(self):
-        # todo: сделать!
         self._started = False
+
+        # подведем итоги игры
+
 
     def next(self):
         if not self._started:
