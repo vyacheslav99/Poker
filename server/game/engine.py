@@ -13,7 +13,7 @@ class Engine(object):
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (копеек)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
-        self._game_sum_by_diff = options['game_sum_by_diff']            # переключить подведение итогов игры: по разнице между игроками или по старшим очкам, что жопистее
+        self._game_sum_by_diff = options['game_sum_by_diff']            # переключить подведение итогов игры: по разнице между игроками (True) или по старшим очкам, что жопистее (False)
         self._dark_allowed = options['dark_allowed']                    # вкл/выкл возможность заказывать в темную (в обычных раздачах)
         self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
         self._no_joker = options['no_joker']                            # игра без джокеров вкл/выкл
@@ -352,7 +352,27 @@ class Engine(object):
         self._started = False
 
         # подведем итоги игры
+        for p in self._players:
+            # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
+            p.last_money = p.total_scores * self._bet / 100
 
+        # теперь взаиморасчеты: если считаем по разнице, то каждый игрок получает со всех, у кого меньше разницу между их суммой.
+        # Т.о. тут можно выити в плюс, даже если ты не выиграл;
+        # если считаем по старшему, то каждый, кроме выигравшего, отдает разницу между своими очками и выигравшим, выигравшему, но ничего ни с кого получает.
+        # Т.о. тут все в минусе и только выигравший в плюсе
+        ordered = sorted([(i, p.last_money) for i, p in enumerate(self._players)], key=lambda x: x[1], reverse=True)
+
+        for i in range(len(ordered)):
+            for j in range(i + 1, len(ordered)):
+                diff = ordered[i][1] - ordered[j][1]
+                self._players[ordered[i][0]].last_money += diff
+                self._players[ordered[j][0]].last_money -= diff
+
+            if not self._game_sum_by_diff:
+                break
+
+        for p in self._players:
+            p.total_money += p.last_money
 
     def next(self):
         if not self._started:
@@ -498,8 +518,18 @@ class Engine(object):
         Заполняет у игрока массив карт, на которые рассчитывает взять
         """
 
-        # todo: сделать! Для теста сделать пока случайный выбор из кол-ва карт на руках
-        return 0, False
+        # todo: сделать! Пока случайно
+        player = self._players[self._curr_player]
+
+        # todo: Не забудь, что надо будет еще заполнять order_cards
+        cnt = random.randint(round(len(player.cards) / 2))
+        is_dark = random.randint(100) < 10 if self._dark_allowed else False
+
+        while not self._check_order(cnt, is_dark):
+            cnt = random.randint(round(len(player.cards) / 2))
+            is_dark = random.randint(100) < 10 if self._dark_allowed else False
+
+        return cnt, is_dark
 
     def _ai_calc_walk(self) -> int:
         """
@@ -509,7 +539,15 @@ class Engine(object):
         """
 
         # todo: сделать! Пока случайно
-        return 0, {}
+        player = self._players[self._curr_player]
+        idx = random.randint(len(player.cards) - 1)
+
+        joker_opts = {
+            'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
+            'action': const.JOKER_BIGEST
+        } if player.cards[idx].joker else {}
+
+        return idx, joker_opts
 
     def _ai_calc_beat(self) -> int:
         """
@@ -519,4 +557,20 @@ class Engine(object):
         """
 
         # todo: сделать! Пока случайно
-        return 0, {}
+        player = self._players[self._curr_player]
+        idx = random.randint(len(player.cards) - 1)
+
+        joker_opts = {
+            'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
+            'action': const.JOKER_BIGEST
+        } if player.cards[idx].joker else {}
+
+        while not self._check_beat(idx, **joker_opts):
+            idx = random.randint(len(player.cards) - 1)
+
+            joker_opts = {
+                'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
+                'action': const.JOKER_BIGEST
+            } if player.cards[idx].joker else {}
+
+        return idx, joker_opts

@@ -58,7 +58,6 @@ class Player(object):
     is_robot = None
     risk_level = None
     level = None
-    money = 0
 
     # статистика
     total_money = 0         # сумма всех выигрышей
@@ -67,7 +66,8 @@ class Player(object):
     interrupted_games = 0   # +1 при прерывании игры
     winned_games = 0        # +1 при выигрыше (набрал больше всех)
     failed_games = 0        # +1 при проигрыше (если ушел в минус)
-    neutral_games = 0       # +1 при если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
+    neutral_games = 0       # +1 если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
+    last_money = 0          # сумма последнего выигрыша
 
     # игровые переменные
     order = -1              # заказ в текущем раунде
@@ -76,8 +76,8 @@ class Player(object):
     total_scores = 0        # общий счет в текущей игре на текущий момент
     cards = []              # карты на руках
     order_cards = []        # карты, на которые сделан заказ (заполняется только у ИИ)
-    pass_counter = 0        # счетчик пасов, заказанных подряд
     order_is_dark = False   # текущий заказ был сделан в темную или нет
+    pass_counter = 0        # счетчик пасов, заказанных подряд
     success_counter = 0     # счетчик успешно сыгранных подряд игр
 
     def __init__(self, params=None):
@@ -98,6 +98,7 @@ class Player(object):
         self.interrupted_games = params['interrupted']
         self.winned_games = params['winned']
         self.failed_games = params['failed']
+        self.last_money = params['last_money']
 
     def as_dict(self):
         return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__)}
