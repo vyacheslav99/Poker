@@ -44,36 +44,36 @@ class TableItem(object):
 
 class Player(object):
 
-    id = None
-    login = None
-    password = None
-    name = None
-    is_robot = None
-    risk_level = None
-    level = None
-
-    # статистика
-    total_money = 0         # сумма всех выигрышей
-    total_games = 0         # +1 в начале игры
-    completed_games = 0     # +1 при завершении игры (доведения игры до конца)
-    interrupted_games = 0   # +1 при прерывании игры
-    winned_games = 0        # +1 при выигрыше (набрал больше всех)
-    failed_games = 0        # +1 при проигрыше (если ушел в минус)
-    neutral_games = 0       # +1 если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
-    last_money = 0          # сумма последнего выигрыша
-
-    # игровые переменные
-    order = -1              # заказ в текущем раунде
-    take = 0                # взято в текущем раунде
-    scores = 0              # очки в текущем раунде
-    total_scores = 0        # общий счет в текущей игре на текущий момент
-    cards = []              # карты на руках
-    order_cards = []        # карты, на которые сделан заказ (заполняется только у ИИ)
-    order_is_dark = False   # текущий заказ был сделан в темную или нет
-    pass_counter = 0        # счетчик пасов, заказанных подряд
-    success_counter = 0     # счетчик успешно сыгранных подряд игр
-
     def __init__(self, params=None):
+        self.id = None
+        self.login = None
+        self.password = None
+        self.name = None
+        self.is_robot = None
+        self.risk_level = None
+        self.level = None
+
+        # статистика
+        self.total_money = 0            # сумма всех выигрышей
+        self.total_games = 0            # +1 в начале игры
+        self.completed_games = 0        # +1 при завершении игры (доведения игры до конца)
+        self.interrupted_games = 0      # +1 при прерывании игры
+        self.winned_games = 0           # +1 при выигрыше (набрал больше всех)
+        self.failed_games = 0           # +1 при проигрыше (если ушел в минус)
+        self.neutral_games = 0          # +1 если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
+        self.last_money = 0             # сумма последнего выигрыша
+
+        # игровые переменные
+        self.order = -1                 # заказ в текущем раунде
+        self.take = 0                   # взято в текущем раунде
+        self.scores = 0                 # очки в текущем раунде
+        self.total_scores = 0           # общий счет в текущей игре на текущий момент
+        self.cards = []                 # карты на руках
+        self.order_cards = []           # карты, на которые сделан заказ (заполняется только у ИИ)
+        self.order_is_dark = False      # текущий заказ был сделан в темную или нет
+        self.pass_counter = 0           # счетчик пасов, заказанных подряд
+        self.success_counter = 0        # счетчик успешно сыгранных подряд игр
+
         if params:
             self.from_dict(params)
 
@@ -119,6 +119,13 @@ class Player(object):
         lr = self.gen_lear_range(lear)
         return lr[0] if lr else None
 
+    def __str__(self):
+        if self.is_robot:
+            s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
+        else:
+            s = 'Человек'
+
+        return f'{self.name} ({s})'
 
 class Deal(object):
 

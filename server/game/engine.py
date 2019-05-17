@@ -19,7 +19,6 @@ class Engine(object):
         self._no_joker = options['no_joker']                            # игра без джокеров вкл/выкл
         self._strong_joker = options['strong_joker']                    # джокер играет строго по масти или нет (берет козыря, когда выдан за некозырную масть или нет)
         self._joker_demand_peak = options['joker_demand_peak']          # джокер может/нет требовать "по старшей/младшей карте масти"
-        self._joker_as_any_card = options['joker_as_any_card']          # джокер можно выдавать за любую карту или можешь только сказать "забираю/скидываю"
 
         # параметры для расчета очков
         self._base_fail_coef = -1                                       # базовый коэффициент для не взятой (недобора), мизера и прочих минусов (минусующий)
@@ -113,7 +112,7 @@ class Engine(object):
         """ Формирование очереди раздач на всю партию """
 
         # Первым ходящим выбирается случайный игрок, а далее все по кругу
-        player_idx = random.randint(0, self.party_size())
+        player_idx = random.randint(0, self.party_size() - 1)
         max_player_cards = round(36 / self.party_size())
 
         for dt in self._deal_types:
@@ -353,9 +352,9 @@ class Engine(object):
         self._reset()
         self._init_record()
         self._init_deals()
-        self._deal_cards()
         self._step = 0
         self._started = True
+        self._deal_cards()
         self.next()
 
     def stop(self):
@@ -500,8 +499,8 @@ class Engine(object):
     def players(self):
         return self._players
 
-    @property.setter
-    def set_players(self, players:list):
+    @players.setter
+    def players(self, players:list):
         if len(players) < 3:
             raise GameException('Недостаточно игроков для начала игры! Количество игроков не может быть меньше 3-х')
 
