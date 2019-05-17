@@ -8,10 +8,10 @@ from game.helpers import GameException, Player, Deal, Card, TableItem
 
 class Engine(object):
 
-    def __init__(self, players:list, bet:float, **options):
+    def __init__(self, players:list, bet:int, **options):
         # игроки и опции игры
         self.players = players                                          # список игроков, экземпляры Player
-        self._bet = bet                                                 # ставка на игру (копеек)
+        self._bet = bet                                                 # ставка на игру (стоимость одного очка в копейках)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
         self._game_sum_by_diff = options['game_sum_by_diff']            # переключить подведение итогов игры: по разнице между игроками (True) или по старшим очкам, что жопистее (False)
         self._dark_allowed = options['dark_allowed']                    # вкл/выкл возможность заказывать в темную (в обычных раздачах)
@@ -114,7 +114,7 @@ class Engine(object):
 
         # Первым ходящим выбирается случайный игрок, а далее все по кругу
         player_idx = random.randint(0, self.party_size())
-        max_player_cards = 36 / self.party_size()
+        max_player_cards = round(36 / self.party_size())
 
         for dt in self._deal_types:
             if dt == const.DEAL_NORMAL_ASC:
@@ -145,7 +145,7 @@ class Engine(object):
         self._is_bet = deal.type_ not in (const.DEAL_MIZER, const.DEAL_GOLD)
 
         # сформируем колоду для раздачи
-        deck = [Card(l, v) for l in range(4) for v in range(6, 15)]
+        deck = [Card(l, v, is_joker=v == 7 and l == const.LEAR_SPADES and not self._no_joker) for l in range(4) for v in range(6, 15)]
         # перетасуем колоду
         random.shuffle(deck)
 
@@ -176,6 +176,7 @@ class Engine(object):
         """ Расчет очков за раунд у игрока """
 
         scores = 0
+        detailed = []
         deal_type = self._deals[self._curr_deal].type_
         block_end = self._curr_deal == len(self._deals) - 1 or \
                     self._deals[self._curr_deal].type_ != self._deals[self._curr_deal + 1].type_
@@ -207,33 +208,40 @@ class Engine(object):
             else:
                 scores = (player.order - player.take) * take_factor
 
-        # Доп. бонус за то, что успешно сыграл все игры блока. Его надо посчитать тут, перед умножением за темную
-        if self._take_block_bonus and block_end and player.success_counter == self.party_size():
-            scores += take_factor * self.party_size()
-
         # умножить, если заказ в темную
         if deal_type == const.DEAL_DARK or player.order_is_dark:
             scores *= self._dark_mult
 
         # дополнительные бонусы/штрафы
-        # за 0 взяток на золотой/мизере
-        if self._gold_mizer_on_null and deal_type in (const.DEAL_GOLD, const.DEAL_MIZER) and player.take == 0:
-            scores += take_factor * 5
-
         # за заказ равный кол-ву карт в раздаче (кроме случаев, когда раздается одна карта)
         if self._on_all_order and deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER, const.DEAL_BROW) and \
             player.order == self._deals[self._curr_deal].cards and self._deals[self._curr_deal].cards > 1:
             scores *= 2
 
+        detailed.append(scores)
+
+        # за 0 взяток на золотой/мизере
+        if self._gold_mizer_on_null and deal_type in (const.DEAL_GOLD, const.DEAL_MIZER) and player.take == 0:
+            x = take_factor * 5
+            scores += x
+            detailed.append(x)
+
+        # Доп. бонус за то, что успешно сыграл все игры блока
+        if self._take_block_bonus and block_end and player.success_counter == self.party_size():
+            x = take_factor * self.party_size() * (self._dark_mult if deal_type == const.DEAL_DARK or player.order_is_dark else 1)
+            scores += x
+            detailed.append(x)
+
         # минусуем итог, если недобор/мизер/причие минусующие условия
         if deal_type == const.DEAL_MIZER or (player.take < player.order and player.order > 0) or \
             (deal_type == const.DEAL_GOLD and self._gold_mizer_on_null and player.take == 0):
             scores *= self._base_fail_coef
+            detailed[0] *= self._base_fail_coef
 
         if block_end:
             player.success_counter = 0
 
-        return scores
+        return scores, detailed
 
     def _end_round(self):
         """ Завершение раунда, подведение итогов """
@@ -242,9 +250,11 @@ class Engine(object):
         rec = {}
 
         for p in self._players:
-            p.scores = self._calc_scores(p)
+            p.scores, detailed = self._calc_scores(p)
             p.total_scores += p.scores
-            rec[f'{p.id}'] = {'order': p.order, 'take': p.take, 'scores': p.scores, 'total': p.total_scores}
+            det_str = ' + '.join([str(s) for s in detailed]) if len(detailed) > 1 else ''
+            scores_str = '{0}{1}'.format(p.scores, f' ({det_str})' if det_str else '')
+            rec[f'{p.id}'] = {'order': p.order, 'take': p.take, 'scores': scores_str, 'total': p.total_scores}
 
         self._game_record.append(rec)
 
@@ -476,14 +486,12 @@ class Engine(object):
             # запишем побившему +1 взятку
             self._players[self._take_player].take += 1
 
-    def prepare_joker(self, joker_card, joker_action):
-        """
-        Внешний метод для обработки опций джокера, прилетающих от клиента.
-        Преобразование в joker_opts и подбор карты для случаев, когда сказал - самая большая/маленькая и карту не назвал.
-        Подбор происходит согласно договоренностей на игру по поведению джокера
-        """
-        # todo: сделать!
-        pass
+    def get_status(self):
+        """ Возвращает текущее состояние игры, для клиента, в виде словаря """
+        return {}
+
+    def started(self):
+        return self._started
 
     def party_size(self):
         return len(self._players)
@@ -497,8 +505,8 @@ class Engine(object):
         if len(players) < 3:
             raise GameException('Недостаточно игроков для начала игры! Количество игроков не может быть меньше 3-х')
 
-        if len(players) > 4:
-            raise GameException('Игроков не может быть больше 4!')
+        if len(players) > 35:
+            raise GameException('Игроков не может быть больше кол-ва карт в колоде - 1 (на козыря), т.е. 35!')
 
         c = len(players)
         for player in players:
@@ -522,12 +530,12 @@ class Engine(object):
         player = self._players[self._curr_player]
 
         # todo: Не забудь, что надо будет еще заполнять order_cards
-        cnt = random.randint(round(len(player.cards) / 2))
-        is_dark = random.randint(100) < 10 if self._dark_allowed else False
+        cnt = random.randint(0, round(len(player.cards) / 2))
+        is_dark = random.randint(0, 100) < 10 if self._dark_allowed else False
 
         while not self._check_order(cnt, is_dark):
-            cnt = random.randint(round(len(player.cards) / 2))
-            is_dark = random.randint(100) < 10 if self._dark_allowed else False
+            cnt = random.randint(0, round(len(player.cards) / 2))
+            is_dark = random.randint(0, 100) < 10 if self._dark_allowed else False
 
         return cnt, is_dark
 
@@ -540,7 +548,7 @@ class Engine(object):
 
         # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
-        idx = random.randint(len(player.cards) - 1)
+        idx = random.randint(0, len(player.cards) - 1)
 
         joker_opts = {
             'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
@@ -558,7 +566,7 @@ class Engine(object):
 
         # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
-        idx = random.randint(len(player.cards) - 1)
+        idx = random.randint(0, len(player.cards) - 1)
 
         joker_opts = {
             'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
@@ -566,7 +574,7 @@ class Engine(object):
         } if player.cards[idx].joker else {}
 
         while not self._check_beat(idx, **joker_opts):
-            idx = random.randint(len(player.cards) - 1)
+            idx = random.randint(0, len(player.cards) - 1)
 
             joker_opts = {
                 'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),

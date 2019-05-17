@@ -7,13 +7,6 @@ class GameException(Exception):
     pass
 
 
-class Deal(object):
-
-    def __init__(self, player:Player, type_:int, cards:int):
-        self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
-        self.type_ = type_      # тип раздачи
-        self.cards = cards      # количество карт, раздаваемых одному игроку
-
 class Card(object):
 
     def __init__(self, lear:int, value:int, is_joker=False):
@@ -125,3 +118,11 @@ class Player(object):
         """ Выдать минимальную карту заданной масти """
         lr = self.gen_lear_range(lear)
         return lr[0] if lr else None
+
+
+class Deal(object):
+
+    def __init__(self, player:Player, type_:int, cards:int):
+        self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
+        self.type_ = type_      # тип раздачи
+        self.cards = cards      # количество карт, раздаваемых одному игроку
