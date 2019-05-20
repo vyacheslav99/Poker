@@ -165,6 +165,14 @@ class Game():
         print('Удвоение очков при заказе всех карт: {0}'.format('Включено' if self.options['on_all_order'] else 'Отключено'))
         print('Премя за сыгранные все игры блока: {0}'.format('Включена' if self.options['take_block_bonus'] else 'Отключена'))
 
+    def print_round_info(self, ge):
+        """ Вывести: Номер и название раздачи, кол-во карт, козырь """
+        self.skip_lines(1)
+        d = ge.current_deal()
+        print(f'Раздача {const.DEAL_NAMES[d.type_]} < по {d.cards} >')
+        print('Козырь: {0}'.format('нет' if ge.trump() == const.LEAR_NOTHING else const.LEAR_NAMES[ge.trump()]))
+        print(f'Первый ходит: {d.player.name}')
+
     def go(self):
         try:
             while True:
@@ -183,12 +191,18 @@ class Game():
                 except Exception as e:
                     print('Ну блин, что за лажа? Теперь начинать заново')
 
-            game = engine.Engine(self.players, self.bet, **self.options)
-            game.start()
+            is_new_round = True  # первый круг после начала раунда
+            ge = engine.Engine(self.players, self.bet, **self.options)
+            ge.start()
 
-            while game.started():
-                s = game.get_status()
+            while ge.started():
+                if is_new_round:
+                    is_new_round = False
+                    self.print_round_info(ge)
 
+                if ge.status() == const.EXT_STATE_WALKS:
+                    if ge.is_bet():
+                        pass
         except KeyboardInterrupt:
             return
 

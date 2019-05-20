@@ -48,6 +48,7 @@ class Engine(object):
         self._to_next_deal = True       # флаг, что нужно перейти к следующей раздаче в процедуре next
         self._take_player = None        # игрок, забравший взятку
         self._released_cards = []       # массив вышедших карт (для ИИ)
+        self._status = None             # текущий статус для внешних интерфейсов (Заказ ИИ, Ожидание заказа человека, ход ии и т.д.)
 
     def _inc_index(self, idx, max_val, increment=1):
         """
@@ -86,6 +87,7 @@ class Engine(object):
     def _reset(self):
         """ Сброс состояния внутренних переменных до начального """
         self._started = False
+        self._status = const.EXT_STATE_DEAL
         self._game_record = []
         self._deals = []
         self._step = -1
@@ -389,10 +391,21 @@ class Engine(object):
 
         # если нужно перейти к следующему раунду
         if self._to_next_deal:
-            self._end_round()
-            self._deal_cards()
-            self.next()
+            if self._status == const.EXT_STATE_ROUND_PAUSE:
+                # сделать паузу, чтоб пользователь мог посмотреть результаты раунда
+                self._status = const.EXT_STATE_DEAL
+                self._end_round()
+            else:
+                self._deal_cards()
+                self.next()
             return
+
+        if self._status == const.EXT_STATE_LAP_PAUSE:
+            # сделать паузу, чтоб пользователь мог посмотреть результаты круга
+            self._status = const.EXT_STATE_WALKS
+            return
+        else:
+            self._status = const.EXT_STATE_WALKS
 
         # если текущий ход одного из игроков-людей - ничего не делаем, ждем передачи хода
         # (выполняется в процедуре give_walk, которая для человека будет дергаться извне)
@@ -426,6 +439,9 @@ class Engine(object):
             else:
                 if len(self._players[self._curr_player].cards) == 0:
                     self._to_next_deal = True
+                    self._status = const.EXT_STATE_ROUND_PAUSE
+                else:
+                    self._status = const.EXT_STATE_LAP_PAUSE
 
         if self._take_player is not None:
             self._curr_player = self._take_player
@@ -485,12 +501,36 @@ class Engine(object):
             # запишем побившему +1 взятку
             self._players[self._take_player].take += 1
 
-    def get_status(self):
-        """ Возвращает текущее состояние игры, для клиента, в виде словаря """
-        return {}
-
     def started(self):
         return self._started
+
+    def current_deal(self):
+        self._deals[self._curr_deal]
+
+    def trump(self):
+        return self._trump
+
+    def table(self):
+        return self._table
+
+    def walk_player(self):
+        """ Кто сейчас ходит """
+        return self._curr_player, self.players[self._curr_player]
+
+    def take_player(self):
+        """ Кто взял в круге """
+        return self._take_player, self.players[self._take_player]
+
+    def status(self):
+        """ Текущее состояние игры для внешних клиентов (const.EXT_STATE_)"""
+        return self._status
+
+    def is_bet(self):
+        return self._is_bet
+
+    def get_record(self):
+        """ Таблица игры """
+        return self._game_record
 
     def party_size(self):
         return len(self._players)
