@@ -202,7 +202,23 @@ class Game():
 
                 if ge.status() == const.EXT_STATE_WALKS:
                     if ge.is_bet():
+                        print('Делаем заказы на раунд')
+                        n, p = ge.walk_player()
+
+                        for i, pl in enumerate(ge.players):
+                            if i != n and pl.order > -1:
+                                print(f'{pl.name}: {pl.order}')
+
+                        while True:
+                            order = self.ask(f'{p.name}, твой заказ:')
+                            try:
+                                ge.make_order(order)
+                                break
+                            except helpers.GameException as e:
+                                print(e)
+                    else:
                         pass
+
         except KeyboardInterrupt:
             return
 

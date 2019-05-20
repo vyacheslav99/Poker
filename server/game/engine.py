@@ -522,7 +522,6 @@ class Engine(object):
         return self._take_player, self.players[self._take_player]
 
     def status(self):
-        """ Текущее состояние игры для внешних клиентов (const.EXT_STATE_)"""
         return self._status
 
     def is_bet(self):
