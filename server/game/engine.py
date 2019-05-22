@@ -561,6 +561,10 @@ class Engine(object):
             return [(self._players[x[0]], x[0]) for x in self._order_table()]
 
     @property
+    def dark_allowed(self):
+        return self._dark_allowed
+
+    @property
     def players(self):
         return self._players
 
@@ -590,15 +594,37 @@ class Engine(object):
         Заполняет у игрока массив карт, на которые рассчитывает взять
         """
 
-        # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
         can = False
+        coef = 0
+        coef2 = 1
 
         while not can:
-            # todo: Не забудь, что надо будет еще заполнять order_cards
-            cnt = random.randint(0, round(len(player.cards) / 2) + 1)
-            is_dark = random.randint(0, 100) < 10 if self._dark_allowed else False
+            # учесть еще уровень риска
+            is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
+
+            if is_dark:
+                cnt = random.randint(0, round(len(player.cards) / 2) + 1)
+            else:
+                cnt = 0 + coef
+
+                # если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10
+                # сразу не глядя прикрыта или нет. В бескозырке В 10 если только прикрыты
+                # это для среднего уровня риска, остальные соотв. +1/-1
+                limit = 11
+
+                for c in player.cards:
+                    if (c.value > limit) or (c.lear == self._trump and c.value + 2 > limit):  # + заказ на джокера
+                        player.order_cards.append(c)
+                        cnt += 1
+
             can, _ = self._check_order(cnt, is_dark)
+
+            if not can:
+                if cnt >= len(player.cards):
+                    coef2 = -1  # еще доп. учесть +/- в зависимости от уровня риска
+
+                coef += coef2
 
         return cnt, is_dark
 
@@ -609,14 +635,29 @@ class Engine(object):
         требования, если есть. Обязательно вернет какую-нибудь карту, т.к. игрок обязан походить
         """
 
-        # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
-        idx = random.randint(0, len(player.cards) - 1)
 
-        joker_opts = {
-            'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
-            'action': const.JOKER_BIGEST
-        } if player.cards[idx].joker and not self._no_joker else {}
+        # Т.к. карты уже отсортированы по убыванию, задача упрошается
+        # вобще надо будет сделать у игрока методы, возвращающие мин и макс карты без учета масти, чисто по значениям
+        if player.order != player.take:
+            # или еще не набрал или уже перебрал - надо брать
+            cands = [(i, c) for i, c in enumerate(player.cards) if c in player.order_cards]
+
+            if not cands:
+                cands = [(i, c) for i, c in enumerate(player.cards)]
+
+            idx = cands[0][0]
+        else:
+            # взято свое - надо скинуть
+            idx = [(i, c) for i, c in enumerate(player.cards)][-1][0]
+
+        # idx = random.randint(0, len(player.cards) - 1)
+
+        joker_opts = {}  # пока так
+        # joker_opts = {
+        #     'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
+        #     'action': const.JOKER_BIGEST
+        # } if player.cards[idx].joker and not self._no_joker else {}
 
         return idx, joker_opts
 
@@ -627,18 +668,40 @@ class Engine(object):
         требования, если есть. Обязательно вернет какую-нибудь карту, т.к. игрок обязан походить
         """
 
-        # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
+        tbl_ordered = self._order_table()
         can = False
+        iter_limit = 100
 
         while not can:
-            idx = random.randint(0, len(player.cards) - 1)
+            # idx = random.randint(0, len(player.cards) - 1)
 
-            joker_opts = {
-                'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
-                'action': const.JOKER_BIGEST
-            } if player.cards[idx].joker and not self._no_joker else {}
+            if player.order != player.take:
+                # или еще не набрал или уже перебрал - надо брать
+                c = player.max_card(tbl_ordered[0][1].card.lear)
+                if not c:
+                    c = player.max_card(self._trump)
+                if not c and iter_limit > 0:
+                    ccc = [c for c in player.cards if c not in player.order_cards]
+                    c = random.choice([c for c in ccc]) if ccc else None
+                    iter_limit -= 1
+                if not c:
+                    c = random.choice([c for c in player.cards])
+            else:
+                # свое взято - надо сливать
+                c = player.min_card(tbl_ordered[0][1].card.lear)
+                if not c:
+                    c = player.min_card(self._trump)
+                if not c:
+                    c = random.choice([c for c in player.cards])
 
+            joker_opts = {}  # пока так
+            # joker_opts = {
+            #     'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
+            #     'action': const.JOKER_BIGEST
+            # } if player.cards[idx].joker and not self._no_joker else {}
+
+            idx = player.cards.index(c)
             can, _ = self._check_beat(idx, **joker_opts)
 
         return idx, joker_opts

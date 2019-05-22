@@ -45,13 +45,13 @@ class Game():
                 self.players.append(helpers.Player())
                 self.players[i].id = i
                 self.players[i].is_robot = False
-                self.players[i].name = self.ask('Как звать-то тебя?')
+                self.players[i].name = self.ask('Как звать-то тебя?') or 'дон Педрилло'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:
                 self.players.append(helpers.Player())
                 self.players[i].id = i
-                self.players[i].is_robot = self.ask(f'Игрок {i+1} человек (д/Н)?').lower() != 'д'
+                self.players[i].is_robot = self.ask(f'Игрок {i+1} человек (д/Н)?').lower() not in ('д', 'y')
                 self.players[i].name = self.ask(f'И как его зовут (по умолчанию "Игрок {i+1}")?') or f'Игрок {i+1}'
                 if self.players[i].is_robot:
                     self.players[i].risk_level = random.randint(0, 2)
@@ -70,13 +70,13 @@ class Game():
         # 3. Раздачи
         self.options = {}
 
-        if self.ask('Хочешь выбрать, какие раздачи будут в игре (по умолчанию будут присутсвовать все) (д/Н)?').lower() == 'д':
+        if self.ask('Хочешь выбрать, какие раздачи будут в игре (по умолчанию будут присутсвовать все) (д/Н)?').lower() in ('д', 'y'):
             print('Сейчас будут перечисляться названия раздач. Если надо исключить какую-то - отвечай "н", иначе она будет включена')
             self.skip_lines(1)
             deals = []
 
             for n in range(len(const.DEAL_NAMES)):
-                if n == 1 or self.ask(const.DEAL_NAMES[n]).lower() != 'н':
+                if n == 1 or self.ask(const.DEAL_NAMES[n]).lower() not in ('н', 'n'):
                     deals.append(n)
         else:
             deals = [n for n in range(len(const.DEAL_NAMES))]
@@ -85,26 +85,26 @@ class Game():
         print('Включены раздачи: {0}'.format(', '.join([const.DEAL_NAMES[n] for n in deals])))
         self.skip_lines(1)
 
-        if self.ask('Хочешь настроить остальные договоренности (д) или установить стандартные (Н)?').lower() != 'д':
+        if self.ask('Хочешь настроить остальные договоренности (д) или установить стандартные (Н)?').lower() not in ('д', 'y'):
             self.set_default()
             return
 
         # 4. Опции игры
         self.options['game_sum_by_diff'] = self.ask('Как будем считать итоги игры? Все отдают друг другу ("1") или все отдают тому, кто больше набрал ("2")?') == '1'
         print('Подсчет итогов: {0}'.format('Все расчитываются со всеми' if self.options['game_sum_by_diff'] else 'Все отдают тому, у кого больше всех'))
-        self.options['dark_allowed'] = self.ask('Разрешить заказывать в темную? (Д/н)').lower() != 'н'
+        self.options['dark_allowed'] = self.ask('Разрешить заказывать в темную? (Д/н)').lower() not in ('н', 'n')
         print('Заказ в темную: {0}'.format('Разрешен' if self.options['dark_allowed'] else 'Запрещен'))
-        self.options['third_pass_limit'] = self.ask('Включить ограничение на 3 паса подряд? (д/Н)').lower() == 'д'
+        self.options['third_pass_limit'] = self.ask('Включить ограничение на 3 паса подряд? (д/Н)').lower() in ('д', 'y')
         print('Ограничение на 3 паса подряд: {0}'.format('Включено' if self.options['third_pass_limit'] else 'Не ограничено'))
         self.options['fail_subtract_all'] = self.ask('Как считать недоборы: вычитать весь заказ ("1") или вычитать разницу между заказом и взятым ("2"?').lower() == '1'
         print('Вычет недоборов: {0}'.format('Весь заказ' if self.options['fail_subtract_all'] else 'Разница между заказом и взятым'))
-        self.options['no_joker'] = self.ask('Играем с джокером? (Д/н)').lower() == 'н'
+        self.options['no_joker'] = self.ask('Играем с джокером? (Д/н)').lower() in ('н', 'n')
         print('Джокер в игре: {0}'.format('Отключен' if self.options['no_joker'] else 'Включен'))
 
         if not self.options['no_joker']:
-            self.options['strong_joker'] = self.ask('Джокер играет строго по масти (не бьет козыря, если он не выдан за козыря)? (Д/н)').lower() != 'н'
+            self.options['strong_joker'] = self.ask('Джокер играет строго по масти (не бьет козыря, если он не выдан за козыря)? (Д/н)').lower() not in ('н', 'n')
             print('Джокер строго по масти: {0}'.format('Да' if self.options['strong_joker'] else 'Нет'))
-            self.options['joker_demand_peak'] = self.ask('Джокер может требовать выдать "по старшей / младшей карте масти"? (Д/н)').lower() != 'н'
+            self.options['joker_demand_peak'] = self.ask('Джокер может требовать выдать "по старшей / младшей карте масти"? (Д/н)').lower() not in ('н', 'n')
             print('Джокер может требовать старшую/младшую: {0}'.format('Да' if self.options['joker_demand_peak'] else 'Нет'))
         else:
             self.options['strong_joker'] = False
@@ -124,11 +124,11 @@ class Game():
         self.options['dark_mult'] = int(self.ask('Умножать очки при заказе в темную на (2):') or 2)
         print(f"При заказе в темную очки умножаются на: {self.options['dark_mult']}")
 
-        self.options['gold_mizer_on_null'] = self.ask('Включить премию/штраф за 0 взяток на мизере/золотой? (Д/н)').lower() != 'н'
+        self.options['gold_mizer_on_null'] = self.ask('Включить премию/штраф за 0 взяток на мизере/золотой? (Д/н)').lower() not in ('н', 'n')
         print('Премия/штраф за 0 взяток на мизере/золотой: {0}'.format('Включена' if self.options['gold_mizer_on_null'] else 'Отключена'))
-        self.options['on_all_order'] = self.ask('Удваивать очки если заказ равен кол-ву карт (кроме одной)? (Д/н)').lower() != 'н'
+        self.options['on_all_order'] = self.ask('Удваивать очки если заказ равен кол-ву карт (кроме одной)? (Д/н)').lower() not in ('н', 'n')
         print('Удвоение очков при заказе всех карт: {0}'.format('Включено' if self.options['on_all_order'] else 'Отключено'))
-        self.options['take_block_bonus'] = self.ask('Включить премию за то, что взял заказ во всех раундах блока? (Д/н)').lower() != 'н'
+        self.options['take_block_bonus'] = self.ask('Включить премию за то, что взял заказ во всех раундах блока? (Д/н)').lower() not in ('н', 'n')
         print('Премя за сыгранные все игры блока: {0}'.format('Включена' if self.options['take_block_bonus'] else 'Отключена'))
 
     def skip_lines(self, n):
@@ -202,6 +202,10 @@ class Game():
                     info = self.game.table()[p[1]].card
                 print(f'{p[0].name}: {info}')
 
+    def print_order_results(self):
+        diff = sum([p.order for p in self.game.players]) - self.game.current_deal().cards
+        print('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
+
     def print_middle_info(self):
         print('  '.join([f'{p.name}: {p.order} / {p.take}' for p in self.players]))
 
@@ -213,6 +217,8 @@ class Game():
         for player in self.game.players:
             print(f'{player.name}')
             print('    '.join([f'{rec[0][player.id][key]}: {rec[-1][player.id][key]}' for key in rec[0][player.id].keys()]))
+
+        print('-------------------------------------------------------------')
 
     def print_game_results(self):
         self.skip_lines(2)
@@ -231,13 +237,13 @@ class Game():
                     self.poll_of_agreements()
                     self.skip_lines(1)
 
-                    if self.ask('Хочешь просмотреть заданные договоренности? (д/Н)').lower() == 'д':
+                    if self.ask('Хочешь просмотреть заданные договоренности? (д/Н)').lower() in ('д', 'y'):
                         self.print_options()
 
-                    if self.ask('Ну что ж, все готово. Приступаем к игре? (Д/н)').lower() != 'н':
+                    if self.ask('Ну что ж, все готово. Приступаем к игре? (Д/н)').lower() not in ('н', 'n'):
                         break
 
-                    if self.ask('Хочешь настроить заново (Д) или выйти (н)').lower() == 'н':
+                    if self.ask('Хочешь настроить заново (Д) или выйти (н)').lower() in ('н', 'n'):
                         return
                 except Exception as e:
                     print('Ну блин, что за лажа? Теперь начинать заново')
@@ -259,14 +265,18 @@ class Game():
                         after_bet = True
                         self.skip_lines(1)
                         print('Делаем заказы на раунд')
+                        if self.game.dark_allowed and self.game.current_deal().type_ != const.DEAL_DARK:
+                            dark = self.ask('Хочешь заказать в темную? (д/Н)').lower() in ('д', 'y')
+
                         # выводим заказы всех, кто до тебя
                         self.print_walks(p, False, True)
-                        self.print_cards(p)
+                        if not dark and self.game.current_deal().type_ != const.DEAL_DARK:
+                            self.print_cards(p)
 
                         # твой заказ
                         while True:
                             try:
-                                self.game.make_order(int(self.ask(f'{p.name}, твой заказ:')))
+                                self.game.make_order(int(self.ask(f'{p.name}, твой заказ:')), dark)
                                 break
                             except helpers.GameException as e:
                                 print(e)
@@ -277,6 +287,7 @@ class Game():
                         if after_bet:
                             after_bet = False
                             self.print_walks(p, True, True)
+                            self.print_order_results()
                             self.skip_lines(1)
                             print('Ходим')
 
