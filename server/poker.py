@@ -12,13 +12,14 @@ class Game():
         self.options = {}
         self.players = []
         self.bet = None
+        self.game = None
 
     def set_default(self):
         self.options['game_sum_by_diff'] = True
         self.options['dark_allowed'] = True
-        self.options['third_pass_limit'] = False
+        self.options['third_pass_limit'] = True
         self.options['fail_subtract_all'] = False
-        self.options['no_joker'] = False
+        self.options['no_joker'] = True
         self.options['strong_joker'] = True
         self.options['joker_demand_peak'] = True
         self.options['pass_factor'] = 5
@@ -165,13 +166,61 @@ class Game():
         print('Удвоение очков при заказе всех карт: {0}'.format('Включено' if self.options['on_all_order'] else 'Отключено'))
         print('Премя за сыгранные все игры блока: {0}'.format('Включена' if self.options['take_block_bonus'] else 'Отключена'))
 
-    def print_round_info(self, ge):
+    def print_round_info(self):
         """ Вывести: Номер и название раздачи, кол-во карт, козырь """
         self.skip_lines(1)
-        d = ge.current_deal()
-        print(f'Раздача {const.DEAL_NAMES[d.type_]} < по {d.cards} >')
-        print('Козырь: {0}'.format('нет' if ge.trump() == const.LEAR_NOTHING else const.LEAR_NAMES[ge.trump()]))
-        print(f'Первый ходит: {d.player.name}')
+        d = self.game.current_deal()
+        print(f'Раздача: {const.DEAL_NAMES[d.type_]} < по {d.cards} >')
+        tl, tc = self.game.trump()
+        print('Козырь: {0}'.format('нет' if tl == const.LEAR_NOTHING else f'{const.LEAR_NAMES[tl]}  < {tc if tc else ""} >'))
+        print(f'Первый ходит: {self.game.players[d.player].name}')
+
+    def print_cards(self, player):
+        print('Твои карты: ', '  '.join([str(c) for c in player.cards]))
+
+    def print_walks(self, walk_player, after, orders):
+        if after:
+            f = False
+            for p in self.game.lap_players_order(by_table=not orders):
+                if p[0] == walk_player:
+                    f = True
+                if f:
+                    if orders:
+                        info = '{0}{1}'.format(p[0].order, ' (в темную)' if p[0].order_is_dark else '')
+                    else:
+                        info = self.game.table()[p[1]].card
+                    print(f'{p[0].name}: {info}')
+        else:
+            for p in self.game.lap_players_order(by_table=not orders):
+                if p[0] == walk_player:
+                    break
+                if orders:
+                    info = '{0}{1}'.format(p[0].order, ' (в темную)' if p[0].order_is_dark else '')
+                else:
+                    info = self.game.table()[p[1]].card
+                print(f'{p[0].name}: {info}')
+
+    def print_middle_info(self):
+        print('  '.join([f'{p.name}: {p.order} / {p.take}' for p in self.players]))
+
+    def print_round_results(self):
+        rec = self.game.get_record()
+        self.skip_lines(1)
+        print('Итоги раунда:')
+
+        for player in self.game.players:
+            print(f'{player.name}')
+            print('    '.join([f'{rec[0][player.id][key]}: {rec[-1][player.id][key]}' for key in rec[0][player.id].keys()]))
+
+    def print_game_results(self):
+        self.skip_lines(2)
+        print('-= Итоги игры =-')
+        for p in self.game.players:
+            print(f'{p.name}: {p.last_money}')
+
+        self.skip_lines(1)
+        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')
+        print('УРА, Товарищи!!!')
 
     def go(self):
         try:
@@ -180,10 +229,10 @@ class Game():
                     self.poll_of_agreements()
                     self.skip_lines(1)
 
-                    if self.ask('ОК, готово. Хочешь просмотреть заданные договоренности (д/Н)').lower() == 'д':
+                    if self.ask('Хочешь просмотреть заданные договоренности? (д/Н)').lower() == 'д':
                         self.print_options()
 
-                    if self.ask('ОК, все готово. Приступаем к игре (Д/н)').lower() != 'н':
+                    if self.ask('Ну что ж, все готово. Приступаем к игре? (Д/н)').lower() != 'н':
                         break
 
                     if self.ask('Хочешь настроить заново (Д) или выйти (н)').lower() == 'н':
@@ -192,34 +241,81 @@ class Game():
                     print('Ну блин, что за лажа? Теперь начинать заново')
 
             is_new_round = True  # первый круг после начала раунда
-            ge = engine.Engine(self.players, self.bet, **self.options)
-            ge.start()
+            after_bet = False
+            self.game = engine.Engine(self.players, self.bet, **self.options)
+            self.game.start()
 
-            while ge.started():
+            while self.game.started():
                 if is_new_round:
                     is_new_round = False
-                    self.print_round_info(ge)
+                    self.print_round_info()
 
-                if ge.status() == const.EXT_STATE_WALKS:
-                    if ge.is_bet():
+                if self.game.status() == const.EXT_STATE_WALKS:
+                    n, p = self.game.walk_player()
+
+                    if self.game.is_bet():
+                        after_bet = True
+                        self.skip_lines(1)
                         print('Делаем заказы на раунд')
-                        n, p = ge.walk_player()
+                        # выводим заказы всех, кто до тебя
+                        self.print_walks(p, False, True)
+                        self.print_cards(p)
 
-                        for i, pl in enumerate(ge.players):
-                            if i != n and pl.order > -1:
-                                print(f'{pl.name}: {pl.order}')
-
+                        # твой заказ
                         while True:
-                            order = self.ask(f'{p.name}, твой заказ:')
                             try:
-                                ge.make_order(order)
+                                self.game.make_order(int(self.ask(f'{p.name}, твой заказ:')))
                                 break
                             except helpers.GameException as e:
                                 print(e)
+                            except Exception as e:
+                                print(f'{e}! Не дури, введи число от 0 (пас) до кол-ва карт на руках')
                     else:
-                        pass
+                        # выводим заказы всех кто после тебя
+                        if after_bet:
+                            after_bet = False
+                            self.print_walks(p, True, True)
+                            self.skip_lines(1)
+                            print('Ходим')
 
+                        # выводим карты, которые уже брошены на стол
+                        self.print_walks(p, False, False)
+
+                        # твой ход
+                        self.print_cards(p)
+                        while True:
+                            try:
+                                self.game.do_walk(int(self.ask(f'{p.name}, твой ход:')) - 1)  # номер указываем по-человечески, с 1
+                                break
+                            except helpers.GameException as e:
+                                print(e)
+                            except Exception as e:
+                                print(f'{e}! Не дури, введи номер карты, которой хочешь походить')
+
+                    self.game.give_walk()
+                elif self.game.status() == const.EXT_STATE_LAP_PAUSE:
+                    # выводим все остальные ходы
+                    self.print_walks(p, True, False)
+
+                    # выводим информацию, кто побил
+                    self.skip_lines(1)
+                    print(f'Взял: {self.game.take_player()[1].name}')
+                    self.print_middle_info()
+                    self.ask('Жми <Enter> для продолжения...')
+                elif self.game.status() == const.EXT_STATE_ROUND_PAUSE:
+                    # выводим итоги раунда
+                    is_new_round = True
+                    self.print_round_results()
+                    self.ask('Жми <Enter> для продолжения...')
+
+                self.game.next()
+
+            # вывести итоги последнего раунда
+            self.print_round_results()
+            # вывести итоги игры
+            self.print_game_results()
         except KeyboardInterrupt:
+            print('Игра прервана...')
             return
 
 

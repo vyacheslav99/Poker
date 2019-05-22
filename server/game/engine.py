@@ -44,8 +44,10 @@ class Engine(object):
         self._table = {}                # карты на столе, key: индекс игрока, value: TableItem
         self._curr_player = None        # игрок, чей сейчас ход
         self._trump = None              # козырная масть в текущем раунде
+        self._trump_card = None         # карта, которая лежит в качестве козыря
         self._is_bet = True             # определяет тип хода в круге - заказ (true) или ход картой (false)
         self._to_next_deal = True       # флаг, что нужно перейти к следующей раздаче в процедуре next
+        self._to_next_lap = False       # флаг, что нужно перейти к следующему кругу в процедуре next
         self._take_player = None        # игрок, забравший взятку
         self._released_cards = []       # массив вышедших карт (для ИИ)
         self._status = None             # текущий статус для внешних интерфейсов (Заказ ИИ, Ожидание заказа человека, ход ии и т.д.)
@@ -75,10 +77,10 @@ class Engine(object):
 
         for x in range(self.party_size()):
             yield self._players[i], i, x == self.party_size() - 1
-            i += 1
-
             if i >= self.party_size() - 1:
                 i = 0
+            else:
+                i += 1
 
     def _order_table(self):
         """ Возвращает эл-ты игрового стола [(player_idx, TableItem()), ...] в порядке, в котором ходили, в виде списка """
@@ -95,8 +97,10 @@ class Engine(object):
         self._table = {}
         self._curr_player = None
         self._trump = None
+        self._trump_card = None
         self._is_bet = True
         self._to_next_deal = True
+        self._to_next_lap = False
         self._take_player = None
         self._released_cards = []
 
@@ -106,7 +110,7 @@ class Engine(object):
         cap = {}
 
         for p in self._players:
-            cap[f'{p.id}'] = {'order': 'Заказ', 'take': 'Взятки', 'scores': 'Очки', 'total': 'Счет'}
+            cap[p.id] = {'order': 'Заказ', 'take': 'Взято', 'scores': 'Очки', 'total': 'Счет'}
 
         self._game_record.append(cap)
 
@@ -139,6 +143,7 @@ class Engine(object):
 
         self._curr_deal += 1
         self._to_next_deal = False
+        self._to_next_lap = False
 
         deal = self._deals[self._curr_deal]
         self._take_player = None
@@ -154,9 +159,9 @@ class Engine(object):
         if deal.type_ == const.DEAL_NO_TRUMP:
             self._trump = const.LEAR_NOTHING
         else:
-            card = random.randrange(len(deck) + 1)
+            card = random.randrange(len(deck))
 
-            if deck[card].joker:
+            if deck[card].joker and not self._no_joker:
                 # если вытянули джокера - то бескозырка
                 self._trump = const.LEAR_NOTHING
             else:
@@ -166,7 +171,7 @@ class Engine(object):
                 # если раздаем не всю колоду, надо запомнить козырную для ИИ и убрать ее из колоды,
                 # т.к. по правилам она кладется на стол и никому попасть не должна
                 self._released_cards.append(deck[card])
-                deck.pop(card)
+                self._trump_card = deck.pop(card)
 
         # ну а теперь собственно раздадим карты, начинаем раздавать с первого игрока (определенного случайно при инициализации раздач)
         for _ in range(deal.cards):
@@ -255,7 +260,7 @@ class Engine(object):
             p.total_scores += p.scores
             det_str = ' + '.join([str(s) for s in detailed]) if len(detailed) > 1 else ''
             scores_str = '{0}{1}'.format(p.scores, f' ({det_str})' if det_str else '')
-            rec[f'{p.id}'] = {'order': p.order, 'take': p.take, 'scores': scores_str, 'total': p.total_scores}
+            rec[p.id] = {'order': p.order, 'take': p.take, 'scores': scores_str, 'total': p.total_scores}
 
         self._game_record.append(rec)
 
@@ -302,7 +307,10 @@ class Engine(object):
 
         # если включена опция на ограничение трех пасов подряд, проверить
         if self._third_pass_limit and order == 0 and player.pass_counter >= 2:
-            return False, 'Запрещено заказывать 3 паса подряд'
+            # только надо исключить ситуации, когда на руках одна карта и ты вобще ничего не можешь заказать из-за этого
+            if not (self._deals[self._curr_deal].cards == 1 and self._step == self.party_size() - 1 and (
+                sum(p.order for p in self._players if p != player) + 1 == 1)):
+                return False, 'Запрещено заказывать 3 паса подряд'
 
         return True, None
 
@@ -326,7 +334,7 @@ class Engine(object):
         if card.lear != tbl_ordered[0][1].card.lear:
             if player.lear_exists(tbl_ordered[0][1].card.lear):
                 return False, f'Вы обязаны положить {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
-            elif player.lear_exists(self._trump):
+            elif player.lear_exists(self._trump) and card.lear != self._trump:
                 return False, f'Вы обязаны положить козыря'
 
         return True, None
@@ -391,20 +399,26 @@ class Engine(object):
 
         # если нужно перейти к следующему раунду
         if self._to_next_deal:
-            if self._status == const.EXT_STATE_ROUND_PAUSE:
+            if self._status == const.EXT_STATE_WALKS:
+                self._status = const.EXT_STATE_LAP_PAUSE
+            elif self._status == const.EXT_STATE_LAP_PAUSE:
                 # сделать паузу, чтоб пользователь мог посмотреть результаты раунда
-                self._status = const.EXT_STATE_DEAL
+                self._status = const.EXT_STATE_ROUND_PAUSE
                 self._end_round()
-            else:
+            elif self._status == const.EXT_STATE_ROUND_PAUSE:
+                self._status = const.EXT_STATE_DEAL
                 self._deal_cards()
                 self.next()
             return
 
-        if self._status == const.EXT_STATE_LAP_PAUSE:
+        if self._to_next_lap:
             # сделать паузу, чтоб пользователь мог посмотреть результаты круга
-            self._status = const.EXT_STATE_WALKS
+            self._status = const.EXT_STATE_LAP_PAUSE
+            self._to_next_lap = False
             return
         else:
+            if self._status == const.EXT_STATE_LAP_PAUSE:
+                self._take_player = None
             self._status = const.EXT_STATE_WALKS
 
         # если текущий ход одного из игроков-людей - ничего не делаем, ждем передачи хода
@@ -433,15 +447,14 @@ class Engine(object):
 
         # если это последний шаг (игрок) в круге - переходим к следующему этапу (к ходам, если это был заказ,
         # к следующему кругу, или к следующей партии)
-        if self._step == self.party_size():
+        if self._step == self.party_size() - 1:
             if self._is_bet:
                 self._is_bet = False
             else:
                 if len(self._players[self._curr_player].cards) == 0:
                     self._to_next_deal = True
-                    self._status = const.EXT_STATE_ROUND_PAUSE
                 else:
-                    self._status = const.EXT_STATE_LAP_PAUSE
+                    self._to_next_lap = True
 
         if self._take_player is not None:
             self._curr_player = self._take_player
@@ -487,7 +500,7 @@ class Engine(object):
                                                    is_joker=len(joker_opts) > 0, joker_action=joker_opts.get('action'))
         self._released_cards.append(card)
 
-        if self._step == self.party_size():
+        if self._step == self.party_size() - 1:
             # определяем, кто побил
             tbl_ordered = self._order_table()
 
@@ -505,10 +518,10 @@ class Engine(object):
         return self._started
 
     def current_deal(self):
-        self._deals[self._curr_deal]
+        return self._deals[self._curr_deal]
 
     def trump(self):
-        return self._trump
+        return self._trump, self._trump_card
 
     def table(self):
         return self._table
@@ -533,6 +546,14 @@ class Engine(object):
 
     def party_size(self):
         return len(self._players)
+
+    def lap_players_order(self, by_table=False):
+        """ Возвращает список игроков, расположенных в порядке хода на текущем круге """
+        if not by_table:
+            return [(p, i) for p, i, b in self._enum_players(
+                self._take_player if self._take_player is not None else self._deals[self._curr_deal].player)]
+        else:
+            return [(self._players[x[0]], x[0]) for x in self._order_table()]
 
     @property
     def players(self):
@@ -566,14 +587,13 @@ class Engine(object):
 
         # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
+        can = False
 
-        # todo: Не забудь, что надо будет еще заполнять order_cards
-        cnt = random.randint(0, round(len(player.cards) / 2))
-        is_dark = random.randint(0, 100) < 10 if self._dark_allowed else False
-
-        while not self._check_order(cnt, is_dark):
-            cnt = random.randint(0, round(len(player.cards) / 2))
+        while not can:
+            # todo: Не забудь, что надо будет еще заполнять order_cards
+            cnt = random.randint(0, round(len(player.cards) / 2) + 1)
             is_dark = random.randint(0, 100) < 10 if self._dark_allowed else False
+            can, _ = self._check_order(cnt, is_dark)
 
         return cnt, is_dark
 
@@ -591,7 +611,7 @@ class Engine(object):
         joker_opts = {
             'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
             'action': const.JOKER_BIGEST
-        } if player.cards[idx].joker else {}
+        } if player.cards[idx].joker and not self._no_joker else {}
 
         return idx, joker_opts
 
@@ -604,19 +624,16 @@ class Engine(object):
 
         # todo: сделать! Пока случайно
         player = self._players[self._curr_player]
-        idx = random.randint(0, len(player.cards) - 1)
+        can = False
 
-        joker_opts = {
-            'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
-            'action': const.JOKER_BIGEST
-        } if player.cards[idx].joker else {}
-
-        while not self._check_beat(idx, **joker_opts):
+        while not can:
             idx = random.randint(0, len(player.cards) - 1)
 
             joker_opts = {
                 'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
                 'action': const.JOKER_BIGEST
-            } if player.cards[idx].joker else {}
+            } if player.cards[idx].joker and not self._no_joker else {}
+
+            can, _ = self._check_beat(idx, **joker_opts)
 
         return idx, joker_opts

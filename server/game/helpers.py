@@ -99,7 +99,7 @@ class Player(object):
     def lear_exists(self, lear):
         """ Проверяет, есть ли у игрока карты заданной масти. Вернет True/False """
 
-        for card in cards:
+        for card in self.cards:
             if not card.joker and card.lear == lear:
                 return True
 
