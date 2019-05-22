@@ -1,0 +1,691 @@
+object FStartDialog: TFStartDialog
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = #1053#1086#1074#1072#1103' '#1080#1075#1088#1072
+  ClientHeight = 398
+  ClientWidth = 539
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  Icon.Data = {
+    0000010001001010000001002000680400001600000028000000100000002000
+    0000010020000000000000040000000000000000000000000000000000000000
+    0000000000000000000000000000000000000000000000000000000000000000
+    0000000000000000000000000000000000000000000000000000000000000000
+    0000000000000000000000000000000000000000000000000000000000000000
+    0000000000000000000000000000000000000000000000000000000000000000
+    000000000000949C9CFF949C9CFF949C9CFF949C9CFF949C9CFF949C9CFF949C
+    9CFF949C9CFF949C9CFF949C9CFF949C9CFF0000000000000000000000000000
+    000000000000949C9CFFFFE7DEFFFFE7DEFFFFE7DEFFFFE7DEFFFFE7DEFFFFE7
+    DEFFFFE7DEFFFFE7DEFFFFE7DEFF949C9CFF0000000000000000000000000000
+    000000000000949C9CFFFFEFE7FFF7EFDEFFF7EFDEFFF7EFDEFFF7EFDEFFF7EF
+    DEFFF7EFDEFFF7EFDEFFF7EFDEFF949C9CFF0000000000000000000000000000
+    000000000000949C9CFFF7EFDEFFFFEFE7FFFFEFE7FFFFEFE7FFFFEFE7FFFFEF
+    E7FFFFEFE7FFFFEFE7FFF7EFDEFF84A5ADFF0000000000000000000000000000
+    00000000000084A5ADFFFFEFE7FFFFEFE7FFFFEFE7FFFFEFE7FFFFEFE7FFFFEF
+    E7FFFFEFE7FFFFEFE7FFFFEFE7FF84A5ADFF0000000000000000000000000000
+    00000000000084A5ADFFF7F7EFFFFFF7EFFFFFF7EFFFFFF7EFFFFFF7EFFFFFF7
+    EFFFFFF7EFFFFFF7EFFFFFF7EFFF84A5ADFF0000000000000000000000000000
+    00000000000084A5ADFFFFF7EFFFFFF7EFFFFFF7EFFFFFF7EFFFFFF7EFFFFFF7
+    EFFFFFF7EFFFFFFFF7FFFFFFF7FF84A5ADFF0000000000000000000000000000
+    00000000000084A5ADFFFFF7F7FFFFF7F7FFFFF7F7FFFFF7F7FFFFF7F7FFFFF7
+    F7FFFFFFFFFFFFFFF7FFFFFFF7FF73B5C6FF0000000000000000000000000000
+    00000000000073B5C6FFFFF7F7FFFFF7F7FFFFF7F7FFFFF7F7FFFFF7F7FFFFFF
+    FFFFFFFFFFFFFFFFFFFFFFFFFFFF73B5C6FF0000000000000000000000000000
+    00000000000073B5C6FFFFF7F7FFFFFFF7FFFFFFF7FFFFFFF7FFFFFFFFFFFFFF
+    FFFF73B5C6FF73B5C6FF73B5C6FF73B5C6FF0000000000000000000000000000
+    00000000000073B5C6FFFFFFF7FFFFFFF7FFFFFFF7FFFFFFF7FFFFFFFFFFFFFF
+    FFFF73B5C6FFFFFFFFFFFFFFFFFF73B5C6FF0000000000000000000000000000
+    00000000000073B5C6FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+    FFFF73B5C6FFFFFFFFFF73B5C6FF000000000000000000000000000000000000
+    00000000000073B5C6FF73B5C6FF73B5C6FF73B5C6FF73B5C6FF73B5C6FF73B5
+    C6FF73B5C6FF73B5C6FF00000000000000000000000000000000000000000000
+    0000000000000000000000000000000000000000000000000000000000000000
+    000000000000000000000000000000000000000000000000000000000000FFFF
+    0000FFFF0000C0070000C0070000C0070000C0070000C0070000C0070000C007
+    0000C0070000C0070000C0070000C0070000C00F0000C01F0000FFFF0000}
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnClose = FormClose
+  DesignSize = (
+    539
+    398)
+  PixelsPerInch = 96
+  TextHeight = 13
+  object btnSavedGames: TButton
+    Left = 399
+    Top = 326
+    Width = 133
+    Height = 25
+    Caption = #1057#1086#1093#1088#1072#1085#1077#1085#1085#1099#1077' '#1080#1075#1088#1099' >>'
+    TabOrder = 2
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 357
+    Width = 539
+    Height = 41
+    Align = alBottom
+    BevelInner = bvRaised
+    BevelOuter = bvLowered
+    TabOrder = 3
+    DesignSize = (
+      539
+      41)
+    object btnStart: TBitBtn
+      Left = 360
+      Top = 7
+      Width = 83
+      Height = 27
+      Anchors = [akRight, akBottom]
+      Caption = #1053#1072#1095#1072#1090#1100
+      Default = True
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 0
+      OnClick = btnStartClick
+      Glyph.Data = {
+        36040000424D3604000000000000360000002800000010000000100000000100
+        2000000000000004000000000000000000000000000000000000FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF003194100052A539004A9C2900318C0800FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00319C210052A54200C6F7DE00B5EFC600429C21003194
+        1000FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF0039A531004AAD4200ADEFCE009CFFEF009CFFE7009CE7AD00429C
+        2100FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF0039AD4A004AB5520094EFB5008CFFD6007BFFCE007BFFC6008CFFCE0084DE
+        9C00399C2100FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF0042BD
+        5A004ABD5A0084E7A5007BF7BD007BF7BD007BEFB5007BF7BD007BF7B50084F7
+        BD0073D68400399C2900FF00FF00FF00FF00FF00FF00FF00FF00FF00FF0042BD
+        630063DE8C006BEF9C0073EFAD007BE7AD004ABD5A005AC66B0084EFB5007BEF
+        AD0073EFA5005ACE6B0039A52900FF00FF00FF00FF00FF00FF00FF00FF004AC6
+        6B0052DE7B006BE7940073E79C0052C66B0039AD420039AD42005ACE730084EF
+        AD0073E79C0063DE8C0042C6520039A53100FF00FF00FF00FF00FF00FF0042C6
+        6B004ACE730063DE8C0052CE730042B55200FF00FF00FF00FF0039B54A0063CE
+        7B0084E79C006BDE84004AD66B0039BD420039A53900FF00FF00FF00FF00FF00
+        FF004AC673004ACE730042C66B00FF00FF00FF00FF00FF00FF00FF00FF0042B5
+        520063CE7B0073DE8C0052D66B0031C6420039AD3900FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF0042BD5A005ACE73005AD66B0042BD520042AD4A00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF0042BD63004AC6630042BD5A00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00}
+    end
+    object btnCancel: TBitBtn
+      Left = 449
+      Top = 7
+      Width = 83
+      Height = 27
+      Anchors = [akRight, akBottom]
+      Cancel = True
+      Caption = #1054#1090#1084#1077#1085#1072
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 1
+      OnClick = btnCancelClick
+      Glyph.Data = {
+        36040000424D3604000000000000360000002800000010000000100000000100
+        2000000000000004000000000000000000000000000000000000FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF000000B5001821BD000808B500FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF000808B5002129BD000000B500FF00FF00FF00FF00FF00FF00FF00FF000008
+        C6003142D6008CADFF005A73E7000008BD00FF00FF00FF00FF00FF00FF000808
+        BD005A73E7008CB5FF003142D6000008C600FF00FF00FF00FF00FF00FF002131
+        D6007394FF007B9CFF007B9CFF005263EF000818CE00FF00FF000818CE00526B
+        EF007B9CFF007B9CFF007B9CFF002931D600FF00FF00FF00FF00FF00FF001021
+        DE00425AF700526BFF005263FF005A73FF00425AEF001021DE00425AEF00637B
+        FF005263FF005A6BFF004A63F7001021DE00FF00FF00FF00FF00FF00FF00FF00
+        FF001021E7003142F7003942FF003142FF003952FF00425AFF004252FF003139
+        FF003942FF00314AF7001021E700FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF001829EF002131F7001821FF001818F7001821FF001818F7001821
+        FF002131F7001829EF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF001831FF001829FF002121F7002129F7002129F7001821
+        F7001831FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF001831FF003142FF004A5AFF005263FF005A6BFF005A6BFF005263
+        FF00394AFF001831FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF001831FF00394AFF005263FF006373FF00637BFF006373FF006B7BFF00637B
+        FF005A6BFF003952FF001831FF00FF00FF00FF00FF00FF00FF00FF00FF002131
+        FF00394AFF005A63FF006373FF00738CFF00526BFF002139FF00526BFF007B94
+        FF006B84FF006373FF004252FF002131FF00FF00FF00FF00FF00FF00FF002139
+        FF00525AFF006373FF00738CFF00526BFF001831FF00FF00FF001831FF005A73
+        FF008494FF007384FF005A6BFF002939FF00FF00FF00FF00FF00FF00FF001831
+        FF00314AFF006B7BFF00526BFF001831FF00FF00FF00FF00FF00FF00FF001831
+        FF005A73FF00738CFF00394AFF001831FF00FF00FF00FF00FF00FF00FF00FF00
+        FF001831FF00314AFF002139FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF002139FF00314AFF001831FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00
+        FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00}
+    end
+  end
+  object GroupBox1: TGroupBox
+    Left = 7
+    Top = 3
+    Width = 525
+    Height = 107
+    Anchors = [akLeft, akTop, akRight]
+    Caption = ' '#1048#1075#1088#1086#1082#1080' '
+    TabOrder = 0
+    DesignSize = (
+      525
+      107)
+    object Label1: TLabel
+      Left = 11
+      Top = 16
+      Width = 75
+      Height = 13
+      Caption = #1055#1072#1088#1090#1085#1077#1088' '#1089#1083#1077#1074#1072
+    end
+    object Label2: TLabel
+      Left = 354
+      Top = 16
+      Width = 81
+      Height = 13
+      Anchors = [akTop, akRight]
+      Caption = #1055#1072#1088#1090#1085#1077#1088' '#1089#1087#1088#1072#1074#1072
+    end
+    object Label3: TLabel
+      Left = 186
+      Top = 61
+      Width = 30
+      Height = 13
+      Caption = #1048#1075#1088#1086#1082
+    end
+    object cbPartnerLeft: TDBLookupComboboxEh
+      Left = 11
+      Top = 33
+      Width = 160
+      Height = 21
+      DropDownBox.Columns = <
+        item
+          FieldName = 'NAME'
+          Title.Caption = #1048#1075#1088#1086#1082
+          Width = 100
+        end
+        item
+          Alignment = taLeftJustify
+          FieldName = 'DIFFICULTY'
+          KeyList.Strings = (
+            '0'
+            '1'
+            '2')
+          PickList.Strings = (
+            #1053#1086#1074#1080#1095#1086#1082
+            #1054#1087#1099#1090#1085#1099#1081
+            #1055#1088#1086#1092#1080)
+          Title.Caption = #1057#1083#1086#1078#1085#1086#1089#1090#1100
+          Width = 70
+        end
+        item
+          FieldName = 'WINNED'
+          Title.Caption = #1042#1099#1080#1075#1088
+          Width = 40
+        end
+        item
+          FieldName = 'FAILED'
+          Title.Caption = #1055#1088#1086#1080#1075
+          Width = 40
+        end
+        item
+          FieldName = 'SCORES'
+          Title.Caption = #1042#1099#1080#1075#1088#1099#1096
+          Width = 50
+        end>
+      DropDownBox.ShowTitles = True
+      DropDownBox.Width = 260
+      EmptyDataInfo.Text = '< '#1053#1077#1090' >'
+      EditButtons = <>
+      KeyField = 'ID'
+      ListField = 'NAME'
+      ListSource = dsoRobots
+      TabOrder = 0
+      Visible = True
+      OnChange = cbPartnerLeftChange
+    end
+    object cbPartnerRight: TDBLookupComboboxEh
+      Left = 354
+      Top = 33
+      Width = 160
+      Height = 21
+      Anchors = [akTop, akRight]
+      DropDownBox.Columns = <
+        item
+          FieldName = 'NAME'
+          Title.Caption = #1048#1075#1088#1086#1082
+          Width = 100
+        end
+        item
+          Alignment = taLeftJustify
+          FieldName = 'DIFFICULTY'
+          KeyList.Strings = (
+            '0'
+            '1'
+            '2')
+          PickList.Strings = (
+            #1053#1086#1074#1080#1095#1086#1082
+            #1054#1087#1099#1090#1085#1099#1081
+            #1055#1088#1086#1092#1080)
+          Title.Caption = #1057#1083#1086#1078#1085#1086#1089#1090#1100
+          Width = 70
+        end
+        item
+          FieldName = 'WINNED'
+          Title.Caption = #1042#1099#1080#1075#1088
+          Width = 40
+        end
+        item
+          FieldName = 'FAILED'
+          Title.Caption = #1055#1088#1086#1080#1075
+          Width = 40
+        end
+        item
+          FieldName = 'SCORES'
+          Title.Caption = #1042#1099#1080#1075#1088#1099#1096
+          Width = 50
+        end>
+      DropDownBox.ShowTitles = True
+      DropDownBox.Width = 260
+      EmptyDataInfo.Text = '< '#1053#1077#1090' >'
+      EditButtons = <>
+      KeyField = 'ID'
+      ListField = 'NAME'
+      ListSource = dsoRobots
+      TabOrder = 1
+      Visible = True
+      OnChange = cbPartnerLeftChange
+    end
+    object edPlayer: TEdit
+      Left = 186
+      Top = 80
+      Width = 160
+      Height = 21
+      TabStop = False
+      ReadOnly = True
+      TabOrder = 2
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 7
+    Top = 115
+    Width = 525
+    Height = 205
+    Anchors = [akLeft, akTop, akRight]
+    Caption = ' '#1044#1086#1075#1086#1074#1086#1088#1077#1085#1085#1086#1089#1090#1080' '
+    TabOrder = 1
+    object Label4: TLabel
+      Left = 14
+      Top = 19
+      Width = 49
+      Height = 13
+      Caption = #1056#1072#1079#1076#1072#1095#1080
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object Label7: TLabel
+      Left = 220
+      Top = 177
+      Width = 62
+      Height = 13
+      Caption = #1051#1086#1073#1086#1074#1072#1103', '#1085#1072
+    end
+    object Label6: TLabel
+      Left = 113
+      Top = 177
+      Width = 55
+      Height = 13
+      Caption = #1058#1105#1084#1085#1072#1103', '#1085#1072
+    end
+    object Label12: TLabel
+      Left = 339
+      Top = 177
+      Width = 127
+      Height = 13
+      Caption = #1050#1086#1083#1080#1095#1077#1089#1090#1074#1086' '#1086#1095#1082#1086#1074' '#1079#1072' '#1087#1072#1089
+    end
+    object Label8: TLabel
+      Left = 14
+      Top = 177
+      Width = 94
+      Height = 13
+      Caption = #1059#1084#1085#1086#1078#1077#1085#1080#1077' '#1086#1095#1082#1086#1074':'
+    end
+    object Label9: TLabel
+      Left = 283
+      Top = 103
+      Width = 151
+      Height = 13
+      Caption = #1056#1072#1089#1089#1095#1077#1090' '#1096#1090#1088#1072#1092#1072' '#1079#1072' '#1085#1077#1076#1086#1073#1086#1088#1099
+    end
+    object chbOptAsc: TCheckBox
+      Left = 14
+      Top = 34
+      Width = 97
+      Height = 17
+      Hint = #1045#1089#1083#1080' '#1085#1080#1095#1077#1075#1086' '#1085#1077' '#1086#1090#1084#1077#1095#1077#1085#1086', '#1090#1086' '#1073#1091#1076#1091#1090' '#1088#1072#1079#1076#1072#1085#1099' '#1074#1089#1077' '#1088#1072#1079#1076#1072#1095#1080
+      Caption = #1042#1086#1079#1088#1072#1089#1090#1072#1102#1097#1072#1103
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+    end
+    object chbOptDesc: TCheckBox
+      Left = 14
+      Top = 50
+      Width = 83
+      Height = 17
+      Hint = #1045#1089#1083#1080' '#1085#1080#1095#1077#1075#1086' '#1085#1077' '#1086#1090#1084#1077#1095#1077#1085#1086', '#1090#1086' '#1073#1091#1076#1091#1090' '#1088#1072#1079#1076#1072#1085#1099' '#1074#1089#1077' '#1088#1072#1079#1076#1072#1095#1080
+      Caption = #1059#1073#1099#1074#1072#1102#1097#1072#1103
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+    end
+    object chbOptEven: TCheckBox
+      Left = 117
+      Top = 34
+      Width = 62
+      Height = 17
+      Hint = #1045#1089#1083#1080' '#1085#1080#1095#1077#1075#1086' '#1085#1077' '#1086#1090#1084#1077#1095#1077#1085#1086', '#1090#1086' '#1073#1091#1076#1091#1090' '#1088#1072#1079#1076#1072#1085#1099' '#1074#1089#1077' '#1088#1072#1079#1076#1072#1095#1080
+      Caption = #1063#1077#1090#1085#1099#1077
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 2
+    end
+    object chbOptNotEven: TCheckBox
+      Left = 117
+      Top = 50
+      Width = 70
+      Height = 17
+      Hint = #1045#1089#1083#1080' '#1085#1080#1095#1077#1075#1086' '#1085#1077' '#1086#1090#1084#1077#1095#1077#1085#1086', '#1090#1086' '#1073#1091#1076#1091#1090' '#1088#1072#1079#1076#1072#1085#1099' '#1074#1089#1077' '#1088#1072#1079#1076#1072#1095#1080
+      Caption = #1053#1077#1095#1077#1090#1085#1099#1077
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 3
+    end
+    object chbOptNoTrump: TCheckBox
+      Left = 224
+      Top = 34
+      Width = 81
+      Height = 17
+      Caption = #1041#1077#1089#1082#1086#1079#1099#1088#1082#1072
+      TabOrder = 4
+    end
+    object chbOptDark: TCheckBox
+      Left = 224
+      Top = 50
+      Width = 58
+      Height = 17
+      Caption = #1058#1077#1084#1085#1072#1103
+      TabOrder = 5
+    end
+    object chbOptGold: TCheckBox
+      Left = 312
+      Top = 34
+      Width = 62
+      Height = 17
+      Caption = #1047#1086#1083#1086#1090#1072#1103
+      TabOrder = 6
+    end
+    object chbOptMizer: TCheckBox
+      Left = 312
+      Top = 50
+      Width = 52
+      Height = 17
+      Caption = #1052#1080#1079#1077#1088
+      TabOrder = 7
+    end
+    object chbOptBrow: TCheckBox
+      Left = 381
+      Top = 34
+      Width = 63
+      Height = 17
+      Caption = #1051#1086#1073#1086#1074#1072#1103
+      TabOrder = 8
+    end
+    object chbNoJoker: TCheckBox
+      Left = 14
+      Top = 99
+      Width = 118
+      Height = 17
+      Caption = #1048#1075#1088#1072' '#1073#1077#1079' '#1076#1078#1086#1082#1077#1088#1086#1074
+      TabOrder = 11
+    end
+    object chbJokerMinorLear: TCheckBox
+      Left = 14
+      Top = 133
+      Width = 231
+      Height = 17
+      Caption = #1044#1078#1086#1082#1077#1088' '#1084#1086#1078#1077#1090' '#1073#1088#1072#1090#1100' "'#1055#1086' '#1084#1083#1072#1076#1096#1077#1081' '#1082#1072#1088#1090#1077'"'
+      TabOrder = 13
+    end
+    object chbJokerMajorLear: TCheckBox
+      Left = 14
+      Top = 116
+      Width = 230
+      Height = 17
+      Caption = #1044#1078#1086#1082#1077#1088' '#1084#1086#1078#1077#1090' '#1073#1088#1072#1090#1100' "'#1055#1086' '#1089#1090#1072#1088#1096#1077#1081' '#1082#1072#1088#1090#1077'"'
+      TabOrder = 12
+    end
+    object edMultBrow: TSpinEdit
+      Left = 284
+      Top = 174
+      Width = 35
+      Height = 22
+      MaxValue = 10
+      MinValue = 1
+      TabOrder = 16
+      Value = 10
+    end
+    object edMultDark: TSpinEdit
+      Left = 170
+      Top = 174
+      Width = 35
+      Height = 22
+      MaxValue = 10
+      MinValue = 1
+      TabOrder = 15
+      Value = 10
+    end
+    object edPassPoints: TSpinEdit
+      Left = 469
+      Top = 174
+      Width = 35
+      Height = 22
+      MaxValue = 10
+      MinValue = 1
+      ParentShowHint = False
+      ShowHint = False
+      TabOrder = 17
+      Value = 1
+    end
+    object Panel2: TPanel
+      Left = 10
+      Top = 70
+      Width = 193
+      Height = 25
+      BevelOuter = bvNone
+      TabOrder = 9
+      object Label5: TLabel
+        Left = 3
+        Top = 6
+        Width = 47
+        Height = 13
+        Caption = #1050#1086#1083#1086#1076#1072':'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object rbnDeck36: TRadioButton
+        Left = 57
+        Top = 5
+        Width = 59
+        Height = 17
+        Caption = '36 '#1082#1072#1088#1090
+        TabOrder = 0
+      end
+      object rbnDeck54: TRadioButton
+        Left = 119
+        Top = 5
+        Width = 67
+        Height = 17
+        Caption = '54 '#1082#1072#1088#1090#1099
+        TabOrder = 1
+      end
+    end
+    object Panel3: TPanel
+      Left = 215
+      Top = 70
+      Width = 239
+      Height = 25
+      BevelOuter = bvNone
+      TabOrder = 10
+      object Label13: TLabel
+        Left = 9
+        Top = 6
+        Width = 83
+        Height = 13
+        Hint = 
+          #1050#1086#1088#1086#1090#1082#1072#1103': '#1087#1077#1088#1074#1099#1081' '#1088#1072#1079#1076#1072#1077#1090' 1 '#1082#1072#1088#1090#1091', '#1074#1090#1086#1088#1086#1081' 2, '#1090#1088#1077#1090#1080#1081' 3 '#1080' '#1090'.'#1076'.'#13#10#1044#1083#1080 +
+          #1085#1085#1072#1103': '#1082#1072#1078#1076#1099#1081' '#1088#1072#1079#1076#1072#1077#1090' '#1087#1086' 1, '#1087#1086#1090#1086#1084' '#1082#1072#1078#1076#1099#1081' '#1087#1086' 2 '#1080' '#1090'.'#1076'.'
+        Caption = #1042#1072#1088#1080#1072#1085#1090' '#1080#1075#1088#1099':'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+        ParentShowHint = False
+        ShowHint = True
+      end
+      object rbnGameShort: TRadioButton
+        Left = 98
+        Top = 5
+        Width = 67
+        Height = 17
+        Hint = 
+          #1050#1086#1088#1086#1090#1082#1072#1103': '#1087#1077#1088#1074#1099#1081' '#1088#1072#1079#1076#1072#1077#1090' 1 '#1082#1072#1088#1090#1091', '#1074#1090#1086#1088#1086#1081' 2, '#1090#1088#1077#1090#1080#1081' 3 '#1080' '#1090'.'#1076'.'#13#10#1044#1083#1080 +
+          #1085#1085#1072#1103': '#1082#1072#1078#1076#1099#1081' '#1088#1072#1079#1076#1072#1077#1090' '#1087#1086' 1, '#1087#1086#1090#1086#1084' '#1082#1072#1078#1076#1099#1081' '#1087#1086' 2 '#1080' '#1090'.'#1076'.'
+        Caption = #1050#1086#1088#1086#1090#1082#1072#1103
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
+      end
+      object rbnGameLong: TRadioButton
+        Left = 171
+        Top = 5
+        Width = 64
+        Height = 17
+        Hint = 
+          #1050#1086#1088#1086#1090#1082#1072#1103': '#1087#1077#1088#1074#1099#1081' '#1088#1072#1079#1076#1072#1077#1090' 1 '#1082#1072#1088#1090#1091', '#1074#1090#1086#1088#1086#1081' 2, '#1090#1088#1077#1090#1080#1081' 3 '#1080' '#1090'.'#1076'.'#13#10#1044#1083#1080 +
+          #1085#1085#1072#1103': '#1082#1072#1078#1076#1099#1081' '#1088#1072#1079#1076#1072#1077#1090' '#1087#1086' 1, '#1087#1086#1090#1086#1084' '#1082#1072#1078#1076#1099#1081' '#1087#1086' 2 '#1080' '#1090'.'#1076'.'
+        Caption = #1044#1083#1080#1085#1085#1072#1103
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 1
+      end
+    end
+    object cbPenalty: TComboBox
+      Left = 283
+      Top = 121
+      Width = 184
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      TabOrder = 14
+      Items.Strings = (
+        #1052#1080#1085#1091#1089' '#1079#1072' '#1082#1072#1078#1076#1091#1102' '#1085#1077' '#1074#1079#1103#1090#1091#1102
+        #1052#1080#1085#1091#1089' '#1079#1072' '#1082#1072#1078#1076#1091#1102' '#1079#1072#1082#1072#1079#1072#1085#1085#1091#1102)
+    end
+    object chbStrongJoker: TCheckBox
+      Left = 14
+      Top = 150
+      Width = 182
+      Height = 17
+      Hint = 
+        #1045#1089#1083#1080' '#1074#1082#1083#1102#1095#1077#1085#1086', '#1090#1086' '#1074#1099' '#1086#1073#1103#1079#1072#1085#1099' '#1074#1099#1076#1072#1074#1072#1090#1100' '#1044#1078#1086#1082#1077#1088#1072' '#1090#1086#1083#1100#1082#1086' '#1079#1072' '#1090#1091' '#1084#1072#1089#1090#1100 +
+        ','#13#10#1082#1086#1090#1086#1088#1086#1081' '#1073#1099#1083' '#1089#1076#1077#1083#1072#1085' '#1093#1086#1076' ('#1085#1077#1083#1100#1079#1103' '#1074#1099#1076#1072#1074#1072#1090#1100' '#1079#1072' '#1082#1086#1079#1099#1088#1103'). '#1048#1085#1072#1095#1077' '#1084#1086#1078 +
+        #1085#1086#13#10#1080#1075#1088#1072#1090#1100' '#1082#1072#1082' '#1082#1086#1079#1099#1088#1077#1084'.'
+      Caption = #1044#1078#1086#1082#1077#1088' '#1080#1075#1088#1072#1077#1090' '#1089#1090#1088#1086#1075#1086' '#1087#1086' '#1084#1072#1089#1090#1080
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 18
+    end
+  end
+  object mtRobots: TMemTableEh
+    Params = <>
+    Left = 16
+    Top = 40
+    object mtRobotsID: TStringField
+      FieldName = 'ID'
+      Size = 16
+    end
+    object mtRobotsNAME: TStringField
+      FieldName = 'NAME'
+      Size = 255
+    end
+    object mtRobotsDIFFICULTY: TIntegerField
+      FieldName = 'DIFFICULTY'
+    end
+    object mtRobotsALL: TIntegerField
+      FieldName = 'ALL'
+    end
+    object mtRobotsCOMPLETED: TIntegerField
+      FieldName = 'COMPLETED'
+    end
+    object mtRobotsINTERRUPTED: TIntegerField
+      FieldName = 'INTERRUPTED'
+    end
+    object mtRobotsWINNED: TIntegerField
+      FieldName = 'WINNED'
+    end
+    object mtRobotsFAILED: TIntegerField
+      FieldName = 'FAILED'
+    end
+    object mtRobotsSCORES: TIntegerField
+      FieldName = 'SCORES'
+    end
+    object mtRobotsTOTAL: TIntegerField
+      FieldName = 'TOTAL'
+    end
+  end
+  object dsoRobots: TDataSource
+    DataSet = mtRobots
+    Left = 48
+    Top = 40
+  end
+  object tmrRefreshNetStatus: TTimer
+    Enabled = False
+    OnTimer = tmrRefreshNetStatusTimer
+    Left = 240
+    Top = 24
+  end
+end
