@@ -178,6 +178,10 @@ class Engine(object):
             for player, pidx, last in self._enum_players(deal.player):
                 player.cards.append(deck.pop(0))
 
+        # сделаем базовую сортировку карт, это для примитивных клиентов
+        for p in self._players:
+            p.cards = sorted([c for c in p.cards], key=lambda x: (x.lear, x.value), reverse=True)
+
     def _calc_scores(self, player:Player):
         """ Расчет очков за раунд у игрока """
 
@@ -419,6 +423,7 @@ class Engine(object):
         else:
             if self._status == const.EXT_STATE_LAP_PAUSE:
                 self._take_player = None
+                self._table = {}
             self._status = const.EXT_STATE_WALKS
 
         # если текущий ход одного из игроков-людей - ничего не делаем, ждем передачи хода

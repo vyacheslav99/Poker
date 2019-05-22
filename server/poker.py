@@ -176,7 +176,9 @@ class Game():
         print(f'Первый ходит: {self.game.players[d.player].name}')
 
     def print_cards(self, player):
-        print('Твои карты: ', '  '.join([str(c) for c in player.cards]))
+        tl, tc = self.game.trump()
+        lear = ' (к: {0})'.format('-' if tl == const.LEAR_NOTHING else f'{const.LEAR_SYMBOLS[tl]}')
+        print(f'Твои карты{lear}: ', '  '.join([str(c) for c in player.cards]))
 
     def print_walks(self, walk_player, after, orders):
         if after:
