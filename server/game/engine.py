@@ -144,6 +144,7 @@ class Engine(object):
         self._curr_deal += 1
         self._to_next_deal = False
         self._to_next_lap = False
+        self._trump_card = None
 
         deal = self._deals[self._curr_deal]
         self._take_player = None
