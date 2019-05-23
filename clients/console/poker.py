@@ -45,7 +45,7 @@ class Game():
                 self.players.append(helpers.Player())
                 self.players[i].id = i
                 self.players[i].is_robot = False
-                self.players[i].name = self.ask('Как звать-то тебя?') or 'дон Педрилло'
+                self.players[i].name = self.ask('Как звать-то тебя?') or 'Чувак'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:

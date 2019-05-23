@@ -123,11 +123,11 @@ class Engine(object):
 
         for dt in self._deal_types:
             if dt == const.DEAL_NORMAL_ASC:
-                for n in range(1, max_player_cards + 1):
+                for n in range(1, max_player_cards):
                     self._deals.append(Deal(player_idx, dt, n))
                     player_idx = self._inc_index(player_idx, self.party_size())
             elif dt == const.DEAL_NORMAL_DESC:
-                for n in range(max_player_cards, 0, -1):
+                for n in range(max_player_cards - 1, 0, -1):
                     self._deals.append(Deal(player_idx, dt, n))
                     player_idx = self._inc_index(player_idx, self.party_size())
             else:
@@ -238,7 +238,8 @@ class Engine(object):
             detailed.append(x)
 
         # Доп. бонус за то, что успешно сыграл все игры блока
-        if self._take_block_bonus and block_end and player.success_counter == self.party_size():
+        if self._take_block_bonus and deal_type not in (const.DEAL_NORMAL_ASC, const.DEAL_NORMAL_DESC) and block_end \
+            and player.success_counter == self.party_size():
             x = take_factor * self.party_size() * (self._dark_mult if deal_type == const.DEAL_DARK or player.order_is_dark else 1)
             scores += x
             detailed.append(x)
@@ -640,7 +641,7 @@ class Engine(object):
 
         # Т.к. карты уже отсортированы по убыванию, задача упрошается
         # вобще надо будет сделать у игрока методы, возвращающие мин и макс карты без учета масти, чисто по значениям
-        if player.order != player.take:
+        if self._curr_deal == const.DEAL_GOLD or (self._curr_deal != const.DEAL_GOLD and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
             cands = [(i, c) for i, c in enumerate(player.cards) if c in player.order_cards]
 
@@ -677,7 +678,7 @@ class Engine(object):
         while not can:
             # idx = random.randint(0, len(player.cards) - 1)
 
-            if player.order != player.take:
+            if self._curr_deal == const.DEAL_GOLD or (self._curr_deal != const.DEAL_GOLD and player.order != player.take):
                 # или еще не набрал или уже перебрал - надо брать
                 c = player.max_card(tbl_ordered[0][1].card.lear)
                 if not c:
