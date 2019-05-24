@@ -1,9 +1,8 @@
 """ Простой консольный клиент для игры. Для тестирования игрового движка """
 
-import os
 import random
 
-from game import engine, helpers, const
+from game.engine import engine, helpers, const
 
 
 class Game():

@@ -142,7 +142,7 @@ class HTTPServer(object):
                 self.wrk_pool[i].lock()
                 if self.wrk_pool[i].is_free() and self.wrk_pool[i].is_empty() and (
                     config.HANDLERS_CLEAN_POLICY == 1 or (config.HANDLERS_CLEAN_POLICY == 2 and
-                    dt - self.wrk_pool[i].last_used > datetime.timedelta(minutes=config.HANDLERS_CLEAN_TIME))):
+                                                          dt - self.wrk_pool[i].last_used > datetime.timedelta(minutes=config.HANDLERS_CLEAN_TIME))):
                     wrk = self.wrk_pool.pop(i)
                     wrk.stop()
                 else:

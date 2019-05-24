@@ -1,7 +1,7 @@
 import os
 
 from . import config, utils
-from .helpers import Request, Response, HTTPException
+from .helpers import Response, HTTPException
 
 
 def index(request):

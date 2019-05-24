@@ -1,9 +1,8 @@
-import os
 import logging
 import argparse
 
-from server.core import config
-from server.core.http_server import HTTPServer
+from game.server.core import config
+from game.server.core.http_server import HTTPServer
 
 
 def main():

@@ -1,6 +1,6 @@
 """ Вспомогательные классы, инкапсулирующие атрибуты логических единиц """
 
-from game import const
+from game.engine import const
 
 
 class GameException(Exception):
