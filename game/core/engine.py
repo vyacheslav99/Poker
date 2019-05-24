@@ -2,8 +2,8 @@
 
 import random
 
-from game.engine import const
-from game.engine.helpers import GameException, Player, Deal, Card, TableItem
+from core import const
+from core.helpers import GameException, Player, Deal, Card, TableItem
 
 
 class Engine(object):
@@ -653,7 +653,7 @@ class Engine(object):
         if deal_type == const.DEAL_GOLD or (
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
-            cands = [c for c in player.cards if c in player.order_cards]
+            cands = [c for c in player.cards_sorted() if c in player.order_cards]
 
             if not cands:
                 cands = [c for c in player.cards_sorted()]

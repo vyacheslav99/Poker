@@ -5,7 +5,7 @@
 
 import random
 
-from engine import engine, helpers, const
+from core import engine, helpers, const
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'T-800', 'T-1000', 'Эндрю', 'Валли', 'Бамблби', 'Генерал Гривус', 'Электроник', 'Рой Батти',

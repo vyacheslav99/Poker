@@ -1,6 +1,7 @@
 """ Вспомогательные классы, инкапсулирующие атрибуты логических единиц """
 
-from game.engine import const
+import random
+from core import const
 
 
 class GameException(Exception):
@@ -122,7 +123,11 @@ class Player(object):
 
     def cards_sorted(self, ascending=False):
         """ Вернет список карт, отсортированный без учета масти в указанном порядке (по умолчанию убывание) """
-        return sorted([c for c in self.cards], key=lambda x: x.value, reverse=not ascending)
+
+        # предварительно перемешаем карты, чтобы масти каждый раз были в разном порядке. Это добавит элемент случайности
+        mixed = [c for c in self.cards]
+        random.shuffle(mixed)
+        return sorted(mixed, key=lambda x: x.value, reverse=not ascending)
 
     def __str__(self):
         if self.is_robot:
