@@ -645,9 +645,10 @@ class Engine(object):
         """
 
         player = self._players[self._curr_player]
+        deal_type = self._deals[self._curr_deal].type_
 
-        if self._curr_deal == const.DEAL_GOLD or (
-            self._curr_deal not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
+        if deal_type == const.DEAL_GOLD or (
+            deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
             cands = [c for c in player.cards if c in player.order_cards]
 
@@ -676,11 +677,12 @@ class Engine(object):
 
         player = self._players[self._curr_player]
         tbl_ordered = self._order_table()
+        deal_type = self._deals[self._curr_deal].type_
         can = False
 
         while not can:
-            if self._curr_deal == const.DEAL_GOLD or (
-                self._curr_deal not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
+            if deal_type == const.DEAL_GOLD or (
+                deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
                 # или еще не набрал или уже перебрал - надо брать
                 c = player.max_card(tbl_ordered[0][1].card.lear)
                 if c and c.value < max(tbl_ordered, key=lambda ti: ti[1].card.value)[1].card.value:
@@ -703,9 +705,19 @@ class Engine(object):
                     if c.value < max(tbl_ordered, key=lambda ti: ti[1].card.value)[1].card.value:
                         break
 
+                # если не найдена, т.е. мы бьем то, что сейчас на столе - смотрим - если походили все, кроме тебя -
+                # берем самую большую, т.к. один хрен ты бьешь
+                # иначе - саму маленькую такой масти, т.к. есть шанс, что у кого-то есть больше (потом будет еще анализ вышедших)
+                if not c:
+                    if len(tbl_ordered) < self.party_size() - 1:
+                        c = player.min_card(tbl_ordered[0][1].card.lear)
+                    else:
+                        c = player.max_card(tbl_ordered[0][1].card.lear)
+
                 if not c:
                     c = player.min_card(self._trump)
                 if not c:
+                    #  выкинуть самую большую из имеющихся
                     c = [c for c in player.cards_sorted()][0]
 
             joker_opts = {}  # пока так
