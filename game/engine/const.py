@@ -44,8 +44,8 @@ LEAR_DIAMONDS = 1       # Бубны
 LEAR_CLUBS = 2          # Крести
 LEAR_SPADES = 3         # Пики
 
-LEAR_SYMBOLS = ('♥', '♦', '♧', '♠')
-# LEAR_SYMBOLS = ('♥', '♦', '♣', '♠')
+# LEAR_SYMBOLS = ('♥', '♦', '♧', '♠')
+LEAR_SYMBOLS = ('♥', '♦', '♣', '♠')
 # LEAR_SYMBOLS = ('♡', '♢', '♧', '♤')
 LEAR_NAMES = ('Черва', 'Бубна', 'Крестя', 'Пика')
 

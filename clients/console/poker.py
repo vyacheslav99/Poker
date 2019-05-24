@@ -1,8 +1,19 @@
-""" Простой консольный клиент для игры. Для тестирования игрового движка """
+"""
+Простой консольный клиент для игры. Для тестирования игрового движка.
+Чтоб работало - надо кинуть в папку с файлом символьную ссылку на папку game из корня проекта
+"""
 
 import random
 
 from game.engine import engine, helpers, const
+
+ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
+          'T-800', 'T-1000', 'Эндрю', 'Валли', 'Бамблби', 'Генерал Гривус', 'Электроник', 'Рой Батти',
+          'Мотоко Кусанаги', 'Чаппи', 'Оптимус Прайм', 'Бишоп 341-B', 'Марвин', 'Дэвид 8', 'Робокоп', 'Балбес', '790',
+          'K.I.T.T.', 'Дэйта', 'Мегатрон', 'ТАРС', 'Ариса', 'Алиса', 'Тик-Ток', 'Джон')
+
+HUMANS = ('Трус', 'Балбес', 'Бывалый', 'Чувак', 'Алиса', 'Буратино', 'Фрай', 'Лила', 'Барт', 'Сыроежкин', 'Весельчак У',
+          'Гомер', 'Адам Вест')
 
 
 class Game():
@@ -44,14 +55,15 @@ class Game():
                 self.players.append(helpers.Player())
                 self.players[i].id = i
                 self.players[i].is_robot = False
-                self.players[i].name = self.ask('Как звать-то тебя?') or 'Чувак'
+                self.players[i].name = self.ask('Как звать-то тебя?') or f'{random.choice(HUMANS)}'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:
                 self.players.append(helpers.Player())
                 self.players[i].id = i
                 self.players[i].is_robot = self.ask(f'Игрок {i+1} человек (д/Н)?').lower() not in ('д', 'y')
-                self.players[i].name = self.ask(f'И как его зовут (по умолчанию "Игрок {i+1}")?') or f'Игрок {i+1}'
+                self.players[i].name = self.ask(f'И как его зовут?') or \
+                    f'{random.choice(ROBOTS)}' if self.players[i].is_robot else f'{random.choice(HUMANS)}'
                 if self.players[i].is_robot:
                     self.players[i].risk_level = random.randint(0, 2)
                     self.players[i].level = random.randint(0, 2)
@@ -176,7 +188,7 @@ class Game():
 
     def print_cards(self, player):
         tl, tc = self.game.trump()
-        lear = ' (к: {0})'.format('-' if tl == const.LEAR_NOTHING else f'{const.LEAR_SYMBOLS[tl]}')
+        lear = ' ({0})'.format('-' if tl == const.LEAR_NOTHING else f'{const.LEAR_SYMBOLS[tl]}')
         print(f'Твои карты{lear}: ', '  '.join([str(c) for c in player.cards]))
 
     def print_walks(self, walk_player, after, orders):

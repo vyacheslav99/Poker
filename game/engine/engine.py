@@ -245,8 +245,9 @@ class Engine(object):
             detailed.append(x)
 
         # минусуем итог, если недобор/мизер/причие минусующие условия
-        if deal_type == const.DEAL_MIZER or (player.take < player.order and player.order > 0) or \
-            (deal_type == const.DEAL_GOLD and self._gold_mizer_on_null and player.take == 0):
+        if (deal_type == const.DEAL_MIZER and player.take > 0) or (
+            deal_type != const.DEAL_MIZER and player.take < player.order and player.order > 0) or (
+            deal_type == const.DEAL_GOLD and self._gold_mizer_on_null and player.take == 0):
             scores *= self._base_fail_coef
             detailed[0] *= self._base_fail_coef
 
@@ -606,7 +607,13 @@ class Engine(object):
             is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
 
             if is_dark:
-                cnt = random.randint(0, round(len(player.cards) / 2) + 1)
+                cnt = random.randint(0, round(len(player.cards) / 3) + 1)
+
+                # а теперь запишем в карты, на которые планируешь брать (это честно, т.к. потом всеравно ты увидешь и спланируешь, на какие будешь брать)
+                # + не забываем вписать джокера первым
+                oc = player.cards_sorted()
+                for i in range(cnt):
+                    player.order_cards.append(oc[i])
             else:
                 cnt = 0 + coef
 
@@ -639,21 +646,18 @@ class Engine(object):
 
         player = self._players[self._curr_player]
 
-        # Т.к. карты уже отсортированы по убыванию, задача упрошается
-        # вобще надо будет сделать у игрока методы, возвращающие мин и макс карты без учета масти, чисто по значениям
-        if self._curr_deal == const.DEAL_GOLD or (self._curr_deal != const.DEAL_GOLD and player.order != player.take):
+        if self._curr_deal == const.DEAL_GOLD or (
+            self._curr_deal not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
-            cands = [(i, c) for i, c in enumerate(player.cards) if c in player.order_cards]
+            cands = [c for c in player.cards if c in player.order_cards]
 
             if not cands:
-                cands = [(i, c) for i, c in enumerate(player.cards)]
+                cands = [c for c in player.cards_sorted()]
 
-            idx = cands[0][0]
+            idx = player.cards.index(cands[0])
         else:
-            # взято свое - надо скинуть
-            idx = [(i, c) for i, c in enumerate(player.cards)][-1][0]
-
-        # idx = random.randint(0, len(player.cards) - 1)
+            # взято свое - надо скинуть - ходим самой мелкой
+            idx = player.cards.index([c for c in player.cards_sorted(ascending=True)][0])
 
         joker_opts = {}  # пока так
         # joker_opts = {
@@ -673,29 +677,36 @@ class Engine(object):
         player = self._players[self._curr_player]
         tbl_ordered = self._order_table()
         can = False
-        iter_limit = 100
 
         while not can:
-            # idx = random.randint(0, len(player.cards) - 1)
-
-            if self._curr_deal == const.DEAL_GOLD or (self._curr_deal != const.DEAL_GOLD and player.order != player.take):
+            if self._curr_deal == const.DEAL_GOLD or (
+                self._curr_deal not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
                 # или еще не набрал или уже перебрал - надо брать
                 c = player.max_card(tbl_ordered[0][1].card.lear)
+                if c and c.value < max(tbl_ordered, key=lambda ti: ti[1].card.value)[1].card.value:
+                    c = player.min_card(tbl_ordered[0][1].card.lear)
+
                 if not c:
                     c = player.max_card(self._trump)
-                if not c and iter_limit > 0:
-                    ccc = [c for c in player.cards if c not in player.order_cards]
-                    c = random.choice([c for c in ccc]) if ccc else None
-                    iter_limit -= 1
+
+                # масти нет, козыря нет - придется скидывать - надо выбрать что-то ненужное
                 if not c:
-                    c = random.choice([c for c in player.cards])
+                    cands = [c for c in player.cards_sorted(ascending=True) if c not in player.order_cards]
+                    if not cands:
+                        cands = [c for c in player.cards_sorted(ascending=True)]
+
+                    c = cands[0]
             else:
-                # свое взято - надо сливать
-                c = player.min_card(tbl_ordered[0][1].card.lear)
+                # свое взято - надо сливать - слить надо самую крупную из возможных
+                c = None
+                for c in player.gen_lear_range(tbl_ordered[0][1].card.lear):
+                    if c.value < max(tbl_ordered, key=lambda ti: ti[1].card.value)[1].card.value:
+                        break
+
                 if not c:
                     c = player.min_card(self._trump)
                 if not c:
-                    c = random.choice([c for c in player.cards])
+                    c = [c for c in player.cards_sorted()][0]
 
             joker_opts = {}  # пока так
             # joker_opts = {
@@ -703,6 +714,7 @@ class Engine(object):
             #     'action': const.JOKER_BIGEST
             # } if player.cards[idx].joker and not self._no_joker else {}
 
+            # c = random.choice([c for c in player.cards]) - в назидание потомкам
             idx = player.cards.index(c)
             can, _ = self._check_beat(idx, **joker_opts)
 

@@ -105,19 +105,24 @@ class Player(object):
 
         return False
 
-    def gen_lear_range(self, lear):
-        """ Сформировать список карт игрока заданной масти, отсортированный в порядке возрастания """
-        return sorted([card for card in self.cards if not card.joker and card.lear == lear], key=lambda x: x.value)
+    def gen_lear_range(self, lear, ascending=False):
+        """ Сформировать список карт игрока заданной масти, отсортированный в указанном порядке (по умолчанию убывание) """
+        return sorted([card for card in self.cards if not card.joker and card.lear == lear],
+                      key=lambda x: x.value, reverse=not ascending)
 
     def max_card(self, lear):
         """ Выдать максимальную карту заданной масти """
         lr = self.gen_lear_range(lear)
-        return lr[-1] if lr else None
+        return lr[0] if lr else None
 
     def min_card(self, lear):
         """ Выдать минимальную карту заданной масти """
-        lr = self.gen_lear_range(lear)
+        lr = self.gen_lear_range(lear, ascending=True)
         return lr[0] if lr else None
+
+    def cards_sorted(self, ascending=False):
+        """ Вернет список карт, отсортированный без учета масти в указанном порядке (по умолчанию убывание) """
+        return sorted([c for c in self.cards], key=lambda x: x.value, reverse=not ascending)
 
     def __str__(self):
         if self.is_robot:
@@ -126,6 +131,7 @@ class Player(object):
             s = 'Человек'
 
         return f'{self.name} ({s})'
+
 
 class Deal(object):
 
