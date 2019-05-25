@@ -598,45 +598,57 @@ class Engine(object):
         """
 
         player = self._players[self._curr_player]
+        cnt = 0
         can = False
-        coef = 0
-        coef2 = 1
 
-        while not can:
-            # учесть еще уровень риска
-            is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
+        # учесть еще уровень риска
+        is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
 
-            if is_dark:
-                cnt = random.randint(0, round(len(player.cards) / 3) + 1)
+        if is_dark:
+            cnt = random.randint(0, round(len(player.cards) / 3) + 1)
 
-                # теперь надо посмотреть карты и спланировать, на что будем брать (все честно - заказ то не меняется)
-                # + не забываем вписать джокера первым
-                oc = player.cards_sorted()
-                for i in range(cnt):
-                    player.order_cards.append(oc[i])
-            else:
-                cnt = 0 + coef
+            # теперь надо посмотреть карты и спланировать, на что будем брать (все честно - заказ то не меняется)
+            if not self._no_joker:
+                idx = player.index_of_card(-1, -1, joker=True)
+                if idx > -1:
+                    player.order_cards.append(player.cards[idx])
 
-                # если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10
-                # сразу не глядя прикрыта или нет. В бескозырке В 10 если только прикрыты
-                # это для среднего уровня риска, остальные соотв. +1/-1
-                limit = 11  # Валет
+            oc = player.cards_sorted()
+            for i in range(cnt):
+                player.order_cards.append(oc[i])
+        else:
+            # если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10
+            # сразу не глядя прикрыта или нет. В бескозырке В 10 если только прикрыты
+            # это для среднего уровня риска, остальные соотв. +1/-1
+            limit = 11  # Валет
+            deal_cards = self._deals[self._curr_deal].cards
 
-                # todo: тут надо будет пробегаться по рядам каждой масти и смотреть их отдельно, вместо перебора всех карт
-                # + ввести корректирующие коэффициенты, если мало/нет козыря - уменьшать взятку на самую длинную масть
-                # из заказанных
-                for c in player.cards:
-                    if (c.value > limit) or (c.lear == self._trump and c.value + 2 > limit):  # + заказ на джокера
+            if self._trump == const.LEAR_NOTHING:
+                limit = 5
+
+            # ввести корректирующие коэффициенты, если мало/нет козыря - уменьшать взятку на самую длинную масть
+            # из заказанных. limit будет меняться от уровня риска; кол-во карт, до которого не смотрим длину масти тоже
+            for lear in range(4):
+                cards = player.gen_lear_range(lear)
+                for c in cards:
+                    if not self._no_joker and c.joker:
+                        player.order_cards.append(c)
+                        cnt += 1
+                    elif (len(cards) >= 15 - c.value or deal_cards < 6) and (
+                        (c.value > limit) or (c.lear == self._trump and c.value + 2 > limit)):
                         player.order_cards.append(c)
                         cnt += 1
 
-            can, _ = self._check_order(cnt, is_dark)
+        can, _ = self._check_order(cnt, is_dark)
 
-            if not can:
-                if cnt >= len(player.cards):
-                    coef2 = -1  # еще доп. учесть +/- в зависимости от уровня риска
-
-                coef += coef2
+        if not can:
+            if cnt == 0:
+                cnt += 1
+            elif cnt >= len(player.cards):
+                cnt -= 1
+            else:
+                # тут надо будет смотреть карты и учитывать уровень риска, а пока
+                cnt += random.choice((-1, 1))
 
         return cnt, is_dark
 

@@ -129,6 +129,15 @@ class Player(object):
         random.shuffle(mixed)
         return sorted(mixed, key=lambda x: x.value, reverse=not ascending)
 
+    def index_of_card(self, lear, value, joker=False):
+        """ Ищет карту у игрока, возвращает ее индекс. Если joker==True - ищет по флагу joker, игнорируя масть и достоинство """
+
+        for i, c in enumerate(self.cards):
+            if (c.lear == lear and c.value == value) or (joker and c.joker):
+                return i
+
+        return -1
+
     def __str__(self):
         if self.is_robot:
             s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
