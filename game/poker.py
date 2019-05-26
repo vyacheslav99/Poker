@@ -289,6 +289,8 @@ class Game():
                         print('Делаем заказы на раунд')
                         if self.game.dark_allowed and self.game.current_deal().type_ != const.DEAL_DARK:
                             dark = self.ask('Хочешь заказать в темную? (д/Н)').lower() in ('д', 'y')
+                        else:
+                            dark = False
 
                         # выводим заказы всех, кто до тебя
                         self.print_walks(p, False, True)
