@@ -10,7 +10,8 @@ from core import engine, helpers, const
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'T-800', 'T-1000', 'Эндрю', 'Валли', 'Бамблби', 'Генерал Гривус', 'Электроник', 'Рой Батти',
           'Мотоко Кусанаги', 'Чаппи', 'Оптимус Прайм', 'Бишоп 341-B', 'Марвин', 'Дэвид 8', 'Робокоп', 'Балбес', '790',
-          'K.I.T.T.', 'Дэйта', 'Мегатрон', 'ТАРС', 'Ариса', 'Алиса', 'Тик-Ток', 'Джон')
+          'K.I.T.T.', 'Дэйта', 'Мегатрон', 'ТАРС', 'Ариса', 'Алиса', 'Тик-Ток', 'Джон', 'Аниматронио', 'Роберто',
+          'Рободьявол')
 
 HUMANS = ('Трус', 'Балбес', 'Бывалый', 'Чувак', 'Алиса', 'Буратино', 'Фрай', 'Лила', 'Барт', 'Сыроежкин', 'Весельчак У',
           'Гомер', 'Адам Вест')
@@ -49,21 +50,29 @@ class Game():
         # 1. Игроки
         self.players = []
         player_cnt = int(self.ask('Сколько будет игроков?'))
+        auto = self.ask('Хочешь настроить игроков сам (д) или накидать автоматически (Н)?').lower() not in ('д', 'y')
+        robots = [r for r in ROBOTS]
+        humans = [h for h in HUMANS]
 
         for i in range(player_cnt):
             if i == 0:
                 self.players.append(helpers.Player())
                 self.players[i].id = i
                 self.players[i].is_robot = False
-                self.players[i].name = self.ask('Как звать-то тебя?') or f'{random.choice(HUMANS)}'
+                self.players[i].name = self.ask('Как звать-то тебя?') or f'{humans.pop(random.randrange(0, len(humans)))}'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:
                 self.players.append(helpers.Player())
                 self.players[i].id = i
-                self.players[i].is_robot = self.ask(f'Игрок {i+1} человек (д/Н)?').lower() not in ('д', 'y')
-                self.players[i].name = self.ask(f'И как его зовут?') or \
-                    f'{random.choice(ROBOTS)}' if self.players[i].is_robot else f'{random.choice(HUMANS)}'
+                if auto:
+                    self.players[i].is_robot = True
+                    self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
+                else:
+                    self.players[i].is_robot = self.ask(f'Игрок {i+1} человек (д/Н)?').lower() not in ('д', 'y')
+                    self.players[i].name = self.ask(f'И как его зовут?') or \
+                        f'{robots.pop(random.randrange(0, len(robots)))}' \
+                        if self.players[i].is_robot else f'{humans.pop(random.randrange(0, len(humans)))}'
                 if self.players[i].is_robot:
                     self.players[i].risk_level = random.randint(0, 2)
                     self.players[i].level = random.randint(0, 2)
@@ -218,7 +227,7 @@ class Game():
         print('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
 
     def print_middle_info(self):
-        print('  '.join([f'{p.name}: {p.order} / {p.take}' for p in self.players]))
+        print('  '.join([f'{p.name}: {p.order if p.order > -1 else "-"} / {p.take}' for p in self.players]))
 
     def print_round_results(self):
         rec = self.game.get_record()
@@ -235,7 +244,9 @@ class Game():
         self.skip_lines(2)
         print('-= Итоги игры =-')
         for p in self.game.players:
-            print(f'{p.name}: {p.last_money}')
+            money = '{0:.2f}'.format(p.last_money)
+            rub, kop = money.split('.')
+            print(f'{p.name}: {rub} руб {kop} коп')
 
         self.skip_lines(1)
         print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')
