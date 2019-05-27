@@ -5,7 +5,7 @@
 
 import random
 
-from core import engine, helpers, const
+from .core import engine, helpers, const
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'T-800', 'T-1000', 'Эндрю', 'Валли', 'Бамблби', 'Генерал Гривус', 'Электроник', 'Рой Батти',
@@ -27,11 +27,11 @@ class Game():
 
     def set_default(self):
         self.options['game_sum_by_diff'] = True
-        self.options['dark_allowed'] = True
+        self.options['dark_allowed'] = False
         self.options['third_pass_limit'] = True
         self.options['fail_subtract_all'] = False
-        self.options['no_joker'] = True
-        self.options['strong_joker'] = True
+        self.options['no_joker'] = False
+        self.options['joker_give_at_par'] = False
         self.options['joker_demand_peak'] = True
         self.options['pass_factor'] = 5
         self.options['gold_mizer_factor'] = 15
@@ -116,18 +116,18 @@ class Game():
         print('Заказ в темную: {0}'.format('Разрешен' if self.options['dark_allowed'] else 'Запрещен'))
         self.options['third_pass_limit'] = self.ask('Включить ограничение на 3 паса подряд? (д/Н)').lower() in ('д', 'y')
         print('Ограничение на 3 паса подряд: {0}'.format('Включено' if self.options['third_pass_limit'] else 'Не ограничено'))
-        self.options['fail_subtract_all'] = self.ask('Как считать недоборы: вычитать весь заказ ("1") или вычитать разницу между заказом и взятым ("2"?').lower() == '1'
+        self.options['fail_subtract_all'] = self.ask('Как считать недоборы: вычитать весь заказ ("1") или вычитать разницу между заказом и взятым ("2")?').lower() == '1'
         print('Вычет недоборов: {0}'.format('Весь заказ' if self.options['fail_subtract_all'] else 'Разница между заказом и взятым'))
         self.options['no_joker'] = self.ask('Играем с джокером? (Д/н)').lower() in ('н', 'n')
         print('Джокер в игре: {0}'.format('Отключен' if self.options['no_joker'] else 'Включен'))
 
         if not self.options['no_joker']:
-            self.options['strong_joker'] = self.ask('Джокер играет строго по масти (не бьет козыря, если он не выдан за козыря)? (Д/н)').lower() not in ('н', 'n')
-            print('Джокер строго по масти: {0}'.format('Да' if self.options['strong_joker'] else 'Нет'))
-            self.options['joker_demand_peak'] = self.ask('Джокер может требовать выдать "по старшей / младшей карте масти"? (Д/н)').lower() not in ('н', 'n')
-            print('Джокер может требовать старшую/младшую: {0}'.format('Да' if self.options['joker_demand_peak'] else 'Нет'))
+            self.options['joker_give_at_par'] = self.ask('Джокер сбрасываем по номиналу (как 7 пика) или с выбором масти? (д/Н)').lower() in ('д', 'y')
+            print('Сброс джокера по номиналу: {0}'.format('Да' if self.options['joker_give_at_par'] else 'Нет'))
+            self.options['joker_demand_peak'] = self.ask('Джокер может требовать "по старшей карте"? (Д/н)').lower() not in ('н', 'n')
+            print('Джокер может требовать "по старшей": {0}'.format('Да' if self.options['joker_demand_peak'] else 'Нет'))
         else:
-            self.options['strong_joker'] = False
+            self.options['joker_give_at_par'] = False
             self.options['joker_demand_peak'] = False
 
         print(f"Очки за сыграную взятку в обычной игре: {10}")
@@ -170,8 +170,8 @@ class Game():
         print('Джокер в игре: {0}'.format('Отключен' if self.options['no_joker'] else 'Включен'))
 
         if not self.options['no_joker']:
-            print('Джокер строго по масти: {0}'.format('Да' if self.options['strong_joker'] else 'Нет'))
-            print('Джокер может требовать старшую/младшую: {0}'.format('Да' if self.options['joker_demand_peak'] else 'Нет'))
+            print('Сброс джокера по номиналу: {0}'.format('Да' if self.options['joker_give_at_par'] else 'Нет'))
+            print('Джокер может требовать "по старшей": {0}'.format('Да' if self.options['joker_demand_peak'] else 'Нет'))
 
         print(f"Очки за сыграную взятку в обычной игре: {10}")
         print(f"Очки за взятку при переборе: {1}")
@@ -198,7 +198,20 @@ class Game():
     def print_cards(self, player):
         tl, tc = self.game.trump()
         lear = ' ({0})'.format('-' if tl == const.LEAR_NOTHING else f'{const.LEAR_SYMBOLS[tl]}')
-        print(f'Твои карты{lear}: ', '  '.join([str(c) for c in player.cards]))
+        print(f'Твои карты{lear}: ', '  '.join(['{0}{1}'.format(c, '.' if i % 3 == 0 else '') for i, c in enumerate(player.cards, 1)]))
+
+    def get_joker_info(self, card):
+        if card.joker:
+            if card.joker_action == const.JOKER_TAKE:
+                s = 'Забираю'
+            elif card.joker_action == const.JOKER_TAKE_BY_MAX:
+                s = 'Забираю по самой крупной'
+            else:
+                s = 'Скидываю'
+
+            return ' ({0}, {1})'.format(s, const.LEAR_SYMBOLS[card.joker_lear])
+        else:
+            return ''
 
     def print_walks(self, walk_player, after, orders):
         if after:
@@ -210,7 +223,8 @@ class Game():
                     if orders:
                         info = '{0}{1}'.format(p[0].order, ' (в темную)' if p[0].order_is_dark else '')
                     else:
-                        info = self.game.table()[p[1]].card
+                        c = self.game.table()[p[1]].card
+                        info = '{0}{1}'.format(c, self.get_joker_info(c))
                     print(f'{p[0].name}: {info}')
         else:
             for p in self.game.lap_players_order(by_table=not orders):
@@ -219,7 +233,8 @@ class Game():
                 if orders:
                     info = '{0}{1}'.format(p[0].order, ' (в темную)' if p[0].order_is_dark else '')
                 else:
-                    info = self.game.table()[p[1]].card
+                    c = self.game.table()[p[1]].card
+                    info = '{0}{1}'.format(c, self.get_joker_info(c))
                 print(f'{p[0].name}: {info}')
 
     def print_order_results(self):
@@ -286,7 +301,7 @@ class Game():
                     if self.game.is_bet():
                         after_bet = True
                         self.skip_lines(1)
-                        print('Делаем заказы на раунд')
+                        print('Заказываем')
                         if self.game.dark_allowed and self.game.current_deal().type_ != const.DEAL_DARK:
                             dark = self.ask('Хочешь заказать в темную? (д/Н)').lower() in ('д', 'y')
                         else:
@@ -322,7 +337,28 @@ class Game():
                         self.print_cards(p)
                         while True:
                             try:
-                                self.game.do_walk(int(self.ask(f'{p.name}, твой ход:')) - 1)  # номер указываем по-человечески, с 1
+                                n = int(self.ask(f'{p.name}, твой ход:')) - 1
+                                if p.cards[n].joker:
+                                    is_first = not self.game.table()
+                                    print('Ход джокером, выбери действие:')
+                                    print('1. Забираю')
+                                    print('2. Скидываю')
+                                    if is_first:
+                                        print('3. Забираю по старшей карте')
+                                    jo = int(self.ask(''))
+
+                                    if is_first and (jo != 2 or (jo == 2 and not self.game.joker_give_at_par)):
+                                        print('Закажи масть:')
+                                        for i, x in enumerate(const.LEAR_NAMES, 1):
+                                            print(f'{i}. {x}')
+                                        l = int(self.ask('')) - 1
+                                    else:
+                                        l = p.cards[n].lear
+
+                                    p.cards[n].joker_action = jo
+                                    p.cards[n].joker_lear = l
+
+                                self.game.do_walk(n)  # номер указываем по-человечески, с 1
                                 break
                             except helpers.GameException as e:
                                 print(e)

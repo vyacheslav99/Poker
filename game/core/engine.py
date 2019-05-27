@@ -2,8 +2,8 @@
 
 import random
 
-from core import const
-from core.helpers import GameException, Player, Deal, Card, TableItem
+from . import const
+from .helpers import GameException, Player, Deal, Card, TableItem
 
 
 class Engine(object):
@@ -17,8 +17,8 @@ class Engine(object):
         self._dark_allowed = options['dark_allowed']                    # вкл/выкл возможность заказывать в темную (в обычных раздачах)
         self._third_pass_limit = options['third_pass_limit']            # вкл/выкл ограничение на 3 паса подряд
         self._no_joker = options['no_joker']                            # игра без джокеров вкл/выкл
-        self._strong_joker = options['strong_joker']                    # джокер играет строго по масти или нет (берет козыря, когда выдан за некозырную масть или нет)
-        self._joker_demand_peak = options['joker_demand_peak']          # джокер может/нет требовать "по старшей/младшей карте масти"
+        self._joker_give_at_par = options['joker_give_at_par']          # вариант сброса: True: по номиналу (как 7 пик), как самая маленькая заказанной масти
+        self._joker_demand_peak = options['joker_demand_peak']          # джокер может/нет требовать "по старшей карте масти"
 
         # параметры для расчета очков
         self._base_fail_coef = -1                                       # базовый коэффициент для не взятой (недобора), мизера и прочих минусов (минусующий)
@@ -321,26 +321,26 @@ class Engine(object):
 
         return True, None
 
-    def _check_beat(self, card_index, **joker_opts):
+    def _check_beat(self, card_index):
         """ Проверка, может ли игрок покрыть этой картой (это для случаев именно последующих за первым ходов) """
 
         player = self._players[self._curr_player]
-        card = joker_opts.get('card', player.cards[card_index])
+        card = player.cards[card_index]
         tbl_ordered = self._order_table()
+        required_lear = tbl_ordered[0][1].card.lear if not tbl_ordered[0][1].is_joker() else tbl_ordered[0][1].joker_lear()
 
-        # если первый ход сделан джокером, проверим требование по старшей/младшей карте масти
-        if tbl_ordered[0][1].is_joker:
-            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MAX and card != player.max_card(tbl_ordered[0][1].card.lear) \
-                and player.lear_exists(tbl_ordered[0][1].card.lear):
-                return False, f'Вы обязаны положить самую большую {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
-            if tbl_ordered[0][1].joker_action == const.JOKER_TAKE_BY_MIN and card != player.min_card(tbl_ordered[0][1].card.lear) \
-                and player.lear_exists(tbl_ordered[0][1].card.lear):
-                return False, f'Вы обязаны положить самую маленькую {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
+        # если первый ход сделан джокером смотрим по джокеру
+        if tbl_ordered[0][1].is_joker():
+            # проверим требование по старшей карте, если оно включено
+            if self._joker_demand_peak and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX and \
+                card != player.max_card(required_lear) and player.lear_exists(required_lear):
+                return False, f'Вы обязаны положить самую большую {const.LEAR_NAMES[required_lear]}'
 
         # Если масть карты не совпадает с мастью первой на столе/заказанной джокером, проверить, может ли игрок кинуть эту масть
-        if card.lear != tbl_ordered[0][1].card.lear:
-            if player.lear_exists(tbl_ordered[0][1].card.lear):
-                return False, f'Вы обязаны положить {const.LEAR_NAMES[tbl_ordered[0][1].card.lear]}'
+        # в случае, если игрок ходит джокером - все можно, в т.ч. и кинуть масть не в попад
+        if not card.joker and card.lear != required_lear:
+            if player.lear_exists(required_lear):
+                return False, f'Вы обязаны положить {const.LEAR_NAMES[required_lear]}'
             elif player.lear_exists(self._trump) and card.lear != self._trump:
                 return False, f'Вы обязаны положить козыря'
 
@@ -352,15 +352,42 @@ class Engine(object):
         Вернет True, если побила card_top, False - если бьет card_low.
         """
 
+        # если нижняя джокер
+        if card_low.is_joker():
+            if card_low.joker_action() in (const.JOKER_TAKE, const.JOKER_TAKE_BY_MAX):
+                # если джокер забирает - джокер может не забрать, если заказана не козырная масть, а покрыли козырем
+                return card_low.joker_lear() != self._trump and card_top.card.lear == self._trump
+            elif card_low.joker_action() == const.JOKER_GIVE:
+                # джокер скидывает
+                if not self._joker_give_at_par:
+                    # если сброс джокера происходит по номиналу - ничего не надо делать - кто побил выясниться дальше,
+                    # а вот иначе надо сравнить
+                    if card_low.joker_lear() == card_top.card.lear:
+                        # при одинаковых мастях джокер всегда самый маленький (т.е. берет верхняя)
+                        return True
+                    else:
+                        # Если масти разные, бьет козырная, а если ее нет - то card_low (т.к. ей ходили, а card_top - крыли)
+                        return card_top.card.lear == self._trump
+
+        # если верхняя джокер
+        if card_top.is_joker():
+            if card_top.joker_action() in (const.JOKER_TAKE, const.JOKER_TAKE_BY_MAX):
+                # в данной ситуации джокер забирает всегда
+                return True
+            elif card_top.joker_action() == const.JOKER_GIVE:
+                # джокер скидывает
+                if not self._joker_give_at_par:
+                    # если сброс джокера происходит по номиналу - ничего не надо делать - кто побил выясниться дальше
+                    # иначе джокер сливается в любом случае
+                    return False
+
+        # сравниваем просто по номиналу карт
         if card_low.card.lear == card_top.card.lear:
             # Если масти одинаковые, победила та, которая больше
             if card_top.card.value > card_low.card.value:
                 return True
             elif card_top.card.value < card_low.card.value:
                 return False
-            else:
-                # карты равны - значит одна из них джокер - она и бьет
-                return card_top.is_joker
         else:
             # Если масти разные, бьет козырная, а если ее нет - то card_low (т.к. ей ходили, а card_top - крыли)
             return card_top.card.lear == self._trump
@@ -440,11 +467,11 @@ class Engine(object):
         else:
             # сейчас этап ходов - делаем ход
             if self._step == 0:
-                card_idx, joker_opts = self._ai_calc_walk()
+                card_idx = self._ai_calc_walk()
             else:
-                card_idx, joker_opts = self._ai_calc_beat()
+                card_idx = self._ai_calc_beat()
 
-            self.do_walk(card_idx, **joker_opts)
+            self.do_walk(card_idx)
 
         # передаем ход следующему игроку, и сразу ходим им
         self.give_walk()
@@ -492,20 +519,22 @@ class Engine(object):
         else:
             player.pass_counter = 0
 
-    def do_walk(self, card_index, **joker_opts):
+    def do_walk(self, card_index):
         """ Выполнить действия хода картой. Если это не первый ход, выполнить предварительно проверки на возможность такого хода """
 
         # сначала проверки
+        if self._no_joker and player.cards[card_index].joker:
+            raise GameException('Джокер запрещен договоренностями')
+
         if self._step > 0:
-            res, msg = self._check_beat(card_index, **joker_opts)
+            res, msg = self._check_beat(card_index)
             if not res:
                 raise GameException(msg)
 
         # осуществляем ход: извелечем карту у игрока, добавим в массивы вышедших и на стол
         player = self._players[self._curr_player]
         card = player.cards.pop(card_index)
-        self._table[self._curr_player] = TableItem(self._step, joker_opts.get('card', card),
-                                                   is_joker=len(joker_opts) > 0, joker_action=joker_opts.get('action'))
+        self._table[self._curr_player] = TableItem(self._step, card)
         self._released_cards.append(card)
 
         if self._step == self.party_size() - 1:
@@ -568,6 +597,10 @@ class Engine(object):
         return self._dark_allowed
 
     @property
+    def joker_give_at_par(self):
+        return self._joker_give_at_par
+
+    @property
     def players(self):
         return self._players
 
@@ -591,10 +624,10 @@ class Engine(object):
 
     # --==** методы ИИ **==--
 
-    def _ai_calc_order(self) -> int:
+    def _ai_calc_order(self):
         """
         Расчитывает заказ на текущий раунд. Возвращает кол-во взяток, которые предполагает взять и в темную делается заказ или нет.
-        Заполняет у игрока массив карт, на которые рассчитывает взять
+        Заполняет у игрока массив карт, на которые рассчитывает взять. Возвращает int, bool (заказ, темная/нет)
         """
 
         player = self._players[self._curr_player]
@@ -609,7 +642,7 @@ class Engine(object):
 
             # теперь надо посмотреть карты и спланировать, на что будем брать (все честно - заказ то не меняется)
             if not self._no_joker:
-                idx = player.index_of_card(-1, -1, joker=True)
+                idx = player.index_of_card(joker=True)
                 if idx > -1:
                     player.order_cards.append(player.cards[idx])
 
@@ -626,18 +659,47 @@ class Engine(object):
             if self._trump == const.LEAR_NOTHING:
                 limit = 5
 
+            if not self._no_joker:
+                idx = player.index_of_card(joker=True)
+                if idx > -1:
+                    player.order_cards.append(player.cards[idx])
+                    cnt += 1
+
             # ввести корректирующие коэффициенты, если мало/нет козыря - уменьшать взятку на самую длинную масть
             # из заказанных. limit будет меняться от уровня риска; кол-во карт, до которого не смотрим длину масти тоже
             for lear in range(4):
                 cards = player.gen_lear_range(lear)
                 for c in cards:
-                    if not self._no_joker and c.joker:
-                        player.order_cards.append(c)
-                        cnt += 1
-                    elif (len(cards) >= 15 - c.value or deal_cards < 6) and (
+                    if (len(cards) >= 15 - c.value or (deal_cards < 6 and self._trump != const.LEAR_NOTHING)) and (
                         (c.value > limit) or (c.lear == self._trump and c.value + 2 > limit)):
                         player.order_cards.append(c)
                         cnt += 1
+
+            # теперь еще момент с джокером - джокер может прикрыть одну карту
+            # посмотрим, если на руках есть Д К +В 10 козырные/на бескозырке, на которые не заказано,
+            # нужно посмотреть - спасает ли ситуацию то, что джокер может один раз прикрыть - если да - то заказываем на нее
+            # !!! только пока я это не делаю, т.к. еще не реализовывал логику проверки вышедших карт при ходе
+            # j_used = False
+            # if not self._no_joker and player.index_of_card(joker=True) > -1:
+            #     # сначала посмотрим козыря, т.к. они перспективнее
+            #     if self._trump != const.LEAR_NOTHING:
+            #         cards = player.gen_lear_range(self._trump)
+            #         for c in cards:
+            #             if c.value + 2 > limit and c not in player.order_cards:
+            #                 if len(cards) + 1 >= 15 - c.value:
+            #                     player.order_cards.append(c)
+            #                     cnt += 1
+            #                     j_used = True
+            #                     break
+            #
+            #     if not j_used:
+            #         for c in player.cards:
+            #             if c.value > limit or (self._trump == const.LEAR_NOTHING and c.value + 2 > limit) \
+            #                 and c not in player.order_cards:
+            #                 if len(player.gen_lear_range(c.lear)) + 1 >= 15 - c.value:
+            #                     player.order_cards.append(c)
+            #                     cnt += 1
+            #                     break
 
         can, _ = self._check_order(cnt, is_dark)
 
@@ -664,24 +726,42 @@ class Engine(object):
 
         if deal_type == const.DEAL_GOLD or (
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
+            idx = -1
+
             # или еще не набрал или уже перебрал - надо брать
             cands = [c for c in player.cards_sorted() if c in player.order_cards]
 
             if not cands:
+                # из тех, на кого расчитывали, все уже профукано, а брать надо - кидаем джокера
+                idx = player.index_of_card(joker=True)
+
+            if not cands:
                 cands = [c for c in player.cards_sorted()]
 
-            idx = player.cards.index(cands[0])
+            if idx < 0:
+                idx = player.cards.index(cands[0])
+
+            # масть пока от фонаря, но потом надо будет смотреть, какая нужна
+            if player.cards[idx].joker:
+                player.cards[idx].joker_action = const.JOKER_TAKE_BY_MAX \
+                    if self._joker_demand_peak and random.randint(0, 100) < 30 else const.JOKER_TAKE
+                player.cards[idx].joker_lear = self._trump if self._trump != const.LEAR_NOTHING else random.randint(0, 3)
         else:
             # взято свое - надо скинуть - ходим самой мелкой
-            idx = player.cards.index([c for c in player.cards_sorted(ascending=True)][0])
+            # тут надо будет еще посмотреть - если все, что может побить выбранную карту уже вышло - будем ходить джокером
+            c = [c for c in player.cards_sorted(ascending=True)][0]
 
-        joker_opts = {}  # пока так
-        # joker_opts = {
-        #     'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
-        #     'action': const.JOKER_BIGEST
-        # } if player.cards[idx].joker and not self._no_joker else {}
+            # масть пока от фонаря, но потом надо будет смотреть, какая нужна
+            if c.value > 7:
+                idx = player.index_of_card(joker=True)
+                if idx > -1:
+                    c = player.cards[idx]
+                    c.joker_action = const.JOKER_GIVE
+                    c.joker_lear = c.lear if self._joker_give_at_par else random.choice([i for i in range(4) if i != self._trump])
 
-        return idx, joker_opts
+            idx = player.cards.index(c)
+
+        return idx
 
     def _ai_calc_beat(self) -> int:
         """
@@ -703,16 +783,33 @@ class Engine(object):
                 if c and c.value < max(tbl_ordered, key=lambda ti: ti[1].card.value)[1].card.value:
                     c = player.min_card(tbl_ordered[0][1].card.lear)
 
+                    # мы просираем карту, на которую рассчитывали - так нельзя
+                    if c and c in player.order_cards:
+                        n = player.index_of_card(joker=True)
+                        if n > -1:
+                            c = player.cards[n]
+
                 if not c:
                     c = player.max_card(self._trump)
 
                 # масти нет, козыря нет - придется скидывать - надо выбрать что-то ненужное
                 if not c:
+                    # если уже пора брать
+                    if deal_type == const.DEAL_GOLD or player.order >= len(player.cards):
+                        n = player.index_of_card(joker=True)
+                        if n > -1:
+                            c = player.cards[n]
+
                     cands = [c for c in player.cards_sorted(ascending=True) if c not in player.order_cards]
                     if not cands:
                         cands = [c for c in player.cards_sorted(ascending=True)]
 
-                    c = cands[0]
+                    if not c:
+                        c = cands[0]
+
+                if c.joker:
+                    c.joker_action = const.JOKER_TAKE
+                    c.joker_lear = self._trump if self._trump != const.LEAR_NOTHING else tbl_ordered[0][1].card.lear
             else:
                 # свое взято - надо сливать - слить надо самую крупную из возможных
                 c = None
@@ -722,12 +819,21 @@ class Engine(object):
 
                 # если не найдена, т.е. мы бьем то, что сейчас на столе - смотрим - если походили все, кроме тебя -
                 # берем самую большую, т.к. один хрен ты бьешь
-                # иначе - саму маленькую такой масти, т.к. есть шанс, что у кого-то есть больше (потом будет еще анализ вышедших)
+                # иначе - самую маленькую такой масти, т.к. есть шанс, что у кого-то есть больше (потом будет еще анализ вышедших)
                 if not c:
                     if len(tbl_ordered) < self.party_size() - 1:
                         c = player.min_card(tbl_ordered[0][1].card.lear)
                     else:
                         c = player.max_card(tbl_ordered[0][1].card.lear)
+
+                    # т.к. в этом месте у нас есть риск взять - посмотрим джокера
+                    if c and c.value > 7:
+                        # пока смотрим так, но потом надо будет анализ потолковее сделать
+                        n = player.index_of_card(joker=True)
+                        if n > -1:
+                            c = player.cards[n]
+                            c.joker_action = const.JOKER_GIVE
+                            c.joker_lear = c.lear if self._joker_give_at_par else tbl_ordered[0][1].card.lear
 
                 if not c:
                     c = player.min_card(self._trump)
@@ -735,14 +841,7 @@ class Engine(object):
                     #  выкинуть самую большую из имеющихся
                     c = [c for c in player.cards_sorted()][0]
 
-            joker_opts = {}  # пока так
-            # joker_opts = {
-            #     'card': Card(self._trump if self._trump != const.LEAR_NOTHING else const.LEAR_HEARTS, 14),
-            #     'action': const.JOKER_BIGEST
-            # } if player.cards[idx].joker and not self._no_joker else {}
-
-            # c = random.choice([c for c in player.cards]) - в назидание потомкам
             idx = player.cards.index(c)
-            can, _ = self._check_beat(idx, **joker_opts)
+            can, _ = self._check_beat(idx)
 
-        return idx, joker_opts
+        return idx

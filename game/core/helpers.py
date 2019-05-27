@@ -1,7 +1,7 @@
 """ Вспомогательные классы, инкапсулирующие атрибуты логических единиц """
 
 import random
-from core import const
+from . import const
 
 
 class GameException(Exception):
@@ -10,10 +10,12 @@ class GameException(Exception):
 
 class Card(object):
 
-    def __init__(self, lear:int, value:int, is_joker=False):
-        self._lear = lear           # масть
-        self._value = value         # достоинство, номинал
-        self._is_joker = is_joker   # Джокер или нет (value == 7 and lear == const.LEAR_SPADES)
+    def __init__(self, lear:int, value:int, is_joker=False, joker_action=None, joker_lear=None):
+        self._lear = lear                   # масть
+        self._value = value                 # достоинство, номинал
+        self._is_joker = is_joker           # Джокер или нет (value == 7 and lear == const.LEAR_SPADES)
+        self.joker_action = joker_action    # Действие джокером. Реально задается в момент хода
+        self.joker_lear = joker_lear        # Масть, запрошенная джокером. Реально задается в момент хода
 
     @property
     def value(self):
@@ -36,11 +38,21 @@ class Card(object):
 
 class TableItem(object):
 
-    def __init__(self, order, card, is_joker=False, joker_action=None):
+    def __init__(self, order, card:Card):
         self.order = order                  # Очередность хода, т.е. порядковый номер, которым была положена карта.
-        self.card = card                    # Карта. Для игровой логики, т.е. если реально ходили джокером, то это та карта, за которую он выдан
-        self.is_joker = is_joker            # Джокер это реально или нет. Если джокрер, то мы знаем, что реальная карта - 7 пик
-        self.joker_action = joker_action    # Действие джокером, в т.ч. и требования джокера
+        self.card = card                    # Карта, которой ходили
+
+    def is_joker(self):
+        """ Флаг - джокер это или нет. Просто пробрасывает соответствующую опцию из карты """
+        return self.card.joker
+
+    def joker_action(self):
+        """ Если джокер - то действие джокером. Просто пробрасывает соответствующую опцию из карты """
+        return self.card.joker_action
+
+    def joker_lear(self):
+        """ Масть, запрошенная джокером. Просто пробрасывает соответствующую опцию из карты """
+        return self.card.joker_lear
 
 
 class Player(object):
@@ -129,7 +141,7 @@ class Player(object):
         random.shuffle(mixed)
         return sorted(mixed, key=lambda x: x.value, reverse=not ascending)
 
-    def index_of_card(self, lear, value, joker=False):
+    def index_of_card(self, lear=None, value=None, joker=False):
         """ Ищет карту у игрока, возвращает ее индекс. Если joker==True - ищет по флагу joker, игнорируя масть и достоинство """
 
         for i, c in enumerate(self.cards):
