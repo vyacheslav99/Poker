@@ -3,9 +3,11 @@
 Чтоб работало - надо кинуть в папку с файлом символьную ссылку на папку game из корня проекта
 """
 
+import sys, os
 import random
 
-from game.core import engine, helpers, const
+sys.path.append(os.path.split(os.path.dirname(__file__))[0])
+from poker.core import engine, helpers, const
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'T-800', 'T-1000', 'Эндрю', 'Валли', 'Бамблби', 'Генерал Гривус', 'Электроник', 'Рой Батти',
@@ -202,14 +204,15 @@ class Game():
 
     def get_joker_info(self, card):
         if card.joker:
+            # jl = card.joker_lear if card.joker_lear is not None and card.joker_lear > -1 else card.lear
             if card.joker_action == const.JOKER_TAKE:
-                s = 'Забираю'
+                s, l = 'Самая крупная', const.LEAR_SYMBOLS[card.joker_lear]
             elif card.joker_action == const.JOKER_TAKE_BY_MAX:
-                s = 'Забираю по самой крупной'
-            else:
-                s = 'Скидываю'
+                s, l = 'Забираю по старшей', const.LEAR_SYMBOLS[card.joker_lear]
+            elif card.joker_action == const.JOKER_GIVE:
+                s, l = 'Скидываю', const.LEAR_SYMBOLS[card.joker_lear] if not self.game.joker_give_at_par else f'{card}'
 
-            return ' ({0}, {1})'.format(s, const.LEAR_SYMBOLS[card.joker_lear])
+            return ' ({0} {1})'.format(s, l)
         else:
             return ''
 
@@ -266,6 +269,42 @@ class Game():
         self.skip_lines(1)
         print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')
         print('УРА, Товарищи!!!')
+
+    def ask_joker_walk(self, card):
+        actions = {
+            '1': ('Забираю', const.JOKER_TAKE),
+            '2': ('Скидываю', const.JOKER_GIVE),
+            '3': ('Забираю по старшей карте', const.JOKER_TAKE_BY_MAX)
+        }
+
+        is_first = not self.game.table()
+        print('Выбери действие джокером:')
+
+        for a in actions:
+            if a == '3' and not is_first:
+                pass
+            else:
+                print(f'{a}. {actions[a][0]}')
+
+        jo = self.ask('')
+
+        if is_first:
+            if jo == '2' and self.game.joker_give_at_par:
+                l = card.lear
+            else:
+                print('Закажи масть:')
+                for i, x in enumerate(const.LEAR_NAMES, 1):
+                    print(f'{i}. {x}')
+                l = int(self.ask('')) - 1
+        else:
+            if jo == '1':
+                l = self.game.trump()[0] if self.game.trump()[0] != const.LEAR_NOTHING else random.choice([i for i in range(4)])
+            else:
+                ftbl = self.game.lap_players_order(by_table=True)[0]
+                l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
+
+        card.joker_action = actions[jo][1]
+        card.joker_lear = l
 
     def go(self):
         try:
@@ -339,25 +378,7 @@ class Game():
                             try:
                                 n = int(self.ask(f'{p.name}, твой ход:')) - 1
                                 if p.cards[n].joker:
-                                    is_first = not self.game.table()
-                                    print('Ход джокером, выбери действие:')
-                                    print('1. Забираю')
-                                    print('2. Скидываю')
-                                    if is_first:
-                                        print('3. Забираю по старшей карте')
-                                    jo = int(self.ask(''))
-
-                                    if is_first and (jo != 2 or (jo == 2 and not self.game.joker_give_at_par)):
-                                        print('Закажи масть:')
-                                        for i, x in enumerate(const.LEAR_NAMES, 1):
-                                            print(f'{i}. {x}')
-                                        l = int(self.ask('')) - 1
-                                    else:
-                                        l = p.cards[n].lear
-
-                                    p.cards[n].joker_action = jo
-                                    p.cards[n].joker_lear = l
-
+                                    self.ask_joker_walk(p.cards[n])
                                 self.game.do_walk(n)  # номер указываем по-человечески, с 1
                                 break
                             except helpers.GameException as e:
