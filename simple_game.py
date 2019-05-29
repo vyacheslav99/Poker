@@ -3,10 +3,8 @@
 Чтоб работало - надо кинуть в папку с файлом символьную ссылку на папку game из корня проекта
 """
 
-import sys, os
 import random
 
-sys.path.append(os.path.split(os.path.dirname(__file__))[0])
 from poker.core import engine, helpers, const
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
@@ -211,6 +209,8 @@ class Game():
                 s, l = 'Забираю по старшей', const.LEAR_SYMBOLS[card.joker_lear]
             elif card.joker_action == const.JOKER_GIVE:
                 s, l = 'Скидываю', const.LEAR_SYMBOLS[card.joker_lear] if not self.game.joker_give_at_par else f'{card}'
+            else:
+                s, l = None, None
 
             return ' ({0} {1})'.format(s, l)
         else:
