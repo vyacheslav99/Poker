@@ -50,11 +50,12 @@ class Engine(object):
         self._to_next_lap = False       # флаг, что нужно перейти к следующему кругу в процедуре next
         self._take_player = None        # игрок, забравший взятку
         self._released_cards = []       # массив вышедших карт (для ИИ)
+        self._released_lears = {}       # вышедшие у игроков масти (по данным анализа игры, не напрямую по игрокам)
         self._status = None             # текущий статус для внешних интерфейсов (Заказ ИИ, Ожидание заказа человека, ход ии и т.д.)
 
     def _inc_index(self, idx, max_val, increment=1):
         """
-        Циклическое приращение индекса (начинает с начала, если достиг максимума). Полезно для перебора игроков например.
+        Циклическое приращение индекса (начинает с начала, если достиг максимума). Нужно для перебора игроков например.
         Наращивает всегда по одному, проверяя на макс. значение каждый раз (даже если increment > 1).
         Что позволяет пройти несколько кругов приращения
         """
@@ -103,6 +104,7 @@ class Engine(object):
         self._to_next_lap = False
         self._take_player = None
         self._released_cards = []
+        self._released_lears = {}
 
     def _init_record(self):
         """ Инициализирует таблицу игровых результатов, добавляет в нее одну строку - шапку """
@@ -113,6 +115,12 @@ class Engine(object):
             cap[p.id] = {'order': 'Заказ', 'take': 'Взято', 'scores': 'Очки', 'total': 'Счет'}
 
         self._game_record.append(cap)
+
+    def _init_released_lears(self):
+        """ Инициализация массива вышедших мастей, делать в начале каждого раунда """
+
+        for i in range(self.party_size() - 1):
+            self._released_lears[i] = set()
 
     def _init_deals(self):
         """ Формирование очереди раздач на всю партию """
@@ -145,6 +153,7 @@ class Engine(object):
         self._to_next_deal = False
         self._to_next_lap = False
         self._trump_card = None
+        self._init_released_lears()
 
         deal = self._deals[self._curr_deal]
         self._take_player = None
@@ -168,7 +177,7 @@ class Engine(object):
             else:
                 self._trump = deck[card].lear
 
-            if deal.cards < 36 / self.party_size():
+            if deal.cards < round(36 / self.party_size()):
                 # если раздаем не всю колоду, надо запомнить козырную для ИИ и убрать ее из колоды,
                 # т.к. по правилам она кладется на стол и никому попасть не должна
                 self._released_cards.append(deck[card])
@@ -179,7 +188,8 @@ class Engine(object):
             for player, pidx, last in self._enum_players(deal.player):
                 player.cards.append(deck.pop(0))
 
-        # сделаем базовую сортировку карт, это для примитивных клиентов
+        # сделаем базовую сортировку карт - небольшая предварительная оптимизация для анализаторов ИИ + для удобства работы клиентов
+        # ну и вобще так удобнее работать. Сортировака по убыванию достоинства и масти
         for p in self._players:
             p.cards = sorted([c for c in p.cards], key=lambda x: (x.lear, x.value), reverse=True)
 
@@ -189,8 +199,7 @@ class Engine(object):
         scores = 0
         detailed = []
         deal_type = self._deals[self._curr_deal].type_
-        block_end = self._curr_deal == len(self._deals) - 1 or \
-                    self._deals[self._curr_deal].type_ != self._deals[self._curr_deal + 1].type_
+        block_end = self._curr_deal == len(self._deals) - 1 or deal_type != self._deals[self._curr_deal + 1].type_
 
         # определяем базовый множитель за взятку
         if deal_type in (const.DEAL_NORMAL_ASC, const.DEAL_NORMAL_FULL, const.DEAL_NORMAL_DESC):
@@ -274,6 +283,7 @@ class Engine(object):
         # обнулить переменные раунда
         self._table = {}
         self._released_cards = []
+        self._released_lears = {}
 
         for p in self._players:
             p.order = -1
@@ -342,7 +352,7 @@ class Engine(object):
             if player.lear_exists(required_lear):
                 return False, f'Вы обязаны положить {const.LEAR_NAMES[required_lear]}'
             elif player.lear_exists(self._trump) and card.lear != self._trump:
-                return False, f'Вы обязаны положить козыря'
+                return False, f'Вы обязаны положить козырь'
 
         return True, None
 
@@ -436,6 +446,8 @@ class Engine(object):
             p.total_money += p.last_money
 
     def next(self):
+        """ Центральный метод реализации игрового цикла """
+
         if not self._started:
             return
 
@@ -489,7 +501,7 @@ class Engine(object):
         """ передача хода следующему игроку """
 
         # если это последний шаг (игрок) в круге - переходим к следующему этапу (к ходам, если это был заказ,
-        # к следующему кругу, или к следующей партии)
+        # к следующему кругу, или раунду)
         if self._step == self.party_size() - 1:
             if self._is_bet:
                 self._is_bet = False
@@ -532,7 +544,7 @@ class Engine(object):
 
         # сначала проверки
         if self._no_joker and player.cards[card_index].joker:
-            raise GameException('Джокер запрещен договоренностями')
+            raise GameException('Игра джокером запрещена в этой партии')
 
         if self._step > 0:
             res, msg = self._check_beat(card_index)
@@ -544,6 +556,7 @@ class Engine(object):
         card = player.cards.pop(card_index)
         self._table[self._curr_player] = TableItem(self._step, card)
         self._released_cards.append(card)
+        self._ai_walk_analyze(card)
 
         if self._step == self.party_size() - 1:
             # определяем, кто побил
@@ -621,13 +634,8 @@ class Engine(object):
         if len(players) > 35:
             raise GameException('Игроков не может быть больше кол-ва карт в колоде - 1 (на козыря), т.е. 35!')
 
-        c = len(players)
-        for player in players:
-            if player.is_robot:
-                c -= 1
-
-        if c == 0:
-            raise GameException('В игру не добавлено ни одного игрока-человека!')
+        if all((p.is_robot for p in players)):
+            raise GameException('В игру не добавлено ни одного игрока-человека! Реально хочешь посмотреть на битву машин?')
 
         self._players = players
 
@@ -648,7 +656,7 @@ class Engine(object):
         return max_card
 
     def _ai_greater_cards_released(self, card):
-        """ Смотрит, вышли ли все карты крупнее переданной. Вернет True - если все, что больше, вышло, иначе - False """
+        """ Смотрит по вышедшим, вышли ли все карты крупнее переданной. Вернет True - если все, что больше, вышло, иначе - False """
 
         etalon = [i for i in range(card.value + 1, 15)]
         if not self._no_joker and card.lear == const.LEAR_SPADES and 7 in etalon:
@@ -658,7 +666,7 @@ class Engine(object):
             (c.value for c in self._released_cards if c.lear == card.lear and c.value > card.value and not c.joker))
 
     def _ai_smallest_cards_released(self, card):
-        """ Смотрит, вышли ли все карты меньше переданной. Вернет True - если все, что меньше, вышло, иначе - False """
+        """ Смотрит по вышедшим, вышли ли все карты меньше переданной. Вернет True - если все, что меньше, вышло, иначе - False """
 
         etalon = [i for i in range(6, card.value)]
         if not self._no_joker and card.lear == const.LEAR_SPADES and 7 in etalon:
@@ -668,7 +676,7 @@ class Engine(object):
             (c.value for c in self._released_cards if c.lear == card.lear and c.value < card.value and not c.joker))
 
     def _ai_lear_released(self, lear, exclude_card=None):
-        """ Проверяет все ли карты масти уже вышли (кроме указанной, если она передана). True - если да, иначе False """
+        """ Смотрит по вышедшим все ли карты масти уже вышли (кроме указанной, если она передана). True - если да, иначе False """
 
         etalon = [i for i in range(6, 15) if exclude_card is None or exclude_card.value != i]
         if not self._no_joker and exclude_card.lear == const.LEAR_SPADES and 7 in etalon:
@@ -676,6 +684,27 @@ class Engine(object):
 
         return set(etalon) == set((c.value for c in self._released_cards if c.lear == lear and (
             exclude_card is None or exclude_card.value != c.value) and not c.joker))
+
+    def _ai_players_lear_finished(self, lear, exclude_players=[]):
+        """ Смотрит по вышедшим мастям, что масть закончилась у всех, кроме исключаемых. True - если масти нет ни у кого, иначе False """
+
+        return not any((lear in self._released_lears[p] for p in self._released_lears if p not in exclude_players))
+
+    def _ai_walk_analyze(self, card):
+        """ Предварительный анализ карты, которой ходит игрок + сбор статистики ходов. Результаты будут использованы в алгоритмах ИИ """
+
+        # определим, закончилась ли у игрока масть, которой заходили и если да, то запишем игроку в вышедшие масти
+        # заодно можно вычислить, закончился ли козырь
+        # На этом пока все :))
+        if self._step > 0:
+            _, tbl_item = self._order_table()[0]
+            if tbl_item.card.lear != card.lear:
+                # если походил не в масть - эта масть у него закончилась
+                self._released_lears[self._curr_player].add(tbl_item.card.lear)
+
+                # если еще и не козырем - значит и козрь закончился
+                if self._trump != const.LEAR_NOTHING and card.lear != self._trump:
+                    self._released_lears[self._curr_player].add(self._trump)
 
     def _ai_calc_order(self):
         """
@@ -731,32 +760,6 @@ class Engine(object):
                         player.order_cards.append(c)
                         cnt += 1
 
-            # теперь еще момент с джокером - джокер может прикрыть одну карту
-            # посмотрим, если на руках есть Д К +В 10 козырные/на бескозырке, на которые не заказано,
-            # нужно посмотреть - спасает ли ситуацию то, что джокер может один раз прикрыть - если да - то заказываем на нее
-            # !!! только пока я это не делаю, т.к. еще не реализовывал логику проверки вышедших карт при ходе
-            # j_used = False
-            # if not self._no_joker and player.index_of_card(joker=True) > -1:
-            #     # сначала посмотрим козыря, т.к. они перспективнее
-            #     if self._trump != const.LEAR_NOTHING:
-            #         cards = player.gen_lear_range(self._trump)
-            #         for c in cards:
-            #             if c.value + 2 > limit and c not in player.order_cards:
-            #                 if len(cards) + 1 >= 15 - c.value:
-            #                     player.order_cards.append(c)
-            #                     cnt += 1
-            #                     j_used = True
-            #                     break
-            #
-            #     if not j_used:
-            #         for c in player.cards:
-            #             if c.value > limit or (self._trump == const.LEAR_NOTHING and c.value + 2 > limit) \
-            #                 and c not in player.order_cards:
-            #                 if len(player.gen_lear_range(c.lear)) + 1 >= 15 - c.value:
-            #                     player.order_cards.append(c)
-            #                     cnt += 1
-            #                     break
-
         # сбросил флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
         if is_dark and self._deals[self._curr_deal].type_ == const.DEAL_DARK:
             is_dark = False
@@ -790,9 +793,9 @@ class Engine(object):
 
             for step in (1, 2):
                 # 1 круг
-                # смотрим по убыванию величины из тех, на какую заказали, можно ли ей уже ходить (что все, что больше, вышло)
+                # смотрим в случайном порядке в тех, на которые заказали, можно ли картой уже ходить (т.е. все, что больше, вышло)
                 # 2 круг
-                # если ничего не нашли из заказанного - повторим процедуру со всеми остальными картами
+                # если ничего не нашли из заказанного - повторим процедуру со всеми остальными картами, но в порядке убывания величины
                 # Джокер тут будет учтен автоматически
                 if step == 1:
                     cards = [c for c in player.cards_sorted() if c in player.order_cards]
@@ -801,7 +804,9 @@ class Engine(object):
                     cards = [c for c in player.cards_sorted()]
 
                 for c in cards:
-                    if c.joker or self._ai_greater_cards_released(c):
+                    if c.joker or self._ai_greater_cards_released(c) or (
+                        self._ai_players_lear_finished(c.lear, (self._curr_player,))
+                        and not self._ai_players_lear_finished(self._trump, (self._curr_player,))):
                         card = c
                         break
 
@@ -816,7 +821,7 @@ class Engine(object):
                 else:
                     break
 
-            # полезного ничего вычислить не получилось (напрмер потому, что розданы не все карты) -
+            # полезного ничего вычислить не получилось (напрмер потому, что разданы не все карты) -
             # просто берем самую большую по номиналу
             if not card:
                 card = [c for c in player.cards_sorted()][0]

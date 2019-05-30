@@ -259,6 +259,7 @@ class Game():
         print('-------------------------------------------------------------')
 
     def print_game_results(self):
+        congratulations = ('УРА, Товарищи!!!', 'Ай, молодца!')
         self.skip_lines(2)
         print('-= Итоги игры =-')
         for p in self.game.players:
@@ -268,7 +269,7 @@ class Game():
 
         self.skip_lines(1)
         print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')
-        print('УРА, Товарищи!!!')
+        print(random.choice(congratulations))
 
     def ask_joker_walk(self, card):
         actions = {
@@ -297,10 +298,10 @@ class Game():
                     print(f'{i}. {x}')
                 l = int(self.ask('')) - 1
         else:
+            ftbl = self.game.lap_players_order(by_table=True)[0]
             if jo == '1':
-                l = self.game.trump()[0] if self.game.trump()[0] != const.LEAR_NOTHING else random.choice([i for i in range(4)])
+                l = self.game.trump()[0] if self.game.trump()[0] != const.LEAR_NOTHING else self.game.table()[ftbl[1]].card.lear
             else:
-                ftbl = self.game.lap_players_order(by_table=True)[0]
                 l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
 
         card.joker_action = actions[jo][1]
