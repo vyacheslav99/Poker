@@ -641,6 +641,22 @@ class Engine(object):
 
     # --==** методы ИИ **==--
 
+    def _ai_walk_analyze(self, card):
+        """ Предварительный анализ карты, которой ходит игрок + сбор статистики ходов. Результаты будут использованы в алгоритмах ИИ """
+
+        # определим, закончилась ли у игрока масть, которой заходили и если да, то запишем игроку в вышедшие масти
+        # заодно можно вычислить, закончился ли козырь
+        # На этом пока все :))
+        if self._step > 0:
+            _, tbl_item = self._order_table()[0]
+            if tbl_item.card.lear != card.lear:
+                # если походил не в масть - эта масть у него закончилась
+                self._released_lears[self._curr_player].add(tbl_item.card.lear)
+
+                # если еще и не козырем - значит и козрь закончился
+                if self._trump != const.LEAR_NOTHING and card.lear != self._trump:
+                    self._released_lears[self._curr_player].add(self._trump)
+
     def _ai_max_card(self, *cards):
         """ Определяет, какая из карт списка бьет. Учитывает порядок карт в списке. Возвращает побившую карту """
 
@@ -685,26 +701,28 @@ class Engine(object):
         return set(etalon) == set((c.value for c in self._released_cards if c.lear == lear and (
             exclude_card is None or exclude_card.value != c.value) and not c.joker))
 
-    def _ai_players_lear_finished(self, lear, exclude_players=[]):
-        """ Смотрит по вышедшим мастям, что масть закончилась у всех, кроме исключаемых. True - если масти нет ни у кого, иначе False """
+    def _ai_take_on_lear_safe(self, lear, check_trump=True):
+        """
+        Смотрит по вышедшим мастям, что масть закончилась у всех, кто еще не походил в этом круге и текущего, и
+        т.о. по этому признаку на карту этой масти можно взять.
+        Если надо, проверит что и козырь закончился.
+        True - если масти нет (козыря тоже) ни у кого, иначе False
+        """
 
-        return not any((lear in self._released_lears[p] for p in self._released_lears if p not in exclude_players))
+        res = False
+        ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
+        ex_players.append(self._curr_player)
 
-    def _ai_walk_analyze(self, card):
-        """ Предварительный анализ карты, которой ходит игрок + сбор статистики ходов. Результаты будут использованы в алгоритмах ИИ """
+        for p in self._released_lears:
+            if p not in exclude_players:
+                if lear in self._released_lears[p]:
+                    if check_trump and self._trump != const.LEAR_NOTHING:
+                        if self._trump not in self._released_lears[p]:
+                            return False
+                else:
+                    return False
 
-        # определим, закончилась ли у игрока масть, которой заходили и если да, то запишем игроку в вышедшие масти
-        # заодно можно вычислить, закончился ли козырь
-        # На этом пока все :))
-        if self._step > 0:
-            _, tbl_item = self._order_table()[0]
-            if tbl_item.card.lear != card.lear:
-                # если походил не в масть - эта масть у него закончилась
-                self._released_lears[self._curr_player].add(tbl_item.card.lear)
-
-                # если еще и не козырем - значит и козрь закончился
-                if self._trump != const.LEAR_NOTHING and card.lear != self._trump:
-                    self._released_lears[self._curr_player].add(self._trump)
+        return True
 
     def _ai_calc_order(self):
         """
@@ -804,7 +822,7 @@ class Engine(object):
                     cards = [c for c in player.cards_sorted()]
 
                 for c in cards:
-                    if c.joker or self._ai_greater_cards_released(c):
+                    if c.joker or self._ai_greater_cards_released(c) or self._ai_take_on_lear_safe(c.lear):
                         card = c
                         break
 
@@ -825,6 +843,7 @@ class Engine(object):
                 card = [c for c in player.cards_sorted()][0]
 
             # масть и "по самой большой" пока от фонаря, но вобще надо будет подумать, как правильно их выбрать
+            # это надо будет делать в связке с логикой прикрывания карты при заказе
             if card.joker:
                 card.joker_action = const.JOKER_TAKE_BY_MAX \
                     if self._joker_demand_peak and random.randint(0, 100) < 30 else const.JOKER_TAKE
@@ -834,14 +853,16 @@ class Engine(object):
             # и что не вышли карты крупнее ее (насколько это возможно), чтоб не облажатся
             cards = [c for c in player.cards_sorted(ascending=True)]
             for c in cards:
-                if not c.joker and not self._ai_lear_released(c.lear, c) and self._ai_smallest_cards_released(c):
+                if not c.joker and self._ai_smallest_cards_released(c) and (not self._ai_lear_released(c.lear, c)
+                    or not self._ai_take_on_lear_safe(c.lear)):
                     card = c
                     break
 
             # посмотрим тогда так - помягче условие
             if not card:
                 for c in cards:
-                    if not c.joker and not self._ai_lear_released(c.lear, c) and c.value < 6 + self.party_size() - 1:
+                    if not c.joker and c.value < 6 + self.party_size() - 1 and (not self._ai_lear_released(c.lear, c)
+                        or not self._ai_take_on_lear_safe(c.lear)):
                         card = c
                         break
 
