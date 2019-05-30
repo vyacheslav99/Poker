@@ -804,9 +804,7 @@ class Engine(object):
                     cards = [c for c in player.cards_sorted()]
 
                 for c in cards:
-                    if c.joker or self._ai_greater_cards_released(c) or (
-                        self._ai_players_lear_finished(c.lear, (self._curr_player,))
-                        and not self._ai_players_lear_finished(self._trump, (self._curr_player,))):
+                    if c.joker or self._ai_greater_cards_released(c):
                         card = c
                         break
 
