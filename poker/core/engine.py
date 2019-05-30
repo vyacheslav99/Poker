@@ -119,7 +119,7 @@ class Engine(object):
     def _init_released_lears(self):
         """ Инициализация массива вышедших мастей, делать в начале каждого раунда """
 
-        for i in range(self.party_size() - 1):
+        for i in range(self.party_size()):
             self._released_lears[i] = set()
 
     def _init_deals(self):
@@ -709,12 +709,11 @@ class Engine(object):
         True - если масти нет (козыря тоже) ни у кого, иначе False
         """
 
-        res = False
         ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
         ex_players.append(self._curr_player)
 
         for p in self._released_lears:
-            if p not in exclude_players:
+            if p not in ex_players:
                 if lear in self._released_lears[p]:
                     if check_trump and self._trump != const.LEAR_NOTHING:
                         if self._trump not in self._released_lears[p]:
@@ -773,8 +772,8 @@ class Engine(object):
             for lear in range(4):
                 cards = player.gen_lear_range(lear)
                 for c in cards:
-                    if (len(cards) >= 15 - c.value or (deal_cards < 6 and self._trump != const.LEAR_NOTHING)) and (
-                        (c.value > limit) or (c.lear == self._trump and c.value + 2 > limit)):
+                    if (len(cards) >= 15 - c.value or (deal_cards < ((36 / self.party_size()) / 2) and self._trump != const.LEAR_NOTHING)) \
+                        and ((c.value > limit) or (c.lear == self._trump and c.value + 2 > limit)):
                         player.order_cards.append(c)
                         cnt += 1
 
@@ -853,16 +852,14 @@ class Engine(object):
             # и что не вышли карты крупнее ее (насколько это возможно), чтоб не облажатся
             cards = [c for c in player.cards_sorted(ascending=True)]
             for c in cards:
-                if not c.joker and self._ai_smallest_cards_released(c) and (not self._ai_lear_released(c.lear, c)
-                    or not self._ai_take_on_lear_safe(c.lear)):
+                if not c.joker and self._ai_smallest_cards_released(c) and not self._ai_take_on_lear_safe(c.lear):  # and not self._ai_lear_released(c.lear, c)
                     card = c
                     break
 
             # посмотрим тогда так - помягче условие
             if not card:
                 for c in cards:
-                    if not c.joker and c.value < 6 + self.party_size() - 1 and (not self._ai_lear_released(c.lear, c)
-                        or not self._ai_take_on_lear_safe(c.lear)):
+                    if not c.joker and c.value < 6 + self.party_size() - 1 and not self._ai_take_on_lear_safe(c.lear):  # and not self._ai_lear_released(c.lear, c)
                         card = c
                         break
 
@@ -871,7 +868,7 @@ class Engine(object):
                 card = cards[0]
 
             # а вот тут проверим - может стоит джокера кинуть
-            if card.value >= 6 + self.party_size() - 1:
+            if card.value >= 6 + self.party_size() - 1 and self._ai_take_on_lear_safe(card.lear):
                 idx = player.index_of_card(joker=True)
                 if idx > -1:
                     card = player.cards[idx]
@@ -908,8 +905,13 @@ class Engine(object):
             else:
                 # если самая большая моя не бьет то, что уже на столе или
                 # мой ход не последний и что-то не вышло, что может побить это карту - думаем дальше...
-                if (c != self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)) or (
-                    len(self._table) < self.party_size() - 1 and not self._ai_greater_cards_released(c)):
+                take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
+
+                if len(self._table) < self.party_size() - 1:
+                    # если я хожу не последний - посмотрим, вышло ли все, что больше и не вышла ли масть
+                    take = self._ai_greater_cards_released(c) and self._ai_take_on_lear_safe(c.lear)
+
+                if not take:
                     c = player.min_card(walk_lear)
 
                     # посмотрим - не просираем ли мы карту, на которую рассчитывали
@@ -956,7 +958,7 @@ class Engine(object):
                         take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
                         if not take:
                             if len(tbl_ordered) < self.party_size() - 1:
-                                take = not self._ai_smallest_cards_released(c)
+                                take = self._ai_greater_cards_released(c) and self._ai_take_on_lear_safe(c.lear)
                             if not take:
                                 break
 
@@ -974,7 +976,6 @@ class Engine(object):
                         break
 
                 # а теперь посмотрим - если есть серьезный шанс взять - кинем джокера (если он есть конечно)
-                # пока смотрим так, но потом надо будет анализ потолковее сделать
                 if take and c and c.value >= 6 + self.party_size() - 1:
                     n = player.index_of_card(joker=True)
                     if n > -1:
