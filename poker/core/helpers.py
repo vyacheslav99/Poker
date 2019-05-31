@@ -110,7 +110,7 @@ class Player(object):
         return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__)}
 
     def lear_exists(self, lear):
-        """ Проверяет, есть ли у игрока карты заданной масти. Вернет True/False """
+        """ Проверяет, есть ли у игрока карты заданной масти. Джокер не учитывается. Вернет True/False """
 
         for card in self.cards:
             if not card.joker and card.lear == lear:
@@ -119,17 +119,21 @@ class Player(object):
         return False
 
     def gen_lear_range(self, lear, ascending=False):
-        """ Сформировать список карт игрока заданной масти, отсортированный в указанном порядке (по умолчанию убывание) """
+        """
+        Сформировать список карт игрока заданной масти, отсортированный в указанном порядке (по умолчанию убывание).
+        Джокер не включается в список
+        """
+
         return sorted([card for card in self.cards if not card.joker and card.lear == lear],
                       key=lambda x: x.value, reverse=not ascending)
 
     def max_card(self, lear):
-        """ Выдать максимальную карту заданной масти """
+        """ Выдать максимальную карту заданной масти. Джокер не учитывается """
         lr = self.gen_lear_range(lear)
         return lr[0] if lr else None
 
     def min_card(self, lear):
-        """ Выдать минимальную карту заданной масти """
+        """ Выдать минимальную карту заданной масти. Джокер не учитывается """
         lr = self.gen_lear_range(lear, ascending=True)
         return lr[0] if lr else None
 

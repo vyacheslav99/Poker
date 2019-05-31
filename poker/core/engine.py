@@ -701,12 +701,12 @@ class Engine(object):
         return set(etalon) == set((c.value for c in self._released_cards if c.lear == lear and (
             exclude_card is None or exclude_card.value != c.value) and not c.joker))
 
-    def _ai_take_on_lear_safe(self, lear, check_trump=True):
+    def _ai_lear_over_safe(self, lear):
         """
-        Смотрит по вышедшим мастям, что масть закончилась у всех, кто еще не походил в этом круге и текущего, и
-        т.о. по этому признаку на карту этой масти можно взять.
-        Если надо, проверит что и козырь закончился.
-        True - если масти нет (козыря тоже) ни у кого, иначе False
+        Смотрит по вышедшим мастям, по каждому игроку, кто еще не походил в этом круге (исключая текущего),
+        что масть у пользователя уже закончилась вместе с козырем и т.о. по этому признаку
+        на карту этой масти можно точно взять, если ходишь первый.
+        True - если масти нет, козыря нет ни у кого, иначе False
         """
 
         ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
@@ -715,13 +715,106 @@ class Engine(object):
         for p in self._released_lears:
             if p not in ex_players:
                 if lear in self._released_lears[p]:
-                    if check_trump and self._trump != const.LEAR_NOTHING:
-                        if self._trump not in self._released_lears[p]:
-                            return False
+                    if self._trump != const.LEAR_NOTHING and self._trump not in self._released_lears[p]:
+                        return False
                 else:
                     return False
 
         return True
+
+    def _ai_lear_exists_or_over_safe(self, lear):
+        """
+        Смотрит по вышедшим мастям, по каждому игроку, кто еще не походил в этом круге (исключая текущего),
+        что масть у пользователя или есть или закончилась вместе с козырем и т.о. по этому признаку на карту этой
+        масти можно взять, если у тебя самая большая.
+        True - если масть есть или масти нет и козыря нет по каждому, иначе False
+        """
+
+        ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
+        ex_players.append(self._curr_player)
+
+        for p in self._released_lears:
+            if p not in ex_players:
+                if lear in self._released_lears[p]:
+                    if self._trump != const.LEAR_NOTHING and self._trump not in self._released_lears[p]:
+                        return False
+
+        return True
+
+    def _ai_lear_or_trump_exists(self, lear):
+        """
+        Смотрит по вышедшим мастям, по каждому игроку, кто еще не походил в этом круге (исключая текущего),
+        что у пользователя есть или масть или козырь и т.о. по этому признаку на карту этой
+        масти можно скинуть, если у тебя самая маленькая.
+        True - если масть есть или козырь есть по каждому, иначе False
+        """
+
+        ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
+        ex_players.append(self._curr_player)
+
+        for p in self._released_lears:
+            if p not in ex_players:
+                if lear in self._released_lears[p]:
+                    if self._trump == const.LEAR_NOTHING or self._trump in self._released_lears[p]:
+                        return False
+
+        return True
+
+    def _ai_can_order(self, card, lear_length):
+        """ Определяет, можно ли при текущих условиях заказать на эту карту """
+
+        deal_cards = self._deals[self._curr_deal].cards
+        deal_type = self._deals[self._curr_deal].type_
+
+        max_cards = round(36 / self.party_size())
+        trump_only = self.party_size() > 6 and self._trump != const.LEAR_NOTHING
+        no_full = deal_cards < max_cards
+        check_closed_limit = round(max_cards / 2)
+
+        # определим границу (здесь надо будет уровни риска заложить)
+        if deal_type == const.DEAL_BROW:
+            limit = 13  # только Туз
+        elif self._trump == const.LEAR_NOTHING:
+            if deal_cards == max_cards:
+                limit = 5  # не ограничено
+            elif deal_cards >= max_cards / 2:
+                limit = 10  # Все картинки
+            else:
+                limit = 12  # Т К
+        else:
+            limit = 11 + (self.party_size() - 3)  # начинаем от Дамы
+            if limit > 13: limit = 13
+
+        trump_limit = limit - 2
+
+        # если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10 сразу не глядя прикрыта или нет.
+        # В бескозырке В 10 если только прикрыты. Это для среднего уровня риска, остальные соотв. +1/-1
+        # И надо ввести корректирующие коэффициенты, если мало/нет козыря - уменьшать взятку на самую длинную масть
+        # из заказанных. limit будет меняться от уровня риска; кол-во карт, до которого не смотрим длину масти тоже
+
+        # тут все ясно
+        if card.joker:
+            return True
+
+        # сразу разведем ветки алгоритма, когда раздаются все карты и когда не все
+        if no_full:
+            # если есть прикрывающие карты (если карт меньше половин от максимальной раздачи - на это не смотрим)
+            if lear_length >= 15 - card.value or deal_cards < check_closed_limit:
+                # если проходит по ограничению на "только козырь"
+                if not trump_only or (trump_only and card.lear == self._trump):
+                    # если достоинство больше пограничного (для козыря оно на 2 карты сдвигается)
+                    if (card.value > limit) or (card.lear == self._trump and card.value > trump_limit):
+                        return True
+        else:
+            # если есть прикрывающие карты
+            if lear_length >= 15 - card.value:
+                # если проходит по ограничению на "только козырь"
+                if not trump_only or (trump_only and card.lear == self._trump):
+                    # если достоинство больше пограничного (для козыря оно на 2 карты сдвигается)
+                    if (card.value > limit) or (card.lear == self._trump and card.value > trump_limit):
+                        return True
+
+        return False
 
     def _ai_calc_order(self):
         """
@@ -730,56 +823,28 @@ class Engine(object):
         """
 
         player = self._players[self._curr_player]
-        cnt = 0
 
         # учесть еще уровень риска
         is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
 
+        idx = player.index_of_card(joker=True)
+        if idx > -1:
+            player.order_cards.append(player.cards[idx])
+
+        for lear in range(4):
+            cards = player.gen_lear_range(lear)
+            for c in cards:
+                if self._ai_can_order(c, len(cards)):
+                    player.order_cards.append(c)
+
         if is_dark:
             cnt = random.randint(1, round(self._deals[self._curr_deal].cards / 3) + 1)
 
-            # теперь надо посмотреть карты и спланировать, на что будем брать (все честно - заказ то не меняется)
-            if not self._no_joker:
-                idx = player.index_of_card(joker=True)
-                if idx > -1:
-                    player.order_cards.append(player.cards[idx])
-
-            oc = player.cards_sorted()
-            for i in range(cnt):
-                player.order_cards.append(oc[i])
+            # сбросил флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
+            if self._deals[self._curr_deal].type_ == const.DEAL_DARK:
+                is_dark = False
         else:
-            # если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10
-            # сразу не глядя прикрыта или нет. В бескозырке В 10 если только прикрыты
-            # это для среднего уровня риска, остальные соотв. +1/-1
-            deal_cards = self._deals[self._curr_deal].cards
-            deal_type = self._deals[self._curr_deal].type_
-
-            if self._trump == const.LEAR_NOTHING:
-                limit = 5  # не ограничено
-            elif deal_type == const.DEAL_BROW:
-                limit = 13  # Король
-            else:
-                limit = 11  # Валет
-
-            if not self._no_joker:
-                idx = player.index_of_card(joker=True)
-                if idx > -1:
-                    player.order_cards.append(player.cards[idx])
-                    cnt += 1
-
-            # ввести корректирующие коэффициенты, если мало/нет козыря - уменьшать взятку на самую длинную масть
-            # из заказанных. limit будет меняться от уровня риска; кол-во карт, до которого не смотрим длину масти тоже
-            for lear in range(4):
-                cards = player.gen_lear_range(lear)
-                for c in cards:
-                    if (len(cards) >= 15 - c.value or (deal_cards < ((36 / self.party_size()) / 2) and self._trump != const.LEAR_NOTHING)) \
-                        and ((c.value > limit) or (c.lear == self._trump and c.value + 2 > limit)):
-                        player.order_cards.append(c)
-                        cnt += 1
-
-        # сбросил флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
-        if is_dark and self._deals[self._curr_deal].type_ == const.DEAL_DARK:
-            is_dark = False
+            cnt = len(player.order_cards)
 
         can, _ = self._check_order(cnt, is_dark)
 
@@ -793,6 +858,54 @@ class Engine(object):
                 cnt += random.choice((-1, 1))
 
         return cnt, is_dark
+
+    def _ai_can_take(self, card):
+        """ Вычисляет, возможно ли взять на карту. Пока True/False, но потом вполне возможно буду вероятность расчитывать """
+
+        deal_cards = self._deals[self._curr_deal].cards
+        deal_type = self._deals[self._curr_deal].type_
+
+        max_cards = round(36 / self.party_size())
+        no_full = deal_cards < max_cards
+
+        if card.joker:
+            return True
+
+        # сразу разведем ветки анализа, когда раздаются все карты и не все
+        if no_full:
+            if self._ai_greater_cards_released(card) or self._ai_lear_over_safe(card.lear):
+                return True
+        else:
+            if self._ai_greater_cards_released(card) and self._ai_lear_exists_or_over_safe(card.lear):
+                return True
+
+        return False
+
+    def _ai_can_give(self, card, soft=False):
+        """ Вычисляет, возможно ли сбросить карту. Пока True/False, но потом вполне возможно буду вероятность расчитывать """
+
+        deal_cards = self._deals[self._curr_deal].cards
+        deal_type = self._deals[self._curr_deal].type_
+
+        max_cards = round(36 / self.party_size())
+        no_full = deal_cards < max_cards
+
+        if card.joker:
+            return False
+
+        # сразу разведем ветки анализа, когда раздаются все карты и не все
+        if no_full:
+            if soft:
+                if card.value < 6 + self.party_size() - 1 and self._ai_lear_or_trump_exists(card.lear):
+                    return True
+            else:
+                if self._ai_smallest_cards_released(card) and self._ai_lear_or_trump_exists(card.lear):
+                    return True
+        else:
+            if self._ai_smallest_cards_released(card) and self._ai_lear_or_trump_exists(card.lear):
+                return True
+
+        return False
 
     def _ai_calc_walk(self) -> int:
         """
@@ -821,7 +934,7 @@ class Engine(object):
                     cards = [c for c in player.cards_sorted()]
 
                 for c in cards:
-                    if c.joker or self._ai_greater_cards_released(c) or self._ai_take_on_lear_safe(c.lear):
+                    if self._ai_can_take(c):
                         card = c
                         break
 
@@ -836,7 +949,7 @@ class Engine(object):
                 else:
                     break
 
-            # полезного ничего вычислить не получилось (напрмер потому, что разданы не все карты) -
+            # полезного ничего вычислить не получилось (напрмер потому, что розданы не все карты) -
             # просто берем самую большую по номиналу
             if not card:
                 card = [c for c in player.cards_sorted()][0]
@@ -852,14 +965,14 @@ class Engine(object):
             # и что не вышли карты крупнее ее (насколько это возможно), чтоб не облажатся
             cards = [c for c in player.cards_sorted(ascending=True)]
             for c in cards:
-                if not c.joker and self._ai_smallest_cards_released(c) and not self._ai_take_on_lear_safe(c.lear):  # and not self._ai_lear_released(c.lear, c)
+                if self._ai_can_give(c):
                     card = c
                     break
 
             # посмотрим тогда так - помягче условие
             if not card:
                 for c in cards:
-                    if not c.joker and c.value < 6 + self.party_size() - 1 and not self._ai_take_on_lear_safe(c.lear):  # and not self._ai_lear_released(c.lear, c)
+                    if self._ai_can_give(c, soft=True):
                         card = c
                         break
 
@@ -868,7 +981,7 @@ class Engine(object):
                 card = cards[0]
 
             # а вот тут проверим - может стоит джокера кинуть
-            if card.value >= 6 + self.party_size() - 1 and self._ai_take_on_lear_safe(card.lear):
+            if self._ai_lear_over_safe(card.lear):
                 idx = player.index_of_card(joker=True)
                 if idx > -1:
                     card = player.cards[idx]
@@ -908,8 +1021,8 @@ class Engine(object):
                 take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
 
                 if len(self._table) < self.party_size() - 1:
-                    # если я хожу не последний - посмотрим, вышло ли все, что больше и не вышла ли масть
-                    take = self._ai_greater_cards_released(c) and self._ai_take_on_lear_safe(c.lear)
+                    # если я хожу не последний - проверить, что вышло все, что больше, и что не вышла масть или вышла с козырем
+                    take = take and self._ai_can_take(c)
 
                 if not take:
                     c = player.min_card(walk_lear)
@@ -958,7 +1071,7 @@ class Engine(object):
                         take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
                         if not take:
                             if len(tbl_ordered) < self.party_size() - 1:
-                                take = self._ai_greater_cards_released(c) and self._ai_take_on_lear_safe(c.lear)
+                                take = self._ai_can_take(c)  # not self._ai_can_give(c)
                             if not take:
                                 break
 
@@ -976,7 +1089,7 @@ class Engine(object):
                         break
 
                 # а теперь посмотрим - если есть серьезный шанс взять - кинем джокера (если он есть конечно)
-                if take and c and c.value >= 6 + self.party_size() - 1:
+                if take:
                     n = player.index_of_card(joker=True)
                     if n > -1:
                         c = player.cards[n]
