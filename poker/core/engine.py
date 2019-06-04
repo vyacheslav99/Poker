@@ -422,27 +422,26 @@ class Engine(object):
     def stop(self):
         self._started = False
 
-        # подведем итоги игры
-        for p in self._players:
-            # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
-            p.last_money = p.total_scores * self._bet / 100
-
-        # теперь взаиморасчеты: если считаем по разнице, то каждый игрок получает со всех, у кого меньше разницу между их суммой.
+        # взаиморасчеты: если считаем по разнице, то каждый игрок получает со всех, у кого меньше разницу между их суммой и своей.
         # Т.о. тут можно выити в плюс, даже если ты не выиграл;
         # если считаем по старшему, то каждый, кроме выигравшего, отдает разницу между своими очками и выигравшим, выигравшему, но ничего ни с кого получает.
         # Т.о. тут все в минусе и только выигравший в плюсе
-        ordered = sorted([(i, p.last_money) for i, p in enumerate(self._players)], key=lambda x: x[1], reverse=True)
+        ordered = sorted([(i, p.total_scores) for i, p in enumerate(self._players)], key=lambda x: x[1], reverse=True)
 
-        for i in range(len(ordered)):
-            for j in range(i + 1, len(ordered)):
-                diff = ordered[i][1] - ordered[j][1]
-                self._players[ordered[i][0]].last_money += diff
-                self._players[ordered[j][0]].last_money -= diff
+        if self._game_sum_by_diff:
+            for i in range(len(ordered)):
+                for j in range(len(ordered)):
+                    self._players[ordered[i][0]].last_money += ordered[i][1] - ordered[j][1]
+        else:
+            for i in range(len(ordered)):
+                if i == 0:
+                    self._players[ordered[i][0]].last_money += ordered[0][1]
+                else:
+                    self._players[ordered[i][0]].last_money += ordered[i][1] - ordered[0][1]
 
-            if not self._game_sum_by_diff:
-                break
-
+        # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
         for p in self._players:
+            p.last_money = p.last_money * self._bet / 100
             p.total_money += p.last_money
 
     def next(self):
@@ -760,7 +759,12 @@ class Engine(object):
 
         return True
 
-    def _ai_can_order(self, card, lear_length):
+    def _ai_card_covered(self, card, cards):
+        """ Оперделяет, прикрыта ли переданная карта """
+
+        return len([c for c in cards if c.value < card.value]) >= 14 - card.value
+
+    def _ai_can_order(self, card, lear_cards):
         """ Определяет, можно ли при текущих условиях заказать на эту карту """
 
         deal_cards = self._deals[self._curr_deal].cards
@@ -799,7 +803,7 @@ class Engine(object):
         # сразу разведем ветки алгоритма, когда раздаются все карты и когда не все
         if no_full:
             # если есть прикрывающие карты (если карт меньше половин от максимальной раздачи - на это не смотрим)
-            if lear_length >= 15 - card.value or deal_cards < check_closed_limit:
+            if self._ai_card_covered(card, lear_cards) or deal_cards < check_closed_limit:
                 # если проходит по ограничению на "только козырь"
                 if not trump_only or (trump_only and card.lear == self._trump):
                     # если достоинство больше пограничного (для козыря оно на 2 карты сдвигается)
@@ -807,7 +811,7 @@ class Engine(object):
                         return True
         else:
             # если есть прикрывающие карты
-            if lear_length >= 15 - card.value:
+            if self._ai_card_covered(card, lear_cards):
                 # если проходит по ограничению на "только козырь"
                 if not trump_only or (trump_only and card.lear == self._trump):
                     # если достоинство больше пограничного (для козыря оно на 2 карты сдвигается)
@@ -834,7 +838,7 @@ class Engine(object):
         for lear in range(4):
             cards = player.gen_lear_range(lear)
             for c in cards:
-                if self._ai_can_order(c, len(cards)):
+                if self._ai_can_order(c, cards):
                     player.order_cards.append(c)
 
         if is_dark:
