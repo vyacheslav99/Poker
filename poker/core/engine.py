@@ -422,7 +422,7 @@ class Engine(object):
     def stop(self):
         self._started = False
 
-        # взаиморасчеты: если считаем по разнице, то каждый игрок получает со всех, у кого меньше разницу между их суммой и своей.
+        # взаиморасчеты: если считаем по разнице, то каждый игрок получает разницу между cвоими очками и каждого другого.
         # Т.о. тут можно выити в плюс, даже если ты не выиграл;
         # если считаем по старшему, то каждый, кроме выигравшего, отдает разницу между своими очками и выигравшим, выигравшему, но ничего ни с кого получает.
         # Т.о. тут все в минусе и только выигравший в плюсе
@@ -776,9 +776,9 @@ class Engine(object):
         check_closed_limit = round(max_cards / 2)
 
         # определим границу (здесь надо будет уровни риска заложить)
-        if deal_type == const.DEAL_BROW:
-            limit = 13  # только Туз
-        elif self._trump == const.LEAR_NOTHING:
+        # if deal_type == const.DEAL_BROW:
+        #     limit = 13  # только Туз
+        if self._trump == const.LEAR_NOTHING:
             if deal_cards == max_cards:
                 limit = 5  # не ограничено
             elif deal_cards >= max_cards / 2:
@@ -827,25 +827,41 @@ class Engine(object):
         """
 
         player = self._players[self._curr_player]
+        deal_type = self._deals[self._curr_deal].type_
 
-        # учесть еще уровень риска
-        is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
+        if deal_type == const.DEAL_BROW:
+            # тут я вижу карты игроков, но не вижу свои, в раздаче всегда 1 карта
+            is_dark = False
+            b = True
 
-        idx = player.index_of_card(joker=True)
-        if idx > -1:
-            player.order_cards.append(player.cards[idx])
+            for p in self._players:
+                if p != player:
+                    # вот тут будет еще уровень риска текущего игрока учиываться
+                    if (p.cards[0].joker and p.order == 1) or (p.cards[0].lear == self._trump) or (p.cards[0].value > 10):
+                        b = False
+                        break
 
-        for lear in range(4):
-            cards = player.gen_lear_range(lear)
-            for c in cards:
-                if self._ai_can_order(c, cards):
-                    player.order_cards.append(c)
+            if b:
+                player.order_cards.append(player.cards[0])
+        else:
+            # учесть еще уровень риска
+            is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
+
+            idx = player.index_of_card(joker=True)
+            if idx > -1:
+                player.order_cards.append(player.cards[idx])
+
+            for lear in range(4):
+                cards = player.gen_lear_range(lear)
+                for c in cards:
+                    if self._ai_can_order(c, cards):
+                        player.order_cards.append(c)
 
         if is_dark:
             cnt = random.randint(1, round(self._deals[self._curr_deal].cards / 3) + 1)
 
             # сбросил флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
-            if self._deals[self._curr_deal].type_ == const.DEAL_DARK:
+            if deal_type == const.DEAL_DARK:
                 is_dark = False
         else:
             cnt = len(player.order_cards)

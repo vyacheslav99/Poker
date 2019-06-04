@@ -240,6 +240,11 @@ class Game():
                     info = '{0}{1}'.format(c, self.get_joker_info(c))
                 print(f'{p[0].name}: {info}')
 
+    def print_other_cards(self, walk_player):
+        for p in self.game.lap_players_order():
+            if p[0] != walk_player:
+                print(f'{p[0].name}: ', '  '.join([str(c) for c in p[0].cards]))
+
     def print_order_results(self):
         diff = sum([p.order for p in self.game.players]) - self.game.current_deal().cards
         print('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
@@ -349,7 +354,9 @@ class Game():
 
                         # выводим заказы всех, кто до тебя
                         self.print_walks(p, False, True)
-                        if not dark and self.game.current_deal().type_ != const.DEAL_DARK:
+                        if self.game.current_deal().type_ == const.DEAL_BROW:
+                            self.print_other_cards(p)
+                        elif not dark and self.game.current_deal().type_ != const.DEAL_DARK:
                             self.print_cards(p)
 
                         # твой заказ
