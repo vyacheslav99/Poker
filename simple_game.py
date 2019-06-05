@@ -99,7 +99,7 @@ class Game():
                 if self.ask(const.DEAL_NAMES[n]).lower() not in ('н', 'n'):
                     deals.append(n)
         else:
-            deals = [n for n in range(len(const.DEAL_NAMES))]
+            deals = [n for n in range(len(const.DEAL_NAMES) - 1)]
 
         self.options['deal_types'] = deals
         print('Включены раздачи: {0}'.format(', '.join([const.DEAL_NAMES[n] for n in deals])))
@@ -250,7 +250,7 @@ class Game():
         print('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
 
     def print_middle_info(self):
-        print('  '.join([f'{p.name}: {p.order if p.order > -1 else "-"} / {p.take}' for p in self.players]))
+        print('  '.join([f'{p.name}: {p.order if p.order > -1 else "-"}{"*" if p.order_is_dark else ""} / {p.take}' for p in self.players]))
 
     def print_round_results(self):
         rec = self.game.get_record()

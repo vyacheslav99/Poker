@@ -276,7 +276,7 @@ class Engine(object):
             p.total_scores += p.scores
             det_str = ' + '.join([str(s) for s in detailed]) if len(detailed) > 1 else ''
             scores_str = '{0}{1}'.format(p.scores, f' ({det_str})' if det_str else '')
-            rec[p.id] = {'order': p.order, 'take': p.take, 'scores': scores_str, 'total': p.total_scores}
+            rec[p.id] = {'order': f'{p.order}{"*" if p.order_is_dark else ""}', 'take': p.take, 'scores': scores_str, 'total': p.total_scores}
 
         self._game_record.append(rec)
 
