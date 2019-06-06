@@ -941,33 +941,40 @@ class Engine(object):
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
 
-            for step in (1, 2):
-                # 1 круг
-                # смотрим в случайном порядке в тех, на которые заказали, можно ли картой уже ходить (т.е. все, что больше, вышло)
-                # 2 круг
-                # если ничего не нашли из заказанного - повторим процедуру со всеми остальными картами, но в порядке убывания величины
-                # Джокер тут будет учтен автоматически
-                if step == 1:
-                    cards = [c for c in player.cards_sorted() if c in player.order_cards]
-                    random.shuffle(cards)
-                else:
-                    cards = [c for c in player.cards_sorted()]
+            # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать
+            if deal_type != const.DEAL_GOLD and (player.order - player.take) >= len(player.cards):
+                n = player.index_of_card(joker=True)
+                if n > -1:
+                    card = player.cards[n]
 
-                for c in cards:
-                    if self._ai_can_take(c):
-                        card = c
+            if not card:
+                for step in (1, 2):
+                    # 1 круг
+                    # смотрим в случайном порядке в тех, на которые заказали, можно ли картой уже ходить (т.е. все, что больше, вышло)
+                    # 2 круг
+                    # если ничего не нашли из заказанного - повторим процедуру со всеми остальными картами, но в порядке убывания величины
+                    # Джокер тут вылезет в случайном порядке
+                    if step == 1:
+                        cards = [c for c in player.cards_sorted() if c in player.order_cards]
+                        random.shuffle(cards)
+                    else:
+                        cards = [c for c in player.cards_sorted()]
+
+                    for c in cards:
+                        if self._ai_can_take(c):
+                            card = c
+                            break
+
+                    # ничего не нашли - нужно кинуть что-то для затравки, чтобы вынудить сбросить мешающую крупную -
+                    # подберем самую крупную этой же масти, на которую уже не заказывал
+                    if not card:
+                        for co in cards:
+                            for c in player.gen_lear_range(co.lear):
+                                if c.value < co.value and c not in player.order_cards:
+                                    card = c
+                                    break
+                    else:
                         break
-
-                # ничего не нашли - нужно кинуть что-то для затравки, чтобы вынудить сбросить мешающую крупную -
-                # подберем самую крупную этой же масти, на которую уже не заказывал
-                if not card:
-                    for co in cards:
-                        for c in player.gen_lear_range(co.lear):
-                            if c.value < co.value and c not in player.order_cards:
-                                card = c
-                                break
-                else:
-                    break
 
             # полезного ничего вычислить не получилось (напрмер потому, что розданы не все карты) -
             # просто берем самую большую по номиналу
@@ -1055,8 +1062,8 @@ class Engine(object):
 
             # масти нет, козыря нет - придется скидывать - надо выбрать что-то ненужное
             if not c:
-                # если уже пора брать
-                if deal_type == const.DEAL_GOLD or player.order >= len(player.cards):
+                # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать
+                if deal_type == const.DEAL_GOLD or (player.order - player.take) >= len(player.cards):
                     n = player.index_of_card(joker=True)
                     if n > -1:
                         c = player.cards[n]
