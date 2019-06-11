@@ -137,6 +137,19 @@ class Player(object):
         lr = self.gen_lear_range(lear, ascending=True)
         return lr[0] if lr else None
 
+    def middle_card(self, lear):
+        """ Выдает карту из середины заданной масти (со сдвигом к болшей, если поровну не делиться). Джокер не учитывается """
+
+        lr = self.gen_lear_range(lear)
+
+        if lr:
+            if len(lr) > 1:
+                return lr[round(len(lr) / 2) - 1]
+            else:
+                return lr[0]
+        else:
+            return None
+
     def cards_sorted(self, ascending=False):
         """ Вернет список карт, отсортированный без учета масти в указанном порядке (по умолчанию убывание) """
 

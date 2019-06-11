@@ -966,12 +966,19 @@ class Engine(object):
                             break
 
                     # ничего не нашли - нужно кинуть что-то для затравки, чтобы вынудить сбросить мешающую крупную -
-                    # подберем самую крупную этой же масти, на которую уже не заказывал
+                    # подберем что-то не самое мелкое той же масти, как карты из списка заказа
                     if not card:
-                        for co in cards:
-                            for c in player.gen_lear_range(co.lear):
-                                if c.value < co.value and c not in player.order_cards:
-                                    card = c
+                        for co in player.order_cards:
+                            c = player.middle_card(co.lear)
+                            if c:
+                                cl = player.gen_lear_range(co.lear)
+                                i = cl.index(c)
+
+                                while i < len(cl) and (cl[i].value >= co.value or cl[i] in player.order_cards):
+                                    i += 1
+
+                                if i < len(cl):
+                                    card = cl[i]
                                     break
                     else:
                         break
@@ -1044,7 +1051,7 @@ class Engine(object):
                 pass
             else:
                 # если самая большая моя не бьет то, что уже на столе или
-                # мой ход не последний и что-то не вышло, что может побить это карту - думаем дальше...
+                # мой ход не последний и что-то не вышло, что может побить это карту - ищем дальше...
                 take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
 
                 if len(self._table) < self.party_size() - 1:

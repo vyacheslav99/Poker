@@ -192,7 +192,7 @@ class Game():
         d = self.game.current_deal()
         print(f'Раздача: {const.DEAL_NAMES[d.type_]} < по {d.cards} >')
         tl, tc = self.game.trump()
-        print('Козырь: {0}'.format('нет' if tl == const.LEAR_NOTHING else f'{const.LEAR_NAMES[tl]}  < {tc if tc else ""} >'))
+        print('Козырь: {0}'.format('{0}{1}'.format('нет' if tl == const.LEAR_NOTHING else f'{const.LEAR_NAMES[tl]}', f'  < {tc} >' if tc else '')))
         print(f'Первый ходит: {self.game.players[d.player].name}')
 
     def print_cards(self, player):
