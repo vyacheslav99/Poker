@@ -17,7 +17,7 @@ ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедон
 HUMANS = ('Чубрик', 'Чел', 'Колян', 'Чувак', 'Толик', 'Маня', 'Фекла', 'Вася', 'Ваня', 'Дуня')
 
 
-class Game():
+class Game:
 
     def __init__(self):
         self.options = {}
@@ -44,6 +44,7 @@ class Game():
 
     def poll_of_agreements(self):
         """ Опросить о договоренностях на игру """
+
         print('Перед началом игры надо кое о чем договориться')
         self.skip_lines(1)
 
@@ -423,6 +424,7 @@ class Game():
 
 def main():
     Game().go()
+
 
 if __name__ == '__main__':
     main()

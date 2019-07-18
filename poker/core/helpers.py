@@ -10,7 +10,7 @@ class GameException(Exception):
 
 class Card(object):
 
-    def __init__(self, lear:int, value:int, is_joker=False, joker_action=None, joker_lear=None):
+    def __init__(self, lear: int, value: int, is_joker=False, joker_action=None, joker_lear=None):
         self._lear = lear                   # масть
         self._value = value                 # достоинство, номинал
         self._is_joker = is_joker           # Джокер или нет (value == 7 and lear == const.LEAR_SPADES)
@@ -38,7 +38,7 @@ class Card(object):
 
 class TableItem(object):
 
-    def __init__(self, order, card:Card):
+    def __init__(self, order, card: Card):
         self.order = order                  # Очередность хода, т.е. порядковый номер, которым была положена карта.
         self.card = card                    # Карта, которой ходили
 
@@ -107,7 +107,7 @@ class Player(object):
         self.last_money = params['last_money']
 
     def as_dict(self):
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__)}
+        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
 
     def lear_exists(self, lear):
         """ Проверяет, есть ли у игрока карты заданной масти. Джокер не учитывается. Вернет True/False """
@@ -178,7 +178,7 @@ class Player(object):
 
 class Deal(object):
 
-    def __init__(self, player:Player, type_:int, cards:int):
+    def __init__(self, player: Player, type_: int, cards: int):
         self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
         self.type_ = type_      # тип раздачи
         self.cards = cards      # количество карт, раздаваемых одному игроку

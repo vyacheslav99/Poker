@@ -8,7 +8,7 @@ from .helpers import GameException, Player, Deal, Card, TableItem
 
 class Engine(object):
 
-    def __init__(self, players:list, bet:int, **options):
+    def __init__(self, players: list, bet: int, **options):
         # игроки и опции игры
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (стоимость одного очка в копейках)
@@ -193,7 +193,7 @@ class Engine(object):
         for p in self._players:
             p.cards = sorted([c for c in p.cards], key=lambda x: (x.lear, x.value), reverse=True)
 
-    def _calc_scores(self, player:Player):
+    def _calc_scores(self, player: Player):
         """ Расчет очков за раунд у игрока """
 
         scores = 0
@@ -541,6 +541,8 @@ class Engine(object):
     def do_walk(self, card_index):
         """ Выполнить действия хода картой. Если это не первый ход, выполнить предварительно проверки на возможность такого хода """
 
+        player = self._players[self._curr_player]
+
         # сначала проверки
         if self._no_joker and player.cards[card_index].joker:
             raise GameException('Игра джокером запрещена в этой партии')
@@ -551,7 +553,6 @@ class Engine(object):
                 raise GameException(msg)
 
         # осуществляем ход: извелечем карту у игрока, добавим в массивы вышедших и на стол
-        player = self._players[self._curr_player]
         card = player.cards.pop(card_index)
         self._table[self._curr_player] = TableItem(self._step, card)
         self._released_cards.append(card)

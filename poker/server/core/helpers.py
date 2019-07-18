@@ -5,6 +5,7 @@ import json
 
 from . import utils
 
+
 class HTTPException(Exception):
 
     def __init__(self, http_code, http_status, code, message):
