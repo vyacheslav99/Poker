@@ -5,6 +5,7 @@ import json
 
 from . import utils
 
+
 class HTTPException(Exception):
 
     def __init__(self, http_code, http_status, code, message):
@@ -105,7 +106,7 @@ class Response(object):
         self.body = body or ''
 
     @classmethod
-    def default_headers(self, headers={}):
+    def default_headers(cls, headers=None):
         res = {
             'Date': datetime.datetime.today().strftime("%a, %d %b %Y %H:%M %Z"),
             'Server': 'Poker_Svc/1.0.0',
@@ -115,7 +116,7 @@ class Response(object):
             'Connection': 'close'
         }
 
-        res.update(headers)
+        res.update(headers or {})
         return res
 
     @property

@@ -10,7 +10,7 @@ class GameException(Exception):
 
 class Card(object):
 
-    def __init__(self, lear:int, value:int, is_joker=False, joker_action=None, joker_lear=None):
+    def __init__(self, lear: int, value: int, is_joker=False, joker_action=None, joker_lear=None):
         self._lear = lear                   # масть
         self._value = value                 # достоинство, номинал
         self._is_joker = is_joker           # Джокер или нет (value == 7 and lear == const.LEAR_SPADES)
@@ -38,7 +38,7 @@ class Card(object):
 
 class TableItem(object):
 
-    def __init__(self, order, card:Card):
+    def __init__(self, order, card: Card):
         self.order = order                  # Очередность хода, т.е. порядковый номер, которым была положена карта.
         self.card = card                    # Карта, которой ходили
 
@@ -107,10 +107,10 @@ class Player(object):
         self.last_money = params['last_money']
 
     def as_dict(self):
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__)}
+        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
 
     def lear_exists(self, lear):
-        """ Проверяет, есть ли у игрока карты заданной масти. Вернет True/False """
+        """ Проверяет, есть ли у игрока карты заданной масти. Джокер не учитывается. Вернет True/False """
 
         for card in self.cards:
             if not card.joker and card.lear == lear:
@@ -119,19 +119,36 @@ class Player(object):
         return False
 
     def gen_lear_range(self, lear, ascending=False):
-        """ Сформировать список карт игрока заданной масти, отсортированный в указанном порядке (по умолчанию убывание) """
+        """
+        Сформировать список карт игрока заданной масти, отсортированный в указанном порядке (по умолчанию убывание).
+        Джокер не включается в список
+        """
+
         return sorted([card for card in self.cards if not card.joker and card.lear == lear],
                       key=lambda x: x.value, reverse=not ascending)
 
     def max_card(self, lear):
-        """ Выдать максимальную карту заданной масти """
+        """ Выдать максимальную карту заданной масти. Джокер не учитывается """
         lr = self.gen_lear_range(lear)
         return lr[0] if lr else None
 
     def min_card(self, lear):
-        """ Выдать минимальную карту заданной масти """
+        """ Выдать минимальную карту заданной масти. Джокер не учитывается """
         lr = self.gen_lear_range(lear, ascending=True)
         return lr[0] if lr else None
+
+    def middle_card(self, lear):
+        """ Выдает карту из середины заданной масти (со сдвигом к болшей, если поровну не делиться). Джокер не учитывается """
+
+        lr = self.gen_lear_range(lear)
+
+        if lr:
+            if len(lr) > 1:
+                return lr[round(len(lr) / 2) - 1]
+            else:
+                return lr[0]
+        else:
+            return None
 
     def cards_sorted(self, ascending=False):
         """ Вернет список карт, отсортированный без учета масти в указанном порядке (по умолчанию убывание) """
@@ -161,7 +178,7 @@ class Player(object):
 
 class Deal(object):
 
-    def __init__(self, player:Player, type_:int, cards:int):
+    def __init__(self, player: Player, type_: int, cards: int):
         self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
         self.type_ = type_      # тип раздачи
         self.cards = cards      # количество карт, раздаваемых одному игроку

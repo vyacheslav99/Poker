@@ -125,7 +125,7 @@ class Handler(object):
             self._read_request()
             self._do_work_request()
             self._send_response()
-            #self._close() #  закрывать коннект будем в worker-е
+            # self._close() #  закрывать коннект будем в worker-е
         except Exception:
             logging.exception('[{0}] Error on handle request at {1}:{2}'.format(self.id, self.client_ip, self.client_port))
 

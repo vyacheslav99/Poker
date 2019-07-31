@@ -8,16 +8,16 @@ import random
 from poker.core import engine, helpers, const
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
-          'T-800', 'T-1000', 'Эндрю', 'Валли', 'Бамблби', 'Генерал Гривус', 'Электроник', 'Рой Батти',
-          'Мотоко Кусанаги', 'Чаппи', 'Оптимус Прайм', 'Бишоп 341-B', 'Марвин', 'Дэвид 8', 'Робокоп', 'Балбес', '790',
-          'K.I.T.T.', 'Дэйта', 'Мегатрон', 'ТАРС', 'Ариса', 'Алиса', 'Тик-Ток', 'Джон', 'Аниматронио', 'Роберто',
-          'Рободьявол')
+          'Птица Говорун', 'Мал. пом. Сатаны', 'Эндрю', 'Валли', 'Бамблби', 'Мал. пом. Санты', 'Электроник',
+          'Рой Батти', 'Робот Санта', 'Мюллер', 'Оптимус Прайм', 'Бишоп 341-B', 'Борман', 'Штирлиц', 'Робокоп',
+          'Балбес', '790', 'Трус', 'Бывалый', 'Мегатрон', 'Шеф', 'IDDQD', 'Алиса', 'Коллега', 'Карбафос', 'Аниматронио',
+          'Роберто', 'Рободьявол', 'Буратино', 'Фрай', 'Лила', 'Барт', 'Сыроежкин', 'Весельчак У', 'Гомер', 'Адам Вест',
+          'Кот Базилио', 'Лиса Алиса', 'Мойша', 'Абрам', 'Сара', 'Гоги')
 
-HUMANS = ('Трус', 'Балбес', 'Бывалый', 'Чувак', 'Алиса', 'Буратино', 'Фрай', 'Лила', 'Барт', 'Сыроежкин', 'Весельчак У',
-          'Гомер', 'Адам Вест')
+HUMANS = ('Чубрик', 'Чел', 'Колян', 'Чувак', 'Толик', 'Маня', 'Фекла', 'Вася', 'Ваня', 'Дуня')
 
 
-class Game():
+class Game:
 
     def __init__(self):
         self.options = {}
@@ -44,6 +44,7 @@ class Game():
 
     def poll_of_agreements(self):
         """ Опросить о договоренностях на игру """
+
         print('Перед началом игры надо кое о чем договориться')
         self.skip_lines(1)
 
@@ -96,10 +97,10 @@ class Game():
             deals = []
 
             for n in range(len(const.DEAL_NAMES)):
-                if n == 1 or self.ask(const.DEAL_NAMES[n]).lower() not in ('н', 'n'):
+                if self.ask(const.DEAL_NAMES[n]).lower() not in ('н', 'n'):
                     deals.append(n)
         else:
-            deals = [n for n in range(len(const.DEAL_NAMES))]
+            deals = [n for n in range(len(const.DEAL_NAMES) - 1)]
 
         self.options['deal_types'] = deals
         print('Включены раздачи: {0}'.format(', '.join([const.DEAL_NAMES[n] for n in deals])))
@@ -192,7 +193,7 @@ class Game():
         d = self.game.current_deal()
         print(f'Раздача: {const.DEAL_NAMES[d.type_]} < по {d.cards} >')
         tl, tc = self.game.trump()
-        print('Козырь: {0}'.format('нет' if tl == const.LEAR_NOTHING else f'{const.LEAR_NAMES[tl]}  < {tc if tc else ""} >'))
+        print('Козырь: {0}'.format('{0}{1}'.format('нет' if tl == const.LEAR_NOTHING else f'{const.LEAR_NAMES[tl]}', f'  < {tc} >' if tc else '')))
         print(f'Первый ходит: {self.game.players[d.player].name}')
 
     def print_cards(self, player):
@@ -240,12 +241,17 @@ class Game():
                     info = '{0}{1}'.format(c, self.get_joker_info(c))
                 print(f'{p[0].name}: {info}')
 
+    def print_other_cards(self, walk_player):
+        for p in self.game.lap_players_order():
+            if p[0] != walk_player:
+                print(f'{p[0].name}: ', '  '.join([str(c) for c in p[0].cards]))
+
     def print_order_results(self):
         diff = sum([p.order for p in self.game.players]) - self.game.current_deal().cards
         print('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
 
     def print_middle_info(self):
-        print('  '.join([f'{p.name}: {p.order if p.order > -1 else "-"} / {p.take}' for p in self.players]))
+        print('  '.join([f'{p.name}: {p.order if p.order > -1 else "-"}{"*" if p.order_is_dark else ""} / {p.take}' for p in self.players]))
 
     def print_round_results(self):
         rec = self.game.get_record()
@@ -349,7 +355,9 @@ class Game():
 
                         # выводим заказы всех, кто до тебя
                         self.print_walks(p, False, True)
-                        if not dark and self.game.current_deal().type_ != const.DEAL_DARK:
+                        if self.game.current_deal().type_ == const.DEAL_BROW:
+                            self.print_other_cards(p)
+                        elif not dark and self.game.current_deal().type_ != const.DEAL_DARK:
                             self.print_cards(p)
 
                         # твой заказ
@@ -416,6 +424,7 @@ class Game():
 
 def main():
     Game().go()
+
 
 if __name__ == '__main__':
     main()

@@ -46,7 +46,7 @@ class Worker(object):
 
     def init_thread(self):
         self._thread = threading.Thread(target=self._do_process)
-        self._thread.setDaemon(1)
+        self._thread.setDaemon(True)
         self._thread.start()
         logging.debug('[{0}] Initialized Thread: {1}'.format(self.id, self._thread.name))
 
@@ -104,7 +104,7 @@ class HTTPServer(object):
 
     def _start_wrk_service(self):
         self.wrk_svc_thread = threading.Thread(target=self._do_wrk_service)
-        self.wrk_svc_thread.setDaemon(1)
+        self.wrk_svc_thread.setDaemon(True)
         self.wrk_svc_thread.start()
 
     def _init_workers(self):
@@ -125,7 +125,7 @@ class HTTPServer(object):
         # он его обработает, как только дойдет очередь
         if config.WHEN_REACHED_LIMIT == 0:
             return None
-        else: # elif config.WHEN_REACHED_LIMIT == 1:
+        else:  # elif config.WHEN_REACHED_LIMIT == 1:
             logging.debug('Delayed connection: limit connections exceeded')
             wrk = random.choice(self.wrk_pool)
             while wrk.locked():

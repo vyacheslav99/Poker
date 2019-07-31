@@ -1,13 +1,13 @@
-from . import handlers
+from . import controller
 
 
 routers = {
     'GET': {
-        ('/', '/api', '/api/status'): handlers.index,
-        '/api/file': handlers.get_file
+        ('/', '/api', '/api/status'): controller.index,
+        '/api/file': controller.get_file
     },
     'POST': {
-        ('/', '/api', '/api/status'): handlers.index,
-        '/api/file': handlers.get_file
+        ('/', '/api', '/api/status'): controller.index,
+        '/api/file': controller.get_file
     }
 }
