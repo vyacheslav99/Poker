@@ -2,7 +2,7 @@
 Простой консольный клиент для игры. Для тестирования игрового движка.
 """
 
-import random
+import sys, random
 
 from poker.core import engine, helpers, const
 
@@ -18,7 +18,11 @@ HUMANS = ('Чубрик', 'Чел', 'Колян', 'Чувак', 'Толик', '�
 
 class Game:
 
-    def __init__(self):
+    def __init__(self, autogame=False):
+        if autogame:
+            print('Игра запущена в режиме битвы машин! ;-)')
+
+        self.autogame = autogame
         self.options = {}
         self.players = []
         self.bet = None
@@ -55,7 +59,7 @@ class Game:
         humans = [h for h in HUMANS]
 
         for i in range(player_cnt):
-            if i == 0:
+            if i == 0 and not self.autogame:
                 self.players.append(helpers.Player())
                 self.players[i].id = i
                 self.players[i].is_robot = False
@@ -332,7 +336,7 @@ class Game:
 
             is_new_round = True  # первый круг после начала раунда
             after_bet = False
-            self.game = engine.Engine(self.players, self.bet, **self.options)
+            self.game = engine.Engine(self.players, self.bet, allow_no_human=self.autogame, **self.options)
             self.game.start()
 
             while self.game.started():
@@ -422,7 +426,7 @@ class Game:
 
 
 def main():
-    Game().go()
+    Game(autogame='-a' in sys.argv).go()
 
 
 if __name__ == '__main__':

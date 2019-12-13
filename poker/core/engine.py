@@ -10,6 +10,7 @@ class Engine(object):
 
     def __init__(self, players: list, bet: int, **options):
         # игроки и опции игры
+        self._allow_no_human = options.get('allow_no_human', False)     # разрешить игру без игроков-людей
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (стоимость одного очка в копейках)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
@@ -634,7 +635,7 @@ class Engine(object):
         if len(players) > 35:
             raise GameException('Игроков не может быть больше кол-ва карт в колоде - 1 (на козыря), т.е. 35!')
 
-        if all((p.is_robot for p in players)):
+        if all((p.is_robot for p in players)) and not self._allow_no_human:
             raise GameException('В игру не добавлено ни одного игрока-человека! Реально хочешь посмотреть на битву машин?')
 
         self._players = players
