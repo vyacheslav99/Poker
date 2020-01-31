@@ -14,7 +14,7 @@ def int_from_bytes(nb):
 
 
 def get_profile_dir():
-    _dir = os.path.normpath(os.path.join(os.path.expanduser('~'), '.snake',))
+    _dir = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker',))
 
     if not os.path.exists(_dir):
         os.makedirs(_dir, exist_ok=True)

@@ -27,6 +27,5 @@ class Application(QMainWindow):
         self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 2)
 
     def closeEvent(self, event):
-        # self.area.save(config.AutosaveFile)
         print('< Exit >')
         super(Application, self).closeEvent(event)
