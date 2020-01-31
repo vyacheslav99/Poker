@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QFrame, QMessageBox, QLabel
 from PyQt5.QtCore import Qt
 
-from clients.gui import config
+import config
 
 
 class GameArea(QFrame):
