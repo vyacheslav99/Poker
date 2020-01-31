@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget
 from PyQt5.QtGui import QIcon
 
-from poker.gui.forms.main import GameArea
-from poker.gui import config
+from clients.gui.forms.main import GameArea
+from clients.gui import config
 
 
 class Application(QMainWindow):

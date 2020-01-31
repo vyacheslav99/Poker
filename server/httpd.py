@@ -1,14 +1,14 @@
+import os
 import logging
 import argparse
 
-from poker.server.core import config
-from poker.server.core.http_server import HTTPServer
+from server.core import config
+from server.core.http_server import HTTPServer
 
 
 def main():
-    # todo: Перенести это потом в модуль хранилища
-    # if not os.path.exists(config.DOCUMENT_ROOT):
-    #     os.makedirs(config.DOCUMENT_ROOT, exist_ok=True)
+    if not os.path.exists(config.DOCUMENT_ROOT):
+        os.makedirs(config.DOCUMENT_ROOT, exist_ok=True)
 
     ap = argparse.ArgumentParser()
     ap.add_argument('--debug_mode', '-dbg', action='store_true', help='Включить вывод отладочной информации')

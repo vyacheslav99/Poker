@@ -1,8 +1,7 @@
-from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QFrame, QMessageBox, QLabel
-from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
-from PyQt5.QtGui import QPainter, QColor, QIcon
+from PyQt5.QtWidgets import QFrame, QMessageBox, QLabel
+from PyQt5.QtCore import Qt
 
-from poker.gui import config
+from clients.gui import config
 
 
 class GameArea(QFrame):

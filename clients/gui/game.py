@@ -2,7 +2,7 @@ import sys
 # import argparse
 from PyQt5.QtWidgets import QApplication
 
-from poker.gui import app
+from clients.gui import app
 
 
 def run():
