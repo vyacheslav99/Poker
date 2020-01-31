@@ -5,6 +5,8 @@ data/
 *.identcache
 *.dproj.local
 *.dsk
+*.archimate.bak
+# config.py
 poker.stat
 logs/
 *.pyc
