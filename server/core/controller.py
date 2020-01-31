@@ -5,7 +5,8 @@
 
 import os
 
-from . import config, utils
+import config
+from . import utils
 from .helpers import Response, HTTPException
 
 

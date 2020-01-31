@@ -4,7 +4,7 @@ import threading
 import datetime, time
 import random
 
-from . import config
+import config
 from .handler import Handler
 
 

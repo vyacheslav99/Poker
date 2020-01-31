@@ -2,7 +2,7 @@ import os
 import logging
 import argparse
 
-from core import config
+import config
 from core.http_server import HTTPServer
 
 
