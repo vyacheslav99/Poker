@@ -6,7 +6,8 @@ data/
 *.dproj.local
 *.dsk
 *.archimate.bak
-# config.py
+config.py
+settings.py
 poker.stat
 logs/
 *.pyc
