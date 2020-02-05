@@ -7,7 +7,7 @@ import json
 import config
 from . import utils
 from .helpers import Request, Response, HTTPException
-from .router import routers
+from .router import roadmap
 
 
 class Handler(object):
@@ -27,17 +27,16 @@ class Handler(object):
 
     def _route(self, addr, method):
         addr = addr.lower()
-        method = method.upper()
+        method = method.lower()
+        func = None
 
-        if addr in routers.get(method, {}):
-            return routers[method][addr]
+        if addr in roadmap:
+            if isinstance(roadmap[addr], dict):
+                func = roadmap[addr].get(method)
+            else:
+                func = roadmap[addr]
 
-        for k in routers.get(method, {}):
-            if isinstance(k, (list, tuple)):
-                if addr in k:
-                    return routers[method][k]
-
-        return None
+        return func
 
     def _get_request_method(self):
         # вытягивает метод из исходной строки запроса, если запрос не удалось распарсить, иначе из запроса
