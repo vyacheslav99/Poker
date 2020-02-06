@@ -4,10 +4,12 @@ from core.helpers import Response, HTTPException
 class Auth(object):
 
     @staticmethod
-    def auth(request):
+    def auth(request, uid):
         """
         :route: /api/v1/auth
-        :methods: post
+        :route: /api/*
+        :route: /api/v1/user/<uid>
+        :methods: post, get
         """
 
         return Response(200, 'OK')

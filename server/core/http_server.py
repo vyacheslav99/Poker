@@ -70,7 +70,7 @@ class Worker(object):
         return self._done
 
     def is_empty(self):
-        return len(self._queue) > 0
+        return len(self._queue) == 0
 
     def lock(self):
         self._locked = True

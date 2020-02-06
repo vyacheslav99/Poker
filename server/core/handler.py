@@ -26,17 +26,7 @@ class Handler(object):
         self.response = None
 
     def _route(self, addr, method):
-        addr = addr.lower()
-        method = method.lower()
-        func = None
-
-        if addr in roadmap:
-            if isinstance(roadmap[addr], dict):
-                func = roadmap[addr].get(method)
-            else:
-                func = roadmap[addr]
-
-        return func
+        return roadmap.get(method, addr)
 
     def _get_request_method(self):
         # вытягивает метод из исходной строки запроса, если запрос не удалось распарсить, иначе из запроса
@@ -51,14 +41,14 @@ class Handler(object):
             return None
 
         if not self.raw_request:
-            return self._error_response(400, 'Bad request', 'bad_request', 'Request body is empty')
+            return self._error_response(400, 'Bad request', 'bad_request', 'Request is empty')
 
         try:
             self.request = Request(self.raw_request)
+            handler_, params = self._route(self.request.uri, self.request.method)
 
-            handler_ = self._route(self.request.uri, self.request.method)
             if callable(handler_):
-                resp = handler_(self.request)
+                resp = handler_(self.request, *params)
                 if not isinstance(resp, Response):
                     if isinstance(resp, (dict, list, tuple)):
                         resp = Response(200, 'OK', body=json.dumps(resp))
