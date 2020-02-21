@@ -1,3 +1,4 @@
+import logging
 import controllers
 
 
@@ -7,6 +8,7 @@ class Router(object):
                  'unlock', 'propfind', 'view')
     __reg_error = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}'
     __reg_conflict = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}\nRegistered: {5}.{6}'
+    __found_endpoint = 'Found endpoint :: {0} {1} : {2}.{3}'
 
     def __init__(self):
         # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
@@ -58,6 +60,7 @@ class Router(object):
             type_ = 'S'
 
         self._raise_if_double(method, path, class_name, attr_name)
+        logging.debug(self.__found_endpoint.format(method.upper(), path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
 
     def _raise_if_double(self, method, path, class_name, attr_name):
