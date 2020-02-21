@@ -65,11 +65,11 @@ class Router(object):
         elif path.endswith('*'):
             type_ = 'S'
 
-        self._raise_if_double(method, path, class_name, attr_name)
+        self._raise_if_exists(method, path, class_name, attr_name)
         logging.debug(self.__found_endpoint.format(method.upper(), path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
 
-    def _raise_if_double(self, method, path, class_name, attr_name):
+    def _raise_if_exists(self, method, path, class_name, attr_name):
         key, obj = self._get(method, path)
 
         if obj and obj[0] != 'S' and (obj[3] != class_name or obj[4] != attr_name):
