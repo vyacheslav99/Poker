@@ -10,11 +10,23 @@ class Router(object):
     __reg_conflict = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}\nRegistered: {5}.{6}'
     __found_endpoint = 'Found endpoint :: {0} {1} : {2}.{3}'
 
+    def __new__(cls):
+        if not hasattr(cls, '_instance'):
+            cls._instance = super(Router, cls).__new__(cls)
+            cls._instance._initialized = False
+
+        return cls._instance
+
     def __init__(self):
         # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
         # types: A: absolute, V: variable, S: starting with
+
+        if self._initialized:
+            return
+
         self._roadmap = {k: {} for k in self.__methods}
         self._build_roadmap()
+        self._initialized = True
 
     def _build_roadmap(self):
         for cls in dir(controllers):
@@ -143,6 +155,3 @@ class Router(object):
             params = [path.replace(key.replace('*', ''), '')]
 
         return obj[1], params
-
-
-roadmap = Router()

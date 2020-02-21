@@ -6,6 +6,7 @@ import random
 
 import config
 from .handler import Handler
+from .router import Router
 
 
 class Worker(object):
@@ -190,6 +191,7 @@ class HTTPServer(object):
 
     def start(self):
         try:
+            Router()  # init singleton object
             self.active = True
             self._init_workers()
             self._start_wrk_service()

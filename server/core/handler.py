@@ -7,7 +7,7 @@ import json
 import config
 from . import utils
 from .helpers import Request, Response, HTTPException
-from .router import roadmap
+from .router import Router
 
 
 class Handler(object):
@@ -24,9 +24,10 @@ class Handler(object):
         self.raw_response = b''
         self.request = None
         self.response = None
+        self.roadmap = Router()  # get singleton obect
 
     def _route(self, addr, method):
-        return roadmap.get(method, addr)
+        return self.roadmap.get(method, addr)
 
     def _get_request_method(self):
         # вытягивает метод из исходной строки запроса, если запрос не удалось распарсить, иначе из запроса
