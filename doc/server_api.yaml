@@ -93,7 +93,7 @@ definitions:
       avatar:
         type: string
         x-nullable: true
-      is_automat:
+      is_robot:
         type: boolean
         description: Робот / Человек
       ai_risk_level:
@@ -122,7 +122,7 @@ definitions:
         type: string
       avatar:
         type: string
-      is_automat:
+      is_robot:
         type: boolean
       ai_risk_level:
         type: integer
