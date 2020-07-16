@@ -11,6 +11,7 @@ class Engine(object):
     def __init__(self, players: list, bet: int, **options):
         # игроки и опции игры
         self._allow_no_human = options.get('allow_no_human', False)     # разрешить игру без игроков-людей
+        self._self_control = options.get('self_control', True)          # флаг, что игровой цикл (передача ходов и пр.) контролируется изнутри этого движка, иначе извне
         self.players = players                                          # список игроков, экземпляры Player
         self._bet = bet                                                 # ставка на игру (стоимость одного очка в копейках)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
@@ -442,7 +443,7 @@ class Engine(object):
 
         # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
         for p in self._players:
-            p.last_money = p.last_money * self._bet / 100
+            p.last_money = p.last_money * self._bet / 100.0
             p.total_money += p.last_money
 
     def next(self):
@@ -495,8 +496,9 @@ class Engine(object):
 
         # передаем ход следующему игроку, и сразу ходим им
         self.give_walk()
-        # у серверного варианта next всегда дергает диспетчер игры по своим соображениямz
-        # self.next()
+        # у серверного варианта next всегда дергает диспетчер игры по своим соображениям
+        if self._self_control:
+            self.next()
 
     def give_walk(self):
         """ передача хода следующему игроку """
@@ -767,20 +769,20 @@ class Engine(object):
 
         return len([c for c in cards if c.value < card.value]) >= 14 - card.value
 
-    def _ai_can_order(self, card, lear_cards):
+    def _ai_can_order(self, card, lear_cards, risk_level):
         """ Определяет, можно ли при текущих условиях заказать на эту карту """
 
-        deal_cards = self._deals[self._curr_deal].cards
-        deal_type = self._deals[self._curr_deal].type_
+        # Если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10 сразу не глядя прикрыта или нет.
+        # В бескозырке В 10 если только прикрыты. Это для среднего уровня риска, остальные соотв. +1/-1
 
+        deal_cards = self._deals[self._curr_deal].cards
         max_cards = round(36 / self.party_size())
-        trump_only = self.party_size() > 6 and self._trump != const.LEAR_NOTHING
+        t = (round(max_cards / 2), round(max_cards / 3), max_cards)[risk_level]
+        trump_only = (self.party_size() > 6 or deal_cards <= t) and self._trump != const.LEAR_NOTHING
         no_full = deal_cards < max_cards
         check_closed_limit = round(max_cards / 2)
 
-        # определим границу (здесь надо будет уровни риска заложить)
-        # if deal_type == const.DEAL_BROW:
-        #     limit = 13  # только Туз
+        # определим границу
         if self._trump == const.LEAR_NOTHING:
             if deal_cards == max_cards:
                 limit = 5  # не ограничено
@@ -792,12 +794,16 @@ class Engine(object):
             limit = 11 + (self.party_size() - 3)  # начинаем от Дамы
             if limit > 13: limit = 13
 
-        trump_limit = limit - 2
+        trump_limit = limit - (2 if deal_cards < check_closed_limit else 4) + const.RISK_BASE_COEFF[risk_level]
+        limit += const.RISK_BASE_COEFF[risk_level]
 
-        # если карт меньше 5, то на Т К Д не козырных заказываем сразу, на козырных + В 10 сразу не глядя прикрыта или нет.
-        # В бескозырке В 10 если только прикрыты. Это для среднего уровня риска, остальные соотв. +1/-1
-        # И надо ввести корректирующие коэффициенты, если мало/нет козыря - уменьшать взятку на самую длинную масть
-        # из заказанных. limit будет меняться от уровня риска; кол-во карт, до которого не смотрим длину масти тоже
+        # особые модификаторы для уровней риска
+        if risk_level == const.RISK_LVL_CAREFUL:
+            # если эта масть некозырная и слишком длинная (появляется хороший шанс, что кому-то не хватит) - добавим лимит
+            if self._trump != const.LEAR_NOTHING and card.lear != self._trump and len(lear_cards) > 4:
+                limit += 1
+
+        if limit > 13: limit = 13
 
         # тут все ясно
         if card.joker:
@@ -805,11 +811,11 @@ class Engine(object):
 
         # сразу разведем ветки алгоритма, когда раздаются все карты и когда не все
         if no_full:
-            # если есть прикрывающие карты (если карт меньше половин от максимальной раздачи - на это не смотрим)
+            # если есть прикрывающие карты (если карт меньше половины от максимальной раздачи - на это не смотрим)
             if self._ai_card_covered(card, lear_cards) or deal_cards < check_closed_limit:
                 # если проходит по ограничению на "только козырь"
                 if not trump_only or (trump_only and card.lear == self._trump):
-                    # если достоинство больше пограничного (для козыря оно на 2 карты сдвигается)
+                    # если достоинство больше пограничного (для козыря оно минимально)
                     if (card.value > limit) or (card.lear == self._trump and card.value > trump_limit):
                         return True
         else:
@@ -839,16 +845,21 @@ class Engine(object):
 
             for p in self._players:
                 if p != player:
-                    # вот тут будет еще уровень риска текущего игрока учиываться
-                    if (p.cards[0].joker and p.order == 1) or (p.cards[0].lear == self._trump) or (p.cards[0].value > 10):
+                    if p.cards[0].joker and p.order == 1:
                         b = False
-                        break
+                    elif p.cards[0].lear == self._trump:
+                        if p.cards[0].value >= 8 - const.RISK_BASE_COEFF[player.risk_level] * 2:
+                            b = False
+                    else:
+                        if p.cards[0].value > 10 - const.RISK_BASE_COEFF[player.risk_level]:
+                            b = False
+
+                if not b: break
 
             if b:
                 player.order_cards.append(player.cards[0])
         else:
-            # учесть еще уровень риска
-            is_dark = self._deals[self._curr_deal].type_ == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
+            is_dark = deal_type == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
 
             idx = player.index_of_card(joker=True)
             if idx > -1:
@@ -857,28 +868,59 @@ class Engine(object):
             for lear in range(4):
                 cards = player.gen_lear_range(lear)
                 for c in cards:
-                    if self._ai_can_order(c, cards):
+                    if self._ai_can_order(c, cards, player.risk_level):
+                        player.order_cards.append(c)
+
+            # если есть джокер, можно еще поискать среди карт Королей на которые не заказали, потому что они не прикрыты,
+            # и заказать на одного из них, прикрыв джокером
+            if idx > -1:
+                # если не бескозырка - возьмем козырного конечно же, иначе случайного
+                cards = sorted([c for c in player.cards_sorted if c.value == 13 and c not in player.order_cards],
+                               key=lambda x: x.lear == self._trump, reverse=True)
+                if cards:
+                    c = cards[0]
+                    if self._trump != const.LEAR_NOTHING and c.lear != self._trump:
+                        c = random.choice(cards)
+
+                    if player.risk_level == const.RISK_LVL_CAREFUL:
+                        # осторожный закажет только на козырного (при бескозырке - любого)
+                        if self._trump == const.LEAR_NOTHING or c.lear == self._trump:
+                            player.order_cards.append(c)
+                    elif player.risk_level == const.RISK_LVL_MEDIUM:
+                        # умеренный закажет только на козырного (при бескозырке - любого) или с вероятностью 50% на обычного
+                        if self._trump == const.LEAR_NOTHING or c.lear == self._trump or random.choice([True, False]):
+                            player.order_cards.append(c)
+                    else:
+                        # рискованный закажет на любого
                         player.order_cards.append(c)
 
         if is_dark:
-            cnt = random.randint(1, round(self._deals[self._curr_deal].cards / 3) + 1)
+            max_cnt = round(self._deals[self._curr_deal].cards / 3) - const.RISK_BASE_COEFF[player.risk_level]
+            cnt = random.randint(0, max_cnt)
 
-            # сбросил флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
+            # сбросим флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
             if deal_type == const.DEAL_DARK:
                 is_dark = False
         else:
             cnt = len(player.order_cards)
 
+        # проверка возможности сделать такой заказ и корректировка его, если нельзя: уменьшаем или увеличиваем
+        # в зависимости от ситуации и уровня риска игрока до тех пор, пока не станет возможно
+        start_cnt = cnt
         can, _ = self._check_order(cnt, is_dark)
+        while not can:
+            if cnt <= 0 or cnt >= len(player.cards):
+                start_cnt = cnt
 
-        if not can:
-            if cnt == 0:
+            if start_cnt <= 0:
                 cnt += 1
-            elif cnt >= len(player.cards):
+            elif start_cnt >= len(player.cards):
                 cnt -= 1
             else:
-                # тут надо будет смотреть карты и учитывать уровень риска, а пока
-                cnt += random.choice((-1, 1))
+                cnt += (-1, random.choice((-1, 1)), 1)[player.risk_level]
+                # cnt += random.choice((-1, 1))
+
+            can, _ = self._check_order(cnt, is_dark)
 
         return cnt, is_dark
 

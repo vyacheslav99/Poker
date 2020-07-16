@@ -4,7 +4,7 @@
 
 import sys, random
 
-from . import const, helpers, engine
+from game import const, helpers, engine
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'Си-Три-Пи-О', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'Птица Говорун', 'Маленький помошник Сатаны', 'Эндрю', 'Валли', 'Бамблби', 'Маленикий помошник Санты',
@@ -79,7 +79,7 @@ class Game:
                         if self.players[i].is_robot else f'{humans.pop(random.randrange(0, len(humans)))}'
                 if self.players[i].is_robot:
                     self.players[i].risk_level = random.randint(0, 2)
-                    self.players[i].level = random.randint(0, 2)
+                    # self.players[i].level = random.randint(0, 2)
                 print(f'Игрок {i+1}: {self.players[i]}')
 
             print('')

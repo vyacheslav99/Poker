@@ -64,7 +64,7 @@ class Player(object):
         self.name = None
         self.is_robot = None
         self.risk_level = None
-        self.level = None
+        # self.level = None
 
         # статистика
         self.total_money = 0            # сумма всех выигрышей
@@ -97,7 +97,7 @@ class Player(object):
         self.name = params['name']
         self.is_robot = params['is_robot']
         self.risk_level = params['risk_level']
-        self.level = params['level']
+        # self.level = params['level']
         self.total_money = params['total_money']
         self.total_games = params['total']
         self.completed_games = params['completed']
@@ -169,7 +169,8 @@ class Player(object):
 
     def __str__(self):
         if self.is_robot:
-            s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
+            # s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
+            s = f'Робот <{const.RISK_LVL_NAMES[self.risk_level]}>'
         else:
             s = 'Человек'
 

@@ -13,6 +13,7 @@ RISK_LVL_MEDIUM = 1     # Умеренный
 RISK_LVL_RISKY = 2      # Рискованный
 
 RISK_LVL_NAMES = ('Осторожный', 'Умеренный', 'Рискованный')
+RISK_BASE_COEFF = (1, 0, -1)
 
 # типы игроков
 PLAYER_TYPE_HUMAN = 0
