@@ -875,7 +875,7 @@ class Engine(object):
             # и заказать на одного из них, прикрыв джокером
             if idx > -1:
                 # если не бескозырка - возьмем козырного конечно же, иначе случайного
-                cards = sorted([c for c in player.cards_sorted if c.value == 13 and c not in player.order_cards],
+                cards = sorted([c for c in player.cards_sorted() if c.value == 13 and c not in player.order_cards],
                                key=lambda x: x.lear == self._trump, reverse=True)
                 if cards:
                     c = cards[0]
