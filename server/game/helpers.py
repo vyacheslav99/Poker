@@ -167,6 +167,29 @@ class Player(object):
 
         return -1
 
+    def card_exists(self, lear=None, value=None, joker=False, exclude_lear=None):
+        """
+        Смотрит, есть ли у игрока определенная карта.
+
+        :param lear: Масть. Если не указать - будет искать карту указанного достоинства любой масти
+        :param value: Достоинство. Можно опустить только если ищем джокера
+        :param joker: флаг, что надо искать джокера: если True - ищет джокера, игнорируя масть и достоинство
+        :param exclude_lear: исключая указанную масть
+        """
+
+        for c in self.cards:
+            if (c.value == value and (c.lear == lear or lear is None) and (
+                c.lear != exclude_lear or exclude_lear is None)) or (joker and c.joker):
+                return True
+
+        return False
+
+    def add_to_order(self, cards):
+        """ Добавить карты из списка к заказу """
+
+        for c in cards:
+            self.order_cards.append(c)
+
     def __str__(self):
         if self.is_robot:
             # s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
@@ -183,3 +206,19 @@ class Deal(object):
         self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
         self.type_ = type_      # тип раздачи
         self.cards = cards      # количество карт, раздаваемых одному игроку
+
+
+def flip_coin(probability, maximum=10):
+    """
+    Делает выбор ДА или НЕТ с заданной вероятностью в пользу ДА.
+
+    :param probability: вероятность (число от 0 до maximum): сколько шансов из максимума должно быть в пользу ДА.
+        Если probability == 0 - будет всегда НЕТ, если probability == maximum - всегда ДА
+    :param maximum: Максимальное значение вероятности. Чем оно больше, тем точнее можно задать вероятность
+    :return: bool - полученный ответ
+    """
+
+    if probability < 0 or probability > maximum:
+        probability = round(maximum / 2)
+
+    return random.choice([True for _ in range(probability)] + [False for _ in range(maximum-probability)])
