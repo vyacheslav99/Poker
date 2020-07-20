@@ -4,7 +4,7 @@ import time
 import socket, errno
 import json
 
-import config
+from configs import config
 from . import utils
 from .helpers import Request, Response, HTTPException
 from .router import Router

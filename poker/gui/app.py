@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget
 from PyQt5.QtGui import QIcon
 
-import config
-from forms.main import GameArea
+from configs import settings
+from gui.forms.main import GameArea
 
 
 class Application(QMainWindow):
@@ -13,8 +13,8 @@ class Application(QMainWindow):
         self.app = app
         self.area = GameArea(self)
         self.setCentralWidget(self.area)
-        self.setWindowIcon(QIcon(config.MainIcon))
-        self.setWindowTitle(config.MainWindowTitle)
+        self.setWindowIcon(QIcon(settings.MainIcon))
+        self.setWindowTitle(settings.MainWindowTitle)
 
         self.resize(1400, 960)
         self.center()

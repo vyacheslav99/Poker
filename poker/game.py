@@ -2,7 +2,7 @@ import sys
 # import argparse
 from PyQt5.QtWidgets import QApplication
 
-import app
+from gui import app
 
 
 def run():

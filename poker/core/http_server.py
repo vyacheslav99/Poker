@@ -4,7 +4,7 @@ import threading
 import datetime, time
 import random
 
-import config
+from configs import config
 from .handler import Handler
 from .router import Router
 

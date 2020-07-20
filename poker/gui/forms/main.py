@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QFrame, QMessageBox, QLabel
 from PyQt5.QtCore import Qt
 
-import config
+from configs import settings
 
 
 class GameArea(QFrame):
@@ -32,7 +32,7 @@ class GameArea(QFrame):
 
     def show_help(self):
         QMessageBox.information(self.parent(), 'Подсказка',
-                                '\n'.join(('Клавиши управления игрой\n',) + config.HELP_KEYS), QMessageBox.Ok)
+                                '\n'.join(('Клавиши управления игрой\n',) + settings.HELP_KEYS), QMessageBox.Ok)
 
     def print_debug_info(self):
         print('-= Window =-')
