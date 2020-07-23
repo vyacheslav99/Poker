@@ -1,4 +1,5 @@
 import  os
+from configs import settings
 
 
 def int_size():
@@ -14,7 +15,8 @@ def int_from_bytes(nb):
 
 
 def get_profile_dir():
-    _dir = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker',))
+    # _dir = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker',))
+    _dir = settings.APP_DATA_DIR
 
     if not os.path.exists(_dir):
         os.makedirs(_dir, exist_ok=True)
