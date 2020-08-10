@@ -31,7 +31,7 @@ class Game:
     def set_default(self):
         self.options['game_sum_by_diff'] = True
         self.options['dark_allowed'] = False
-        self.options['third_pass_limit'] = True
+        self.options['third_pass_limit'] = False
         self.options['fail_subtract_all'] = False
         self.options['no_joker'] = False
         self.options['joker_give_at_par'] = False
@@ -268,13 +268,13 @@ class Game:
         print('-------------------------------------------------------------')
 
     def print_game_results(self):
-        congratulations = ('УРА, Товарищи!!!', 'Ай, молодца!')
+        congratulations = ('УРА, Товарищи!!!', 'Ай, молодца!', 'Учитесь, сынки!')
         self.skip_lines(2)
         print('-= Итоги игры =-')
         for p in self.game.players:
             money = '{0:.2f}'.format(p.last_money)
             rub, kop = money.split('.')
-            print(f'{p.name}: {rub} руб {kop} коп')
+            print(f'{p.name}:    3{p.total_scores} :: {rub} руб {kop} коп')
 
         self.skip_lines(1)
         print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')

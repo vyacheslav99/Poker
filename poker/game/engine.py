@@ -925,9 +925,9 @@ class Engine(object):
             # если есть дамы - выберем из них
             queens = list(filter(lambda x: x[1] == 12, kings))
             if queens:
-                player.order_cards.pop(queens[random.choice(range(len(queens)))])
+                player.order_cards.pop(queens[random.choice(range(len(queens)))][0])
             else:
-                player.order_cards.pop(kings[random.choice(range(len(kings)))])
+                player.order_cards.pop(kings[random.choice(range(len(kings)))][0])
 
         if has_joker:
             # и закинем джокера, если он есть и еще не там
