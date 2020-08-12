@@ -274,7 +274,7 @@ class Game:
         for p in self.game.players:
             money = '{0:.2f}'.format(p.last_money)
             rub, kop = money.split('.')
-            print(f'{p.name}:    3{p.total_scores} :: {rub} руб {kop} коп')
+            print(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп')
 
         self.skip_lines(1)
         print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')

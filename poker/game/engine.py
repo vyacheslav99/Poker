@@ -804,8 +804,12 @@ class Engine(object):
         deal_cards = self._deals[self._curr_deal].cards
         max_cards = round(36 / self.party_size())
         rt = (round(max_cards / 3), round(max_cards / 2), round(max_cards / 1.3))[player.risk_level]
-        rc = (4, 3, 2)[player.risk_level]
+        if self.party_size() > 3:
+            rc = (4, 3, 2)[player.risk_level]
+        else:
+            rc = (3, 2, 1.3)[player.risk_level]
         no_see_cover = deal_cards < rt  # смотреть или нет прикрытость карты
+        b = (12, 11, 10)[player.risk_level]
         has_joker = player.card_exists(joker=True)
         joker_has_cover = has_joker
 
@@ -843,16 +847,31 @@ class Engine(object):
                                         player.order_cards.append(c)
                                     else:
                                         break
-            # Вариант 2: ряд начиная с К
+            # Вариант 2: ряд начинается с меньшей, чем Т
             elif cards:
-                if cards[0].value == 13 and (self._ai_card_covered(cards[0], cards) or
-                                             (has_joker and joker_has_cover) or no_see_cover):
-                    # если первая карта (К) прикрыта, тогда еще что-то можно попробовать.
-                    # Заказываем только на короля, т.к. на остальное уже слишком опасно
-                    player.order_cards.append(cards[0])
-                    if has_joker and len(cards) == 1:
-                        # прикрылись джокером - дальше им прикрываться нельзя будет
-                        joker_has_cover = False
+                if self.party_size() > 3:
+                    # Если больше 3-х игроков, то так
+                    if cards[0].value == 13 and (self._ai_card_covered(cards[0], cards) or
+                                                 (has_joker and joker_has_cover) or no_see_cover):
+                        # если первая карта (К) прикрыта, тогда еще что-то можно попробовать.
+                        # Заказываем только на короля, т.к. на остальное уже слишком опасно
+                        player.order_cards.append(cards[0])
+                        if has_joker and len(cards) == 1:
+                            # прикрылись джокером - дальше им прикрываться нельзя будет
+                            joker_has_cover = False
+                else:
+                    # При трех игроках логика иная: если есть крупные другой масти (или джокер), то будем заказывать -
+                    # просто смотрим, прикрыта ли карта и заказываем на нее, до определенного порога, зависящего от
+                    # уровня риска игрока (порог нужен, чтоб было что скинуть, если вдруг ход не успеет дойти вовремя)
+                    if has_joker or has_other_ace:
+                        for i, c in enumerate(cards):
+                            if self._ai_card_covered(c, cards) or (no_see_cover and c.value > b):
+                                player.order_cards.append(c)
+                            elif has_joker and joker_has_cover and c.value > b:
+                                player.order_cards.append(c)
+                                joker_has_cover = False
+                            else:
+                                break
 
         if has_joker:
             # и закинем джокера, если он есть и еще не там
@@ -868,8 +887,14 @@ class Engine(object):
         is_full = deal_cards == max_cards
         rt = (round(max_cards / 3), round(max_cards / 2), round(max_cards / 1.3))[player.risk_level]
         no_see_cover = deal_cards < rt  # смотреть или нет прикрытость карты
-        trump_limit = 14 - (2, 3, 4)[player.risk_level]
-        limit = 14 - player.risk_level
+        if self.party_size() > 3:
+            trump_limit = 14 - (2, 3, 4)[player.risk_level]
+            limit = 14 - player.risk_level
+            x_factor = (3, 4, 5)[player.risk_level]
+        else:
+            trump_limit = 14 - (3, 4, 5)[player.risk_level]
+            limit = 14 - (2 + player.risk_level)
+            x_factor = (5, 6, 7)[player.risk_level]
         has_joker = player.card_exists(joker=True)
         joker_has_cover = has_joker
 
@@ -900,7 +925,7 @@ class Engine(object):
                         if (covered or (has_joker and joker_has_cover)) and card.value >= limit:
                             f = False
                             if len(cards) > (9 - self.party_size()):
-                                if flip_coin((3, 4, 5)[player.risk_level]):
+                                if flip_coin(x_factor):
                                     player.order_cards.append(card)
                                     f = True
                             else:
@@ -911,7 +936,7 @@ class Engine(object):
                     else:
                         if card.value >= limit:
                             if no_see_cover:
-                                if flip_coin((3, 4, 5)[player.risk_level]):
+                                if flip_coin(x_factor - (14 - card.value)):
                                     player.order_cards.append(card)
                             elif covered:
                                 player.order_cards.append(card)
@@ -919,15 +944,16 @@ class Engine(object):
                                 player.order_cards.append(card)
                                 joker_has_cover = False
 
-        # если в заказе больше одногй некозырной карты меньше Т - может быть выкинем одну случайно выбранную для подстраховки
-        kings = [(i, c.value) for i, c in enumerate(player.order_cards) if c.lear != self._trump and c.value <= 13]
-        if len(kings) > 1 and flip_coin((6, 4, 2)[player.risk_level]):
-            # если есть дамы - выберем из них
-            queens = list(filter(lambda x: x[1] == 12, kings))
-            if queens:
-                player.order_cards.pop(queens[random.choice(range(len(queens)))][0])
-            else:
-                player.order_cards.pop(kings[random.choice(range(len(kings)))][0])
+        if self.party_size() > 3:
+            # если в заказе больше одной некозырной карты меньше Т - может быть выкинем одну случайно выбранную для подстраховки
+            kings = [(i, c.value) for i, c in enumerate(player.order_cards) if c.lear != self._trump and c.value <= 13]
+            if len(kings) > 1 and flip_coin((6, 4, 2)[player.risk_level]):
+                # если есть дамы - выберем из них
+                queens = list(filter(lambda x: x[1] == 12, kings))
+                if queens:
+                    player.order_cards.pop(queens[random.choice(range(len(queens)))][0])
+                else:
+                    player.order_cards.pop(kings[random.choice(range(len(kings)))][0])
 
         if has_joker:
             # и закинем джокера, если он есть и еще не там
@@ -970,7 +996,12 @@ class Engine(object):
             self._ai_fill_order_cards(player, self._deals[self._curr_deal].player == player)
 
         if is_dark:
-            max_cnt = round(self._deals[self._curr_deal].cards / 3) - const.RISK_BASE_COEFF[player.risk_level]
+            if self.party_size() > 3:
+                max_cnt = round(self._deals[self._curr_deal].cards / 3) - const.RISK_BASE_COEFF[player.risk_level]
+            else:
+                max_cnt = round(self._deals[self._curr_deal].cards / 2) - 1 - const.RISK_BASE_COEFF[player.risk_level]
+            if max_cnt < 1:
+                max_cnt = self._deals[self._curr_deal].cards
             cnt = random.randint(0, max_cnt)
 
             # сбросим флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
