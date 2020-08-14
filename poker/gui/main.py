@@ -33,9 +33,9 @@ class QCard(QGraphicsPixmapItem):
         self.side = const.CARD_SIDE_BACK
         self.setPixmap(self.back)
 
-    def mouseClickEvent(self, e):
+    def mousePressEvent(self, e):
         # тут обрабатываем клик мышкой
-        super(QCard, self).mouseClickEvent(e)
+        super(QCard, self).mousePressEvent(e)
 
 
 class MainWnd(QMainWindow):
@@ -55,7 +55,7 @@ class MainWnd(QMainWindow):
         view = QGraphicsView()
         self.scene = QGraphicsScene()
         self.scene.setSceneRect(QRectF(0, 0, *const.AREA_SIZE))
-        felt = QBrush(QPixmap(f'{const.BG_DIR}/0default.bmp'))
+        felt = QBrush(QPixmap(f'{const.BG_DIR}/default.bmp'))
         self.scene.setBackgroundBrush(felt)
         view.setScene(self.scene)
 
