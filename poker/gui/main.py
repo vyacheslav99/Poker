@@ -1,11 +1,41 @@
 import random
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QFrame, QMessageBox, QLabel, QAction
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 from gui import utils, const
 from game import engine, helpers, const as eng_const
+
+
+class QCard(QGraphicsPixmapItem):
+
+    def __init__(self, card: helpers.Card, deck, back, *args, **kwargs):
+        super(QCard, self).__init__(*args, **kwargs)
+
+        self.card = card
+        self.deck = deck
+        self.back = back
+        self.side = const.CARD_SIDE_BACK
+
+        self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
+        self.setFlag(QGraphicsItem.ItemIsMovable)
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
+
+        self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/{self.card.value}{self.card.lear}.bmp')
+        self.back = QPixmap(f'{const.CARD_BACK_DIR}/{self.back}.bmp')
+
+    def turn_face_up(self):
+        self.side = const.CARD_SIDE_FACE
+        self.setPixmap(self.face)
+
+    def turn_back_up(self):
+        self.side = const.CARD_SIDE_BACK
+        self.setPixmap(self.back)
+
+    def mouseClickEvent(self, e):
+        # тут обрабатываем клик мышкой
+        super(QCard, self).mouseClickEvent(e)
 
 
 class MainWnd(QMainWindow):
@@ -21,6 +51,14 @@ class MainWnd(QMainWindow):
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
         self.setWindowTitle(const.MAIN_WINDOW_TITLE)
+
+        view = QGraphicsView()
+        self.scene = QGraphicsScene()
+        self.scene.setSceneRect(QRectF(0, 0, *const.AREA_SIZE))
+        felt = QBrush(QPixmap(f'{const.BG_DIR}/0default.bmp'))
+        self.scene.setBackgroundBrush(felt)
+        view.setScene(self.scene)
+
         self.init_menu_actions()
 
         sb_scales = (1, 2, 0)
@@ -29,11 +67,10 @@ class MainWnd(QMainWindow):
             self.status_labels.append(QLabel())
             self.statusBar().addWidget(self.status_labels[i], sb_scales[i])
 
-        self.area = QFrame(self)
-        self.area.setFocusPolicy(Qt.StrongFocus)
-        self.setCentralWidget(self.area)
-
-        self.resize(1400, 960)
+        # view.setFocusPolicy(Qt.StrongFocus)
+        self.setCentralWidget(view)
+        # self.setFixedSize(*const.WINDOW_SIZE)
+        self.resize(*const.WINDOW_SIZE)
         self.center()
         self.show()
 
@@ -41,14 +78,13 @@ class MainWnd(QMainWindow):
         menubar = self.menuBar()
         file_menu = menubar.addMenu('Файл')
         # toolbar = self.addToolBar('Выход')
-        start_actn = QAction('Играть', self)
-        # start_actn.setShortcut('Esc')
+        start_actn = QAction(QIcon(const.MAIN_ICON), 'Играть', self)
         start_actn.setStatusTip('Начать новую игру')
         start_actn.triggered.connect(self.start_game)
         file_menu.addAction(start_actn)
 
-        # exit_actn = QAction(QIcon('exit24.png'), 'Exit', self)
-        exit_actn = QAction('Выход', self)
+        file_menu.addSeparator()
+        exit_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
         exit_actn.setShortcut('Esc')
         exit_actn.setStatusTip('Выход из игры')
         exit_actn.triggered.connect(self.close)
