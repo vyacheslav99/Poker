@@ -1,5 +1,4 @@
 import os
-from PyQt5.QtCore import *
 
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
 RES_DIR = 'gui/resources'
@@ -22,8 +21,8 @@ AREA_SIZE = 1300, 900
 WINDOW_SIZE = 1400, 960
 MAIN_WINDOW_TITLE = 'Расписной покер'
 
-CARD_DIMENSIONS = QSize(71, 96)
-CARD_RECT = QRect(0, 0, 71, 96)
-CARD_SPACING_X = 90
+CARD_SIZE = 71, 96
 CARD_SIDE_FACE = 0
 CARD_SIDE_BACK = 1
+FACE_SIZE = 128, 128
+PLAYER_AREA_SIZE = 220, 200

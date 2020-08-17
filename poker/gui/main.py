@@ -1,3 +1,4 @@
+import os
 import random
 
 from PyQt5.QtGui import *
@@ -10,8 +11,8 @@ from game import engine, helpers, const as eng_const
 
 class QCard(QGraphicsPixmapItem):
 
-    def __init__(self, card: helpers.Card, deck, back, *args, **kwargs):
-        super(QCard, self).__init__(*args, **kwargs)
+    def __init__(self, card: helpers.Card, deck, back, *args):
+        super(QCard, self).__init__(*args)
 
         self.card = card
         self.deck = deck
@@ -36,6 +37,46 @@ class QCard(QGraphicsPixmapItem):
     def mousePressEvent(self, e):
         # тут обрабатываем клик мышкой
         super(QCard, self).mousePressEvent(e)
+
+
+class Face(QGraphicsPixmapItem):
+
+    def __init__(self, player, *args):
+        super(Face, self).__init__(*args)
+        self.player = player
+        self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
+        # self.setFlag(QGraphicsItem.ItemIsMovable)
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
+
+    @property
+    def player(self):
+        return self._player
+
+    @player.setter
+    def player(self, player):
+        self._player = player
+
+        if os.path.exists(f'{const.FACE_DIR}/{self._player.name}.bmp'):
+            self.setPixmap(QPixmap(f'{const.FACE_DIR}/{self._player.name}.bmp'))
+        else:
+            self.setPixmap(QPixmap(f'{const.FACE_DIR}/user.jpg'))
+
+    def mousePressEvent(self, e):
+        # по клику мышкой возможно что-то будет - показ подробной инфы про игрока например
+        super(Face, self).mousePressEvent(e)
+
+
+class Area(QGraphicsRectItem):
+
+    def __init__(self, parent, size, *args):
+        super(Area, self).__init__(*args)
+        self.parent = parent
+        self.setRect(QRectF(0, 0, size[0], size[1]))
+        color = QColor(Qt.black)
+        color.setAlpha(50)
+        brush = QBrush(color)
+        self.setBrush(brush)
+        self.setPen(QPen(Qt.black))
 
 
 class MainWnd(QMainWindow):
@@ -79,6 +120,7 @@ class MainWnd(QMainWindow):
         file_menu = menubar.addMenu('Файл')
         # toolbar = self.addToolBar('Выход')
         start_actn = QAction(QIcon(const.MAIN_ICON), 'Играть', self)
+        start_actn.setShortcut('F2')
         start_actn.setStatusTip('Начать новую игру')
         start_actn.triggered.connect(self.start_game)
         file_menu.addAction(start_actn)
@@ -97,7 +139,6 @@ class MainWnd(QMainWindow):
         self.move((screen.width() - size.width()) / 2, 10)  # (screen.height() - size.height()) / 3)
 
     def closeEvent(self, event):
-        print('< Exit >')
         super(MainWnd, self).closeEvent(event)
 
     def show_help(self):
@@ -151,6 +192,8 @@ class MainWnd(QMainWindow):
     def start_game(self):
         """ Старт игры - инициализация игры и показ игрового поля """
 
+        self.stop_game()
+
         # Настройка договоренностей игры, игроков и т.п.
         # todo: Пока что накидываем все опции дефолтно, без возможности выбора. Потом сделаю форму
         robots = [r for r in const.ROBOTS]
@@ -182,7 +225,74 @@ class MainWnd(QMainWindow):
             self.init_game_table()
 
     def stop_game(self):
-        """ Скрыть игровое поле """
+        """ Остановить игру, очистить игровое поле """
+
+        if self.game:
+            self.game.stop()
+        self.players = []
+        self.scene.clear()
 
     def init_game_table(self):
         """ Показ игрового поля, отображение на нем игроков """
+
+        fp = self._get_face_positions()
+        ap = self._get_area_positions()
+
+        for i, p in enumerate(self.players):
+            if i == 0:
+                sz = const.WINDOW_SIZE[0] - 30, const.PLAYER_AREA_SIZE[1] - 10
+            else:
+                sz = const.PLAYER_AREA_SIZE
+
+            area = Area(self, sz)
+            area.setPos(*ap[i])
+            self.scene.addItem(area)
+
+            player = Face(p)
+            player.setPos(*fp[i])
+            self.scene.addItem(player)
+
+            if p.is_robot:
+                self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]), Qt.black, 18, 65)
+                self.set_text(eng_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
+                              Qt.cyan, 13, 65)
+            else:
+                self.set_text(p.name, (ap[i][0] + 5, fp[i][1] + const.FACE_SIZE[1] + 15), Qt.black, 18, 65)
+
+    def set_text(self, text, position, color, size, weight):
+        f = self.scene.font()
+        f.setWeight(weight)
+        f.setPointSize(size)
+        t = self.scene.addText(text, f)
+        t.setPos(*position)
+        t.setDefaultTextColor(color)
+
+    def _get_face_positions(self):
+        if len(self.players) == 4:
+            return (
+                (-30, const.AREA_SIZE[1] - const.FACE_SIZE[1] - 68),  # позиция человека, низ центр
+                (-30, round(const.AREA_SIZE[1] / 2) - const.FACE_SIZE[1] + 5),  # лево центр
+                (round(const.AREA_SIZE[0] / 2) - const.FACE_SIZE[0] + 5, 15),  # верх центр
+                (const.AREA_SIZE[0] - const.FACE_SIZE[0] + 30, round(const.AREA_SIZE[1] / 2) - const.FACE_SIZE[1] + 5)  # право центр
+            )
+        else:
+            return (
+                (-30, const.AREA_SIZE[1] - const.FACE_SIZE[1] - 68),  # позиция человека, низ центр
+                (-30, 15),  # левый верхний угол
+                (const.AREA_SIZE[0] - const.FACE_SIZE[0] + 30, 15)  # правый верхний угол
+            )
+
+    def _get_area_positions(self):
+        if len(self.players) == 4:
+            return (
+                (-35, const.AREA_SIZE[1] - const.PLAYER_AREA_SIZE[1]),  # позиция человека, низ центр
+                (-35, round(const.AREA_SIZE[1] / 2) - const.FACE_SIZE[1]),  # лево центр
+                (round(const.AREA_SIZE[0] / 2) - const.FACE_SIZE[0], 10),  # верх центр
+                (const.AREA_SIZE[0] - const.PLAYER_AREA_SIZE[0] + 35, round(const.AREA_SIZE[1] / 2) - const.FACE_SIZE[1])  # право центр
+            )
+        else:
+            return (
+                (-35, const.AREA_SIZE[1] - const.PLAYER_AREA_SIZE[1]),  # позиция человека, низ центр
+                (-35, 10),  # левый верхний угол
+                (const.AREA_SIZE[0] - const.PLAYER_AREA_SIZE[0] + 35, 10)  # правый верхний угол
+            )
