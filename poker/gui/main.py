@@ -30,6 +30,7 @@ class QCard(QGraphicsPixmapItem):
         # self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setZValue(const.CARD_BASE_Z_VALUE)
+        self.set_std_shadow()
 
         self.back = QPixmap(f'{const.CARD_BACK_DIR}/{self.back}.bmp')
         if card.joker:
@@ -68,6 +69,19 @@ class QCard(QGraphicsPixmapItem):
                 val = f'{self._tooltip} {val}'
 
         self.setToolTip(val)
+
+    def set_color_shadow(self):
+        sh = QGraphicsDropShadowEffect()
+        sh.setBlurRadius(30)
+        sh.setOffset(5)
+        sh.setColor(Qt.darkRed)
+        self.setGraphicsEffect(sh)
+
+    def set_std_shadow(self):
+        sh = QGraphicsDropShadowEffect()
+        sh.setBlurRadius(50)
+        # sh.setColor(Qt.darkGray)
+        self.setGraphicsEffect(sh)
 
     def mousePressEvent(self, e):
         if self.player and self.is_face_up():
@@ -576,8 +590,8 @@ class MainWnd(QMainWindow):
                 if ti.is_joker():
                     self.table_label.setText(f'{self.players[pi].name}: Джокер: {self._get_joker_info(ti.card)}')
 
-                # todo: оттенить или как-то обозначить карту, положенную первой
-                # ti.order - порядок хода картами, т.е. 0 - первая и т.д.
+                if ti.order == 0:
+                    qc.set_color_shadow()
 
         if overall:
             i, p = self.game.take_player()
