@@ -508,7 +508,7 @@ class MainWnd(QMainWindow):
     def draw_table(self):
         """ Отрисовка игрового поля """
 
-        pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 50)
+        pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 40)
         ofs = self._get_table_offsets()
 
         for pi, ti in self.game.table().items():
