@@ -13,23 +13,21 @@ from game import engine, helpers, const as eng_const
 
 class QCard(QGraphicsPixmapItem):
 
-    def __init__(self, app, card: helpers.Card, deck, back, removable=True):
+    def __init__(self, app, card, player, deck, back, removable=True):
         super(QCard, self).__init__()
 
         self.app = app
         self.card = card
+        self.player = player
         self.deck = deck
         self.back = back
         self.removable = removable
         self.side = None
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        self.setFlag(QGraphicsItem.ItemIsMovable)
+        # self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
-        self.setCursor(Qt.PointingHandCursor)
-        # todo: потом надо сделать, чтоб он был только у перевернутых лицом вврх - засунуть в методы переворота карт
-        c = 'red' if self.card.lear > 1 else 'navy'
-        self.setToolTip(f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>')
+        self.setZValue(const.CARD_BASE_Z_VALUE)
 
         self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/{const.CARDS[self.card.value]}{const.LEARS[self.card.lear]}.bmp')
         self.back = QPixmap(f'{const.CARD_BACK_DIR}/{self.back}.bmp')
@@ -38,12 +36,29 @@ class QCard(QGraphicsPixmapItem):
         self.side = const.CARD_SIDE_FACE
         self.setPixmap(self.face)
 
+        c = 'red' if self.card.lear > 1 else 'navy'
+        self.setToolTip(f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>')
+
+        if self.player:
+            self.setCursor(Qt.PointingHandCursor)
+
     def turn_back_up(self):
         self.side = const.CARD_SIDE_BACK
         self.setPixmap(self.back)
+        self.setCursor(Qt.ArrowCursor)
+
+        # todo: После тестирования убрать показ тултипа когда рубашка вверх
+        c = 'red' if self.card.lear > 1 else 'navy'
+        self.setToolTip(f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>')
+        # self.setToolTip('')
+
+    def is_face_up(self):
+        return self.side == const.CARD_SIDE_FACE
 
     def mousePressEvent(self, e):
-        self.app.card_click(self)
+        if self.player and self.is_face_up():
+            self.app.card_click(self)
+
         super(QCard, self).mousePressEvent(e)
 
 
@@ -92,6 +107,7 @@ class Area(QGraphicsRectItem):
         brush = QBrush(color)
         self.setBrush(brush)
         self.setPen(QPen(Qt.black))
+        self.setZValue(-1)
 
 
 class MainWnd(QMainWindow):
@@ -264,6 +280,7 @@ class MainWnd(QMainWindow):
 
         fp = self._get_face_positions()
         ap = self._get_area_positions()
+        lo = self._get_label_offset()
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -283,12 +300,12 @@ class MainWnd(QMainWindow):
                 self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]), Qt.cyan, 18, 65)
                 self.set_text(eng_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
                               Qt.gray, 13, 65)
-                self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + 5, ap[i][1] + 5), 'black', 14, 65)
-                self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + 5, ap[i][1] + 20), 'black', 14, 65)
+                self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
+                self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
             else:
-                self.set_text(p.name, (ap[i][0] + 5, fp[i][1] + const.FACE_SIZE[1] + 15), Qt.black, 18, 65)
-                self.add_player_label(i, 'order', '', (ap[i][0] + 200, ap[i][1] + 5), 'black', 14, 65)
-                self.add_player_label(i, 'take', '', (ap[i][0] + 200, ap[i][1] + 20), 'black', 14, 65)
+                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 15), Qt.cyan, 18, 65)
+                self.add_player_label(i, 'order', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
+                self.add_player_label(i, 'take', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
 
     def set_text(self, text, position, color, size, weight):
         """ Отрисовка текста на поле """
@@ -307,6 +324,8 @@ class MainWnd(QMainWindow):
         f.setPointSize(size)
         lb.setFont(f)
         lb.setStyleSheet(''.join(('QLabel {color:', color, '}')))
+        lb.setToolTip('Заказ' if type_ == 'order' else 'Взял')
+        lb.resize(90, 24)
         lb.move(*position)
         self.layout().addWidget(lb)
 
@@ -363,7 +382,7 @@ class MainWnd(QMainWindow):
             if not p.is_robot:
                 start_x = const.PLAYER_AREA_SIZE[0]
                 for n, card in enumerate(p.cards):
-                    qc = QCard(self, card, self.deck_type, f'back{self.back_type}')
+                    qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
                     if h_back_up:
                         qc.turn_back_up()
                     else:
@@ -376,7 +395,8 @@ class MainWnd(QMainWindow):
                 else:
                     start_x = ap[i][0] + const.FACE_SIZE[0] + 98 - len(p.cards) * const.CARD_OFFSET[0]
                 for n, card in enumerate(p.cards):
-                    qc = QCard(self, card, self.deck_type, f'back{self.back_type}')
+                    qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
+                    qc.setZValue(const.CARD_BASE_Z_VALUE + n)
                     if r_back_up:
                         qc.turn_back_up()
                     else:
@@ -414,7 +434,7 @@ class MainWnd(QMainWindow):
 
         tl, tc = self.game.trump()
         if tc:
-            qc = QCard(self, tc, self.deck_type, f'back{self.back_type}', removable=False)
+            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False)
             qc.turn_face_up()
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
             self.scene.addItem(qc)
@@ -433,7 +453,9 @@ class MainWnd(QMainWindow):
 
         for i, p in enumerate(self.players):
             if p.order > -1:
-                self.labels[i]['order'].setText('З: {0}{1}'.format(p.order, ' (Т)' if p.order_is_dark else ''))
+                self.labels[i]['order'].setText('{0}{1}'.format(p.order, '*' if p.order_is_dark else ''))
+                self.labels[i]['take'].setText('12')
+                self.labels[i]['take'].setStyleSheet('QLabel {color: OrangeRed}')
 
     def show_dark_buttons(self):
         """ Показ кнопок выбора как заказывать - в темную или в светлую """
@@ -444,7 +466,8 @@ class MainWnd(QMainWindow):
         f.setPointSize(16)
         lb.setFont(f)
         lb.setStyleSheet('QLabel {color: Lime}')
-        lb.move(round(const.AREA_SIZE[0] / 2) - 90, round(const.AREA_SIZE[1] / 2) - 280)
+        lb.resize(150, 22)
+        lb.move(round(const.AREA_SIZE[0] / 2) - 90, round(const.AREA_SIZE[1] / 2) - 60)
         self.layout().addWidget(lb)
         self.buttons.append(lb)
 
@@ -481,7 +504,8 @@ class MainWnd(QMainWindow):
         f.setPointSize(16)
         lb.setFont(f)
         lb.setStyleSheet('QLabel {color: Lime}')
-        lb.move(round(const.AREA_SIZE[0] / 2) - 90, round(const.AREA_SIZE[1] / 2) - 280)
+        lb.resize(150, 22)
+        lb.move(round(const.AREA_SIZE[0] / 2) - 90, round(const.AREA_SIZE[1] / 2) - 60)
         self.layout().addWidget(lb)
         self.buttons.append(lb)
 
@@ -532,8 +556,9 @@ class MainWnd(QMainWindow):
 
     def card_click(self, card):
         c = card.card
-        QMessageBox.information(self, 'Карта:', f'{eng_const.CARD_NAMES[c.value]} {eng_const.LEAR_NAMES[c.lear]}',
-                                QMessageBox.Ok)
+        if card.player and not card.player.is_robot:
+            QMessageBox.information(self, 'Карта:', f'{eng_const.CARD_NAMES[c.value]} {eng_const.LEAR_NAMES[c.lear]}',
+                                    QMessageBox.Ok)
 
     def _get_face_positions(self):
         if len(self.players) == 4:
@@ -563,4 +588,19 @@ class MainWnd(QMainWindow):
                 (-35, const.AREA_SIZE[1] - const.PLAYER_AREA_SIZE[1]),  # позиция человека, низ центр
                 (-35, 10),  # левый верхний угол
                 (const.AREA_SIZE[0] - const.PLAYER_AREA_SIZE[0] + 35, 10)  # правый верхний угол
+            )
+
+    def _get_label_offset(self):
+        if len(self.players) == 4:
+            return (
+                (250, 40),  # позиция человека, низ центр
+                (65, 40),  # лево центр
+                (65, 40),  # верх центр
+                (45, 40)  # право центр
+            )
+        else:
+            return (
+                (250, 40),  # позиция человека, низ центр
+                (65, 40),  # левый верхний угол
+                (45, 40)  # правый верхний угол
             )
