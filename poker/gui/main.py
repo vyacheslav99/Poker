@@ -13,7 +13,7 @@ from game import engine, helpers, const as eng_const
 
 class QCard(QGraphicsPixmapItem):
 
-    def __init__(self, app, card, player, deck, back, removable=True, tooltip=None):
+    def __init__(self, app, card, player, deck, back, removable=True, tooltip=None, replace_tooltip=False):
         super(QCard, self).__init__()
 
         self.app = app
@@ -23,6 +23,7 @@ class QCard(QGraphicsPixmapItem):
         self.back = back
         self.removable = removable
         self._tooltip = tooltip
+        self.replace_tooltip = replace_tooltip
         self.side = None
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
@@ -30,8 +31,11 @@ class QCard(QGraphicsPixmapItem):
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setZValue(const.CARD_BASE_Z_VALUE)
 
-        self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/{const.CARDS[self.card.value]}{const.LEARS[self.card.lear]}.bmp')
         self.back = QPixmap(f'{const.CARD_BACK_DIR}/{self.back}.bmp')
+        if card.joker:
+            self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/j.bmp')
+        else:
+            self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/{const.CARDS[self.card.value]}{const.LEARS[self.card.lear]}.bmp')
 
     def turn_face_up(self):
         self.side = const.CARD_SIDE_FACE
@@ -53,12 +57,16 @@ class QCard(QGraphicsPixmapItem):
         return self.side == const.CARD_SIDE_FACE
 
     def set_tooltip(self):
-        c = 'red' if self.card.lear > 1 else 'navy'
-        val = f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>'
-        if self.card.joker:
-            val = f'Джокер ({val})'
-        if self._tooltip:
-            val = f'{self._tooltip} {val}'
+        if self.replace_tooltip and self._tooltip:
+            val = self._tooltip
+        else:
+            c = 'red' if self.card.lear > 1 else 'navy'
+            val = f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>'
+            if self.card.joker:
+                val = f'Джокер ({val})'
+            if self._tooltip:
+                val = f'{self._tooltip} {val}'
+
         self.setToolTip(val)
 
     def mousePressEvent(self, e):
@@ -98,9 +106,10 @@ class Lear(QGraphicsPixmapItem):
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         if lear == eng_const.LEAR_NOTHING:
             self.setPixmap(QPixmap(f'{const.SUITS_DIR}/none.ico'))
+            self.setToolTip('Козырь: нет')
         else:
             self.setPixmap(QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.ico'))
-
+            self.setToolTip(f'Козырь: {eng_const.LEAR_NAMES[lear]}')
 
 class Area(QGraphicsRectItem):
 
@@ -132,6 +141,8 @@ class MainWnd(QMainWindow):
         self.deck_type = None
         self.back_type = None
         self.order_dark = None
+        self.table_label = None
+        self.next_button = None
 
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -278,12 +289,22 @@ class MainWnd(QMainWindow):
     def stop_game(self):
         """ Остановить игру, очистить игровое поле """
 
-        if self.game:
+        if self.started():
             self.game.stop()
+
         self.players = []
         self.clear_buttons()
         self.clear_player_labels()
         self.clear_table()
+
+        if self.table_label:
+            self.layout().removeWidget(self.table_label)
+            self.table_label.deleteLater()
+
+        if self.next_button:
+            self.layout().removeWidget(self.next_button)
+            self.next_button.deleteLater()
+
         self.scene.clear()
 
     def init_game_table(self):
@@ -402,9 +423,10 @@ class MainWnd(QMainWindow):
                 self.draw_cards()
                 self.draw_take()
                 self.draw_table()
-        else:
-            self.draw_table()
+        elif self.game.status() == eng_const.EXT_STATE_LAP_PAUSE:
+            self.draw_table(True)
             self.draw_cards()
+            self.draw_take()
 
     def clear_cards(self, total=False):
         """
@@ -485,7 +507,14 @@ class MainWnd(QMainWindow):
 
         tl, tc = self.game.trump()
         if tc:
-            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False, tooltip='Козырь:')
+            if tc.joker:
+                hint = 'нет'
+            else:
+                clr = 'red' if tc.lear > 1 else 'navy'
+                hint = f'<span style="color:{clr}">{eng_const.LEAR_SYMBOLS[tc.lear]}</span>'
+
+            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False,
+                       tooltip=f'Козырь: {hint}', replace_tooltip=True)
             qc.turn_face_up()
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
             self.scene.addItem(qc)
@@ -501,32 +530,68 @@ class MainWnd(QMainWindow):
 
         pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2),
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2))
+
         area = Area(self, const.TABLE_AREA_SIZE)
         area.setPos(*pos)
         self.scene.addItem(area)
 
-    def draw_table(self):
+        self.table_label = QLabel()
+        f = self.table_label.font()
+        f.setWeight(65)
+        f.setPointSize(13)
+        self.table_label.setFont(f)
+        self.table_label.setStyleSheet('QLabel {color: Yellow}')
+        self.table_label.setAlignment(Qt.AlignHCenter)
+        self.table_label.resize(const.TABLE_AREA_SIZE[0] - 20, 24)
+        self.table_label.move(pos[0] + 60, pos[1] + 35)
+        self.layout().addWidget(self.table_label)
+
+        self.next_button = QPushButton('Далее')
+        f = self.next_button.font()
+        f.setWeight(65)
+        f.setPointSize(16)
+        self.next_button.setFont(f)
+        self.next_button.setStyleSheet('QPushButton {background-color: DarkGreen; color: Lime}')
+        self.next_button.resize(150, 50)
+        self.next_button.move(pos[0] + 230, pos[1] + 70)
+        self.next_button.hide()
+        self.next_button.clicked.connect(self.next_button_click)
+        self.layout().addWidget(self.next_button)
+
+    def draw_table(self, overall=False):
         """ Отрисовка игрового поля """
 
-        pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 40)
+        pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 10)
         ofs = self._get_table_offsets()
 
         for pi, ti in self.game.table().items():
-            qc = QCard(self, ti.card, self.players[pi], self.deck_type, f'back{self.back_type}', removable=False,
-                       tooltip=f'{self.players[pi].name}:')
-            qc.turn_face_up()
-            qc.setPos(pos[0] + ofs[pi][0], pos[1] + ofs[pi][1])
-            self.table[pi] = qc
-            self.scene.addItem(qc)
+            if pi not in self.table:
+                qc = QCard(self, ti.card, self.players[pi], self.deck_type, f'back{self.back_type}', removable=False,
+                           tooltip=f'{self.players[pi].name}:')
+                qc.turn_face_up()
+                qc.setPos(pos[0] + ofs[pi][0], pos[1] + ofs[pi][1])
+                self.table[pi] = qc
+                self.scene.addItem(qc)
 
-            # todo: действия для джокера
-            # ti.is_joker и пр.
+                if ti.is_joker():
+                    self.table_label.setText(f'{self.players[pi].name}: Джокер: {self._get_joker_info(ti.card)}')
 
-            # todo: оттенить или как-то обозначить карту, положенную первой
-            # ti.order - порядок хода картами, т.е. 0 - первая и т.д.
+                # todo: оттенить или как-то обозначить карту, положенную первой
+                # ti.order - порядок хода картами, т.е. 0 - первая и т.д.
+
+        if overall:
+            i, p = self.game.take_player()
+            self.table_label.setText(f'Взял: {p.name}')
+            self.next_button.show()
 
     def clear_table(self):
         """ Очистка всех элементов с игрового стола """
+
+        if self.table_label:
+            self.table_label.setText('')
+
+        if self.next_button:
+            self.next_button.hide()
 
         for k in self.table:
             if isinstance(self.table[k], QCard):
@@ -557,16 +622,7 @@ class MainWnd(QMainWindow):
     def show_dark_buttons(self):
         """ Показ кнопок выбора как заказывать - в темную или в светлую """
 
-        lb = QLabel('Твой заказ')
-        f = lb.font()
-        f.setWeight(65)
-        f.setPointSize(16)
-        lb.setFont(f)
-        lb.setStyleSheet('QLabel {color: Lime}')
-        lb.resize(150, 22)
-        lb.move(round(const.AREA_SIZE[0] / 2) - 20, round(const.AREA_SIZE[1] / 2) - 60)
-        self.layout().addWidget(lb)
-        self.buttons.append(lb)
+        self.table_label.setText('Твой заказ')
 
         btnd = QPushButton('В темную')
         f = btnd.font()
@@ -595,16 +651,7 @@ class MainWnd(QMainWindow):
     def show_order_buttons(self):
         """ Показ кнопок заказа """
 
-        lb = QLabel('Твой заказ')
-        f = lb.font()
-        f.setWeight(65)
-        f.setPointSize(16)
-        lb.setFont(f)
-        lb.setStyleSheet('QLabel {color: Lime}')
-        lb.resize(150, 22)
-        lb.move(round(const.AREA_SIZE[0] / 2) - 20, round(const.AREA_SIZE[1] / 2) - 60)
-        self.layout().addWidget(lb)
-        self.buttons.append(lb)
+        self.table_label.setText('Твой заказ')
 
         cols = round(36 / self.game.party_size() / 2) + 1
         coef = min(self.game.current_deal().cards + 1, cols)
@@ -637,6 +684,9 @@ class MainWnd(QMainWindow):
             btn.deleteLater()
 
         self.buttons = []
+
+        if self.table_label:
+            self.table_label.setText('')
 
     def dark_btn_click(self, is_dark):
         """
@@ -688,6 +738,11 @@ class MainWnd(QMainWindow):
             except helpers.GameException as e:
                 QMessageBox.warning(self, 'Ход', f'{e}', QMessageBox.Ok)
 
+            self.next()
+
+    def next_button_click(self):
+        if self.started():
+            self.game.next()
             self.next()
 
     def _get_face_positions(self):
@@ -757,3 +812,18 @@ class MainWnd(QMainWindow):
                 (-const.CARD_SIZE[0] - 10, -const.CARD_SIZE[1] - 10),  # левый верхний угол
                 (const.CARD_SIZE[0] + 10, -const.CARD_SIZE[1] - 10)  # правый верхний угол
             )
+
+    def _get_joker_info(self, card):
+        if card.joker:
+            if card.joker_action == eng_const.JOKER_TAKE:
+                s, l = 'Самая крупная', eng_const.LEAR_SYMBOLS[card.joker_lear]
+            elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
+                s, l = 'Забираю по старшей', eng_const.LEAR_SYMBOLS[card.joker_lear]
+            elif card.joker_action == eng_const.JOKER_GIVE:
+                s, l = 'Скидываю как ', eng_const.LEAR_SYMBOLS[card.joker_lear] if not self.game.joker_give_at_par else f'{card}'
+            else:
+                s, l = None, None
+
+            return '{0} {1}'.format(s, l)
+        else:
+            return ''
