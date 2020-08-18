@@ -14,6 +14,7 @@ def run():
     app = QApplication(sys.argv)
     # не убирай переменную wnd!!! Без нее приложение не работает - процесс есть, а окно пропадает
     # т.е. просто main.MainWnd(app) не работает - надо обязательно присвоить его переменной
+    app.setStyle('Fusion')
     wnd = main.MainWnd(app)
     sys.exit(app.exec_())
 
