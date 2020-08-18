@@ -13,7 +13,7 @@ from game import engine, helpers, const as eng_const
 
 class QCard(QGraphicsPixmapItem):
 
-    def __init__(self, app, card, player, deck, back, removable=True):
+    def __init__(self, app, card, player, deck, back, removable=True, tooltip=None):
         super(QCard, self).__init__()
 
         self.app = app
@@ -22,6 +22,7 @@ class QCard(QGraphicsPixmapItem):
         self.deck = deck
         self.back = back
         self.removable = removable
+        self._tooltip = tooltip
         self.side = None
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
@@ -35,9 +36,7 @@ class QCard(QGraphicsPixmapItem):
     def turn_face_up(self):
         self.side = const.CARD_SIDE_FACE
         self.setPixmap(self.face)
-
-        c = 'red' if self.card.lear > 1 else 'navy'
-        self.setToolTip(f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>')
+        self.set_tooltip()
 
         if self.player:
             self.setCursor(Qt.PointingHandCursor)
@@ -46,14 +45,21 @@ class QCard(QGraphicsPixmapItem):
         self.side = const.CARD_SIDE_BACK
         self.setPixmap(self.back)
         self.setCursor(Qt.ArrowCursor)
-
         # todo: После тестирования убрать показ тултипа когда рубашка вверх
-        c = 'red' if self.card.lear > 1 else 'navy'
-        self.setToolTip(f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>')
+        self.set_tooltip()
         # self.setToolTip('')
 
     def is_face_up(self):
         return self.side == const.CARD_SIDE_FACE
+
+    def set_tooltip(self):
+        c = 'red' if self.card.lear > 1 else 'navy'
+        val = f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>'
+        if self.card.joker:
+            val = f'Джокер ({val})'
+        if self._tooltip:
+            val = f'{self._tooltip} {val}'
+        self.setToolTip(val)
 
     def mousePressEvent(self, e):
         if self.player and self.is_face_up():
@@ -119,6 +125,7 @@ class MainWnd(QMainWindow):
         self.players = []
         self.buttons = []
         self.labels = []
+        self.table = {}
         self.bet = None
         self.game = None
         self.is_new_round = False
@@ -146,7 +153,7 @@ class MainWnd(QMainWindow):
 
         # view.setFocusPolicy(Qt.StrongFocus)
         self.setCentralWidget(view)
-        # self.setFixedSize(*const.WINDOW_SIZE)
+        self.setFixedSize(*const.WINDOW_SIZE)
         self.resize(*const.WINDOW_SIZE)
         self.center()
         self.show()
@@ -208,9 +215,12 @@ class MainWnd(QMainWindow):
     def clear_status_messages(self):
         self.set_status_messages(('', '', ''))
 
+    def started(self):
+        return self.game and self.game.started()
+
     def set_default_options(self):
         self.options['game_sum_by_diff'] = True
-        self.options['dark_allowed'] = True
+        self.options['dark_allowed'] = False
         self.options['third_pass_limit'] = False
         self.options['fail_subtract_all'] = False
         self.options['no_joker'] = False
@@ -273,6 +283,7 @@ class MainWnd(QMainWindow):
         self.players = []
         self.clear_buttons()
         self.clear_player_labels()
+        self.clear_table()
         self.scene.clear()
 
     def init_game_table(self):
@@ -280,7 +291,8 @@ class MainWnd(QMainWindow):
 
         fp = self._get_face_positions()
         ap = self._get_area_positions()
-        lo = self._get_label_offset()
+        lo = self._get_label_offsets()
+        self.draw_table_area()
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -308,7 +320,15 @@ class MainWnd(QMainWindow):
                 self.add_player_label(i, 'take', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
 
     def set_text(self, text, position, color, size, weight):
-        """ Отрисовка текста на поле """
+        """
+        Отрисовка текста на поле
+
+        :param str text: текст, который будет написан
+        :param list or tuple position: расположение начала текста (x, y)
+        :param color: цвет текста, константа Qt.const или экземпляр Qt.Color
+        :param int size: размер шрифта
+        :param int weight: жирность шрифта
+        """
 
         f = self.scene.font()
         f.setWeight(weight)
@@ -318,6 +338,18 @@ class MainWnd(QMainWindow):
         t.setDefaultTextColor(color)
 
     def add_player_label(self, player, type_, text, position, color, size, weight):
+        """
+        Добавляет на форму элемент QLabel, отражающий сведения о заказе или взятке, связанный с определенным игроком
+
+        :param int player: индекс игрока, чьи сведения будем отображать
+        :param str type_: тип метки - что будет показано - заказ ('order') или взятки ('take')
+        :param str text: начальный текст
+        :param list or tuple position: расположение начала элемента (x, y)
+        :param str color: цвет текста, в формате html (название цвета, строка с hex-представлением и т.д.)
+        :param int size: размер шрифта
+        :param int weight: жирность шрифта
+        """
+
         lb = QLabel(text)
         f = lb.font()
         f.setWeight(weight)
@@ -335,6 +367,8 @@ class MainWnd(QMainWindow):
             self.labels.append({type_: lb})
 
     def clear_player_labels(self):
+        """ Удаляет все элементы label, связанные с игроками, с формы """
+
         for o in self.labels:
             for k in o:
                 self.layout().removeWidget(o[k])
@@ -345,7 +379,7 @@ class MainWnd(QMainWindow):
     def next(self):
         """ Обработка игрового цикла """
 
-        if not self.game or not self.game.started():
+        if not self.started():
             self.stop_game()
             return
 
@@ -364,16 +398,32 @@ class MainWnd(QMainWindow):
                 else:
                     self.draw_cards(self.order_dark or d.type_ == eng_const.DEAL_DARK, d.type_ != eng_const.DEAL_BROW)
                     self.show_order_buttons()
+            else:
+                self.draw_cards()
+                self.draw_take()
+                self.draw_table()
+        else:
+            self.draw_table()
+            self.draw_cards()
 
     def clear_cards(self, total=False):
-        """ Очистка всех карт с игрового стола """
+        """
+        Очистка всех карт с игрового стола
+
+        :param total: Удалить вобще все карты, что возможно или только карты, помеченные как удаляемые (карты на уках игроков)
+        """
 
         for w in self.scene.items():
             if isinstance(w, QCard) and (w.removable or total):
                 self.scene.removeItem(w)
 
     def draw_cards(self, h_back_up=False, r_back_up=True):
-        """ Отрисовка карт на руках у игроков """
+        """
+        Отрисовка карт на руках у игроков
+
+        :param h_back_up: отобразить карты человека рубашкой вверх или вниз
+        :param r_back_up: отобразить карты компьютерных игроков рубашкой вверх или вниз
+        """
 
         ap = self._get_area_positions()
         self.clear_cards()
@@ -394,6 +444,7 @@ class MainWnd(QMainWindow):
                     start_x = ap[i][0] + 5
                 else:
                     start_x = ap[i][0] + const.FACE_SIZE[0] + 98 - len(p.cards) * const.CARD_OFFSET[0]
+
                 for n, card in enumerate(p.cards):
                     qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
                     qc.setZValue(const.CARD_BASE_Z_VALUE + n)
@@ -434,7 +485,7 @@ class MainWnd(QMainWindow):
 
         tl, tc = self.game.trump()
         if tc:
-            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False)
+            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False, tooltip='Козырь:')
             qc.turn_face_up()
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
             self.scene.addItem(qc)
@@ -445,8 +496,43 @@ class MainWnd(QMainWindow):
 
         self.set_text(f'Первый ход: {self.game.players[d.player].name}', (pos[0] + 5, pos[1] + 50), Qt.cyan, 16, 65)
 
+    def draw_table_area(self):
+        """ Отрисовка области расположения карт, которыми ходили """
+
+        pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2),
+               round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2))
+        area = Area(self, const.TABLE_AREA_SIZE)
+        area.setPos(*pos)
+        self.scene.addItem(area)
+
     def draw_table(self):
         """ Отрисовка игрового поля """
+
+        pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 50)
+        ofs = self._get_table_offsets()
+
+        for pi, ti in self.game.table().items():
+            qc = QCard(self, ti.card, self.players[pi], self.deck_type, f'back{self.back_type}', removable=False,
+                       tooltip=f'{self.players[pi].name}:')
+            qc.turn_face_up()
+            qc.setPos(pos[0] + ofs[pi][0], pos[1] + ofs[pi][1])
+            self.table[pi] = qc
+            self.scene.addItem(qc)
+
+            # todo: действия для джокера
+            # ti.is_joker и пр.
+
+            # todo: оттенить или как-то обозначить карту, положенную первой
+            # ti.order - порядок хода картами, т.е. 0 - первая и т.д.
+
+    def clear_table(self):
+        """ Очистка всех элементов с игрового стола """
+
+        for k in self.table:
+            if isinstance(self.table[k], QCard):
+                self.scene.removeItem(self.table[k])
+
+        self.table = {}
 
     def draw_order(self):
         """ Отрисовка заказа игроков """
@@ -454,8 +540,19 @@ class MainWnd(QMainWindow):
         for i, p in enumerate(self.players):
             if p.order > -1:
                 self.labels[i]['order'].setText('{0}{1}'.format(p.order, '*' if p.order_is_dark else ''))
-                self.labels[i]['take'].setText('12')
+
+    def draw_take(self):
+        """ Отрисовка взяток игроков """
+
+        for i, p in enumerate(self.players):
+            self.labels[i]['take'].setText(f'{p.take}')
+
+            if p.order > p.take:
                 self.labels[i]['take'].setStyleSheet('QLabel {color: OrangeRed}')
+            elif p.order < p.take:
+                self.labels[i]['take'].setStyleSheet('QLabel {color: Fuchsia}')
+            else:
+                self.labels[i]['take'].setStyleSheet('QLabel {color: Lime}')
 
     def show_dark_buttons(self):
         """ Показ кнопок выбора как заказывать - в темную или в светлую """
@@ -467,7 +564,7 @@ class MainWnd(QMainWindow):
         lb.setFont(f)
         lb.setStyleSheet('QLabel {color: Lime}')
         lb.resize(150, 22)
-        lb.move(round(const.AREA_SIZE[0] / 2) - 90, round(const.AREA_SIZE[1] / 2) - 60)
+        lb.move(round(const.AREA_SIZE[0] / 2) - 20, round(const.AREA_SIZE[1] / 2) - 60)
         self.layout().addWidget(lb)
         self.buttons.append(lb)
 
@@ -478,7 +575,7 @@ class MainWnd(QMainWindow):
         btnd.setFont(f)
         btnd.setStyleSheet('QPushButton {background-color: DarkRed; color: DarkOrange}')
         btnd.resize(150, 50)
-        btnd.move(round(const.AREA_SIZE[0] / 2) - btnd.size().width() - 5, round(const.AREA_SIZE[1] / 2))
+        btnd.move(round(const.AREA_SIZE[0] / 2) - btnd.size().width() / 2 - 40, round(const.AREA_SIZE[1] / 2))
         btnd.clicked.connect(lambda: self.dark_btn_click(True))
         self.layout().addWidget(btnd)
         self.buttons.append(btnd)
@@ -490,7 +587,7 @@ class MainWnd(QMainWindow):
         btnl.setFont(f)
         btnl.setStyleSheet('QPushButton {background-color: DarkGreen; color: Lime}')
         btnl.resize(150, 50)
-        btnl.move(round(const.AREA_SIZE[0] / 2) + 5, round(const.AREA_SIZE[1] / 2))
+        btnl.move(round(const.AREA_SIZE[0] / 2) + btnl.size().width() / 2 + 5, round(const.AREA_SIZE[1] / 2))
         btnl.clicked.connect(lambda: self.dark_btn_click(False))
         self.layout().addWidget(btnl)
         self.buttons.append(btnl)
@@ -505,13 +602,16 @@ class MainWnd(QMainWindow):
         lb.setFont(f)
         lb.setStyleSheet('QLabel {color: Lime}')
         lb.resize(150, 22)
-        lb.move(round(const.AREA_SIZE[0] / 2) - 90, round(const.AREA_SIZE[1] / 2) - 60)
+        lb.move(round(const.AREA_SIZE[0] / 2) - 20, round(const.AREA_SIZE[1] / 2) - 60)
         self.layout().addWidget(lb)
         self.buttons.append(lb)
 
         cols = round(36 / self.game.party_size() / 2) + 1
+        coef = min(self.game.current_deal().cards + 1, cols)
+        x = round(const.AREA_SIZE[0] / 2) - round((55 * coef) / 2)
 
         for i in range(self.game.current_deal().cards + 1):
+            x = x + 55 * i
             if i <= cols:
                 y = round(const.AREA_SIZE[1] / 2)
             else:
@@ -524,7 +624,7 @@ class MainWnd(QMainWindow):
             btn.setFont(f)
             btn.setStyleSheet('QPushButton {background-color: DarkGreen; color: Lime}')
             btn.resize(50, 50)
-            btn.move(round(const.AREA_SIZE[0] / 2) - 55 * (cols - i), y)
+            btn.move(x, y)
             btn.clicked.connect(lambda state, x=i: self.order_btn_click(x))
             self.layout().addWidget(btn)
             self.buttons.append(btn)
@@ -539,11 +639,23 @@ class MainWnd(QMainWindow):
         self.buttons = []
 
     def dark_btn_click(self, is_dark):
+        """
+        Обработка нажатия кнопок выбора типа заказа: в темную или в светлую
+
+        :param bool is_dark: флаг в темную или нет
+        """
+
         self.order_dark = is_dark
         self.clear_buttons()
         self.next()
 
     def order_btn_click(self, order):
+        """
+        Обработка нажатия кнопок заказа
+
+        :param int order: сделанный заказ
+        """
+
         try:
             self.game.make_order(order, self.order_dark or False)
             self.game.give_walk()
@@ -555,12 +667,32 @@ class MainWnd(QMainWindow):
         self.next()
 
     def card_click(self, card):
+        """
+        Обработка нажатия на карты
+
+        :param QCard card: карта, на которую нажали
+        """
+
         c = card.card
-        if card.player and not card.player.is_robot:
-            QMessageBox.information(self, 'Карта:', f'{eng_const.CARD_NAMES[c.value]} {eng_const.LEAR_NAMES[c.lear]}',
-                                    QMessageBox.Ok)
+        p = card.player
+
+        if self.started() and p and not p.is_robot and self.game.status() == eng_const.EXT_STATE_WALKS and not self.game.is_bet():
+            try:
+                if c.joker:
+                    # todo: сделать показ контролов выбора действий джокером
+                    pass
+                else:
+                    self.game.do_walk(p.cards.index(c))
+                    self.game.give_walk()
+                    self.game.next()
+            except helpers.GameException as e:
+                QMessageBox.warning(self, 'Ход', f'{e}', QMessageBox.Ok)
+
+            self.next()
 
     def _get_face_positions(self):
+        """ Позиции для отрисовки аватарок игроков """
+
         if len(self.players) == 4:
             return (
                 (-30, const.AREA_SIZE[1] - const.FACE_SIZE[1] - 68),  # позиция человека, низ центр
@@ -576,6 +708,8 @@ class MainWnd(QMainWindow):
             )
 
     def _get_area_positions(self):
+        """ Позиции расположения областей игроков """
+
         if len(self.players) == 4:
             return (
                 (-35, const.AREA_SIZE[1] - const.PLAYER_AREA_SIZE[1]),  # позиция человека, низ центр
@@ -590,7 +724,9 @@ class MainWnd(QMainWindow):
                 (const.AREA_SIZE[0] - const.PLAYER_AREA_SIZE[0] + 35, 10)  # правый верхний угол
             )
 
-    def _get_label_offset(self):
+    def _get_label_offsets(self):
+        """ Координаты смещения положения лабелов с информацией игроков """
+
         if len(self.players) == 4:
             return (
                 (250, 40),  # позиция человека, низ центр
@@ -603,4 +739,21 @@ class MainWnd(QMainWindow):
                 (250, 40),  # позиция человека, низ центр
                 (65, 40),  # левый верхний угол
                 (45, 40)  # правый верхний угол
+            )
+
+    def _get_table_offsets(self):
+        """ Координаты смещения положения карт в области ходов """
+
+        if len(self.players) == 4:
+            return (
+                (0, const.CARD_SIZE[1] + 10),  # позиция человека, низ центр
+                (-const.CARD_SIZE[0] - 10, 0),  # лево центр
+                (0, -const.CARD_SIZE[1] - 10),  # верх центр
+                (const.CARD_SIZE[0] + 10, 0)  # право центр
+            )
+        else:
+            return (
+                (0, const.CARD_SIZE[1] + 10),  # позиция человека, низ центр
+                (-const.CARD_SIZE[0] - 10, -const.CARD_SIZE[1] - 10),  # левый верхний угол
+                (const.CARD_SIZE[0] + 10, -const.CARD_SIZE[1] - 10)  # правый верхний угол
             )

@@ -391,7 +391,7 @@ class Game:
                                 n = int(self.ask(f'{p.name}, твой ход:')) - 1
                                 if p.cards[n].joker:
                                     self.ask_joker_walk(p.cards[n])
-                                self.game.do_walk(n)  # номер указываем по-человечески, с 1
+                                self.game.do_walk(n)
                                 break
                             except helpers.GameException as e:
                                 print(e)
