@@ -74,13 +74,12 @@ class QCard(QGraphicsPixmapItem):
         sh = QGraphicsDropShadowEffect()
         sh.setBlurRadius(30)
         sh.setOffset(5)
-        sh.setColor(Qt.darkRed)
+        sh.setColor(Qt.green)
         self.setGraphicsEffect(sh)
 
     def set_std_shadow(self):
         sh = QGraphicsDropShadowEffect()
         sh.setBlurRadius(50)
-        # sh.setColor(Qt.darkGray)
         self.setGraphicsEffect(sh)
 
     def mousePressEvent(self, e):
@@ -157,6 +156,9 @@ class MainWnd(QMainWindow):
         self.order_dark = None
         self.table_label = None
         self.next_button = None
+        self.deal_label = None
+        self.first_move_label = None
+        self.order_info_label = None
 
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -209,10 +211,6 @@ class MainWnd(QMainWindow):
     def closeEvent(self, event):
         super(MainWnd, self).closeEvent(event)
 
-    def show_help(self):
-        QMessageBox.information(self.parent(), 'Подсказка',
-                                '\n'.join(('Клавиши управления игрой\n',) + const.HELP_KEYS), QMessageBox.Ok)
-
     def set_status_messages(self, messages):
         """
         Записать сообщение в статусбар
@@ -239,6 +237,81 @@ class MainWnd(QMainWindow):
 
     def clear_status_messages(self):
         self.set_status_messages(('', '', ''))
+
+    def add_label(self, size, position, font_size, font_weight, color=None, text=None, tooltip=None):
+        """
+        Добавляет на форму элемент QLabel
+
+        :param tuple size: размеры элемента: (width, height)
+        :param tuple position: расположение начала элемента (x, y)
+        :param int font_size: размер шрифта
+        :param int font_weight: жирность шрифта
+        :param str color: цвет текста, в формате html (название цвета, строка с hex-представлением и т.д.)
+        :param str text: начальный текст
+        :param str tooltip: всплывающая подсказка
+        :return: QLabel
+        """
+
+        lb = QLabel(text)
+        f = lb.font()
+        f.setWeight(font_weight)
+        f.setPointSize(font_size)
+        lb.setFont(f)
+        if color:
+            lb.setStyleSheet(''.join(('QLabel {color:', color, '}')))
+        lb.setToolTip(tooltip)
+        lb.resize(*size)
+        lb.move(*position)
+        self.layout().addWidget(lb)
+
+        return lb
+
+    def add_button(self, callback, label=None, size=None, position=None, font_size=None, font_weight=None,
+                   bg_color=None, font_color=None):
+        """
+        Добавляет на форму элемент QPushButton
+
+        :param callable callback: функция обработчик нажатия
+        :param str label: Надпись на кнопке
+        :param tuple size: Размер кнопки
+        :param tuple position: Положение кнопки
+        :param int font_size: Размер шрифта подписи
+        :param int font_weight: Жирность шрифта подписи
+        :param str bg_color: цвет фона, в формате html (название цвета, строка с hex-представлением и т.д.)
+        :param str font_color: цвет подписи, в формате html (название цвета, строка с hex-представлением и т.д.)
+        :return: QPushButton
+        """
+
+        btn = QPushButton(label)
+
+        if font_size is not None or font_weight is not None:
+            f = btn.font()
+            if font_weight is not None:
+                f.setWeight(65)
+            if font_size is not None:
+                f.setPointSize(16)
+            btn.setFont(f)
+
+        if bg_color or font_color:
+            style = 'QPushButton {0}{1}{2}{3}'
+            bg = f'background-color: {bg_color}; ' if bg_color else ''
+            c = f'color: {font_color}' if font_color else ''
+            btn.setStyleSheet(style.format('{', bg, c, '}'))
+
+        if size:
+            btn.resize(*size)
+
+        if position:
+            btn.move(*position)
+
+        btn.clicked.connect(callback)
+        self.layout().addWidget(btn)
+        return btn
+
+    def remove_widget(self, widget):
+        if widget:
+            self.layout().removeWidget(widget)
+            widget.deleteLater()
 
     def started(self):
         return self.game and self.game.started()
@@ -307,27 +380,52 @@ class MainWnd(QMainWindow):
             self.game.stop()
 
         self.players = []
+        self.clear()
+
+    def clear(self):
+        """ Очистка всех компонентов формы по окончании игры """
+
         self.clear_buttons()
         self.clear_player_labels()
         self.clear_table()
 
-        if self.table_label:
-            self.layout().removeWidget(self.table_label)
-            self.table_label.deleteLater()
+        self.remove_widget(self.table_label)
+        self.table_label = None
 
-        if self.next_button:
-            self.layout().removeWidget(self.next_button)
-            self.next_button.deleteLater()
+        self.remove_widget(self.next_button)
+        self.next_button = None
+
+        self.remove_widget(self.deal_label)
+        self.deal_label = None
+
+        self.remove_widget(self.first_move_label)
+        self.first_move_label = None
+
+        self.remove_widget(self.order_info_label)
+        self.order_info_label = None
 
         self.scene.clear()
 
     def init_game_table(self):
         """ Показ игрового поля, отображение на нем игроков """
+        if len(self.players) == 4:
+            pos = (20, 45)
+        else:
+            pos = (round(const.WINDOW_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2) + 5, 45)
 
         fp = self._get_face_positions()
         ap = self._get_area_positions()
         lo = self._get_label_offsets()
         self.draw_table_area()
+
+        self.deal_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 37),
+                                         (pos[0] + 5, pos[1] + 5), 18, 65)
+
+        self.first_move_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
+                                               (pos[0] + 5, pos[1] + 50), 16, 65, color='Aqua')
+
+        self.order_info_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
+                                               (pos[0] + 5, pos[1] + 100), 16, 65)
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -347,8 +445,10 @@ class MainWnd(QMainWindow):
                 self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]), Qt.cyan, 18, 65)
                 self.set_text(eng_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
                               Qt.gray, 13, 65)
-                self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
-                self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
+                self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]),
+                                      'Aqua', 16, 70)
+                self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35),
+                                      'Aqua', 16, 70)
             else:
                 self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 15), Qt.cyan, 18, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
@@ -372,7 +472,7 @@ class MainWnd(QMainWindow):
         t.setPos(*position)
         t.setDefaultTextColor(color)
 
-    def add_player_label(self, player, type_, text, position, color, size, weight):
+    def add_player_label(self, player, type_, text, position, color, font_size, font_weight):
         """
         Добавляет на форму элемент QLabel, отражающий сведения о заказе или взятке, связанный с определенным игроком
 
@@ -381,20 +481,12 @@ class MainWnd(QMainWindow):
         :param str text: начальный текст
         :param list or tuple position: расположение начала элемента (x, y)
         :param str color: цвет текста, в формате html (название цвета, строка с hex-представлением и т.д.)
-        :param int size: размер шрифта
-        :param int weight: жирность шрифта
+        :param int font_size: размер шрифта
+        :param int font_weight: жирность шрифта
         """
 
-        lb = QLabel(text)
-        f = lb.font()
-        f.setWeight(weight)
-        f.setPointSize(size)
-        lb.setFont(f)
-        lb.setStyleSheet(''.join(('QLabel {color:', color, '}')))
-        lb.setToolTip('Заказ' if type_ == 'order' else 'Взял')
-        lb.resize(90, 24)
-        lb.move(*position)
-        self.layout().addWidget(lb)
+        lb = self.add_label((90, 24), position, font_size, font_weight, color=color, text=text,
+                            tooltip='Заказ' if type_ == 'order' else 'Взял')
 
         if player < len(self.labels):
             self.labels[player][type_] = lb
@@ -406,8 +498,7 @@ class MainWnd(QMainWindow):
 
         for o in self.labels:
             for k in o:
-                self.layout().removeWidget(o[k])
-                o[k].deleteLater()
+                self.remove_widget(o[k])
 
         self.labels = []
 
@@ -492,7 +583,7 @@ class MainWnd(QMainWindow):
                     self.scene.addItem(qc)
 
     def draw_info_area(self):
-        """ Отрисовка информации о раздаче в начале раунда (тип, раздачи, козырь, чей первый ход) """
+        """ Отрисовка информации о раздаче в начале раунда (тип раздачи, козырь, чей первый ход) """
 
         if len(self.players) == 4:
             pos = (-35, 10)
@@ -504,20 +595,25 @@ class MainWnd(QMainWindow):
         self.scene.addItem(area)
 
         d = self.game.current_deal()
-        if d.type_ < 3:
-            c = Qt.gray
-        elif d.type_ == eng_const.DEAL_NO_TRUMP:
-            c = Qt.blue
-        elif d.type_ in (eng_const.DEAL_DARK, eng_const.DEAL_BROW):
-            c = Qt.black
+        if d.type_ == eng_const.DEAL_NO_TRUMP:
+            c = 'Lime'
+        elif d.type_ == eng_const.DEAL_DARK:
+            c = 'Gray'
         elif d.type_ == eng_const.DEAL_GOLD:
-            c = Qt.yellow
-        elif d.type_ == eng_const.DEAL_GOLD:
-            c = Qt.red
+            c = 'Yellow'
+        elif d.type_ == eng_const.DEAL_MIZER:
+            c = 'OrangeRed'
+        elif d.type_ == eng_const.DEAL_BROW:
+            c = 'Fuchsia'
         else:
-            c = Qt.magenta
+            c = 'Honeydew'
 
-        self.set_text(f'{eng_const.DEAL_NAMES[d.type_]} (по {d.cards})', (pos[0] + 5, pos[1] + 5), c, 18, 65)
+        if d.type_ < 3:
+            text = 'Кон по {0} карт{1}'.format(d.cards, 'е' if d.cards == 1 else '')
+        else:
+            text = eng_const.DEAL_NAMES[d.type_]
+        self.deal_label.setStyleSheet('QLabel {color: %s}' % c)
+        self.deal_label.setText(text)
 
         tl, tc = self.game.trump()
         if tc:
@@ -537,7 +633,7 @@ class MainWnd(QMainWindow):
             f.setPos(pos[0] + const.INFO_AREA_SIZE[0] - 25, pos[1] + 5)
             self.scene.addItem(f)
 
-        self.set_text(f'Первый ход: {self.game.players[d.player].name}', (pos[0] + 5, pos[1] + 50), Qt.cyan, 16, 65)
+        self.first_move_label.setText(f'Первый ход: {self.game.players[d.player].name}')
 
     def draw_table_area(self):
         """ Отрисовка области расположения карт, которыми ходили """
@@ -549,28 +645,13 @@ class MainWnd(QMainWindow):
         area.setPos(*pos)
         self.scene.addItem(area)
 
-        self.table_label = QLabel()
-        f = self.table_label.font()
-        f.setWeight(65)
-        f.setPointSize(13)
-        self.table_label.setFont(f)
-        self.table_label.setStyleSheet('QLabel {color: Yellow}')
+        self.table_label = self.add_label((const.TABLE_AREA_SIZE[0] - 20, 24), (pos[0] + 60, pos[1] + 35), 13, 65,
+                                          color='Yellow')
         self.table_label.setAlignment(Qt.AlignHCenter)
-        self.table_label.resize(const.TABLE_AREA_SIZE[0] - 20, 24)
-        self.table_label.move(pos[0] + 60, pos[1] + 35)
-        self.layout().addWidget(self.table_label)
 
-        self.next_button = QPushButton('Далее')
-        f = self.next_button.font()
-        f.setWeight(65)
-        f.setPointSize(16)
-        self.next_button.setFont(f)
-        self.next_button.setStyleSheet('QPushButton {background-color: DarkGreen; color: Lime}')
-        self.next_button.resize(150, 50)
-        self.next_button.move(pos[0] + 230, pos[1] + 70)
+        self.next_button = self.add_button(self.next_button_click, 'Далее', (150, 50), (pos[0] + 230, pos[1] + 70),
+                                           16, 65, 'DarkGreen', 'Lime')
         self.next_button.hide()
-        self.next_button.clicked.connect(self.next_button_click)
-        self.layout().addWidget(self.next_button)
 
     def draw_table(self, overall=False):
         """ Отрисовка игрового поля """
@@ -616,9 +697,20 @@ class MainWnd(QMainWindow):
     def draw_order(self):
         """ Отрисовка заказа игроков """
 
+        show = True
+        n = 0
+
         for i, p in enumerate(self.players):
             if p.order > -1:
                 self.labels[i]['order'].setText('{0}{1}'.format(p.order, '*' if p.order_is_dark else ''))
+                n += p.order
+            else:
+                show = False
+
+        if show:
+            diff = n - self.game.current_deal().cards
+            self.order_info_label.setStyleSheet('QLabel {color: %s}' % '{0}'.format('Lime' if diff < 0 else 'OrangeRed'))
+            self.order_info_label.setText('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
 
     def draw_take(self):
         """ Отрисовка взяток игроков """
@@ -638,28 +730,14 @@ class MainWnd(QMainWindow):
 
         self.table_label.setText('Твой заказ')
 
-        btnd = QPushButton('В темную')
-        f = btnd.font()
-        f.setWeight(65)
-        f.setPointSize(16)
-        btnd.setFont(f)
-        btnd.setStyleSheet('QPushButton {background-color: DarkRed; color: DarkOrange}')
-        btnd.resize(150, 50)
-        btnd.move(round(const.AREA_SIZE[0] / 2) - btnd.size().width() / 2 - 40, round(const.AREA_SIZE[1] / 2))
-        btnd.clicked.connect(lambda: self.dark_btn_click(True))
-        self.layout().addWidget(btnd)
+        btnd = self.add_button(lambda: self.dark_btn_click(True), 'В темную', (150, 50),
+                               (round(const.AREA_SIZE[0] / 2) - 150 / 2 - 40, round(const.AREA_SIZE[1] / 2)),
+                               16, 65, 'DarkRed', 'DarkOrange')
         self.buttons.append(btnd)
 
-        btnl = QPushButton('В светлую')
-        f = btnl.font()
-        f.setWeight(65)
-        f.setPointSize(16)
-        btnl.setFont(f)
-        btnl.setStyleSheet('QPushButton {background-color: DarkGreen; color: Lime}')
-        btnl.resize(150, 50)
-        btnl.move(round(const.AREA_SIZE[0] / 2) + btnl.size().width() / 2 + 5, round(const.AREA_SIZE[1] / 2))
-        btnl.clicked.connect(lambda: self.dark_btn_click(False))
-        self.layout().addWidget(btnl)
+        btnl = self.add_button(lambda: self.dark_btn_click(False), 'В светлую', (150, 50),
+                               (round(const.AREA_SIZE[0] / 2) + 150 / 2 + 5, round(const.AREA_SIZE[1] / 2)),
+                               16, 65, 'DarkGreen', 'Lime')
         self.buttons.append(btnl)
 
     def show_order_buttons(self):
@@ -678,24 +756,15 @@ class MainWnd(QMainWindow):
             else:
                 y = round(const.AREA_SIZE[1] / 2) + 60
 
-            btn = QPushButton(f'{i}')
-            f = btn.font()
-            f.setWeight(65)
-            f.setPointSize(16)
-            btn.setFont(f)
-            btn.setStyleSheet('QPushButton {background-color: DarkGreen; color: Lime}')
-            btn.resize(50, 50)
-            btn.move(x, y)
-            btn.clicked.connect(lambda state, x=i: self.order_btn_click(x))
-            self.layout().addWidget(btn)
+            btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
+                                   16, 65, 'DarkGreen', 'Lime')
             self.buttons.append(btn)
 
     def clear_buttons(self):
         """ Убирает все кнопки с игрового стола """
 
         for btn in self.buttons:
-            self.layout().removeWidget(btn)
-            btn.deleteLater()
+            self.remove_widget(btn)
 
         self.buttons = []
 
