@@ -572,6 +572,7 @@ class MainWnd(QMainWindow):
                 if self.is_new_lap:
                     self.is_new_lap = False
                     self.clear_table()
+                self.table_label.setText('Твой ход')
                 self.draw_cards()
                 self.draw_take()
                 self.draw_table()
@@ -1032,11 +1033,13 @@ class MainWnd(QMainWindow):
     def joker_action_btn_click(self, action):
         """ Нажатие кнопки выбора действия джокером """
 
-        card = self.joker_walk_card.card
-
         self.ja_take_by_btn.hide()
         self.ja_take_btn.hide()
         self.ja_give_btn.hide()
+
+        card = self.joker_walk_card.card
+        card.joker_action = action
+        l = None
 
         if not self.game.table():
             # если мой ход первый: если скидываю и в настройках игры установлено, что Джокер играет по номиналу,
@@ -1046,7 +1049,6 @@ class MainWnd(QMainWindow):
                 l = card.lear
             else:
                 self.show_ja_lear_buttons()
-                return
         else:
             # если я покрываю джокером: если я забираю - надо установить или козырную масть или масть той карты,
             # с которой зашли;
@@ -1057,7 +1059,6 @@ class MainWnd(QMainWindow):
             else:
                 l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
 
-        card.joker_action = action
         card.joker_lear = l
         self.card_click(self.joker_walk_card, False)
 
@@ -1153,9 +1154,9 @@ class MainWnd(QMainWindow):
         if len(self.players) == 4:
             return (
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
-                (x - round(const.TABLE_AREA_SIZE[0] / 2), y - 50),  # лево центр
+                (x - round(const.TABLE_AREA_SIZE[0] / 2), y + 10),  # лево центр
                 (x - round(const.TABLE_AREA_SIZE[0] / 2) + 130, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150),  # верх центр
-                (x - 10, y - 50)  # право центр
+                (x - 10, y + 10)  # право центр
             )
         else:
             return (
