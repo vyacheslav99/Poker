@@ -1,184 +1,200 @@
-""" Вспомогательные классы, инкапсулирующие атрибуты логических единиц """
+import logging
+import datetime
+import urllib
+import json
 
-import random
-from . import const
-
-
-class GameException(Exception):
-    pass
+from . import utils
 
 
-class Card(object):
+class HTTPException(Exception):
 
-    def __init__(self, lear: int, value: int, is_joker=False, joker_action=None, joker_lear=None):
-        self._lear = lear                   # масть
-        self._value = value                 # достоинство, номинал
-        self._is_joker = is_joker           # Джокер или нет (value == 7 and lear == const.LEAR_SPADES)
-        self.joker_action = joker_action    # Действие джокером. Реально задается в момент хода
-        self.joker_lear = joker_lear        # Масть, запрошенная джокером. Реально задается в момент хода
+    def __init__(self, http_code, http_status, code, message):
+        self.http_status = http_status
+        self.http_code = http_code
+        self.code = code
+        self.message = message
+
+
+class Request(object):
+
+    def __init__(self, request_str):
+        self._raw_request = request_str
+        self._method = None
+        self._uri = None
+        self._protocol = None
+        self._params = {}
+        self._headers = {}
+        self._body = None
+        self._json = None
+        self._parse_request_str()
+
+    def _parse_request_str(self):
+        data = utils.decode(self._raw_request).split('\r\n')
+        logging.debug(data[0])
+        self._method, self._uri, self._protocol = data[0].split(' ')
+
+        uri = self._uri.split('/')
+        uri.pop(0)
+        self._uri = '/{}'.format('/'.join(uri))
+        if self._uri.find('?') > -1:
+            self._uri, params = self._uri.split('?')
+
+            params = params.split('&')
+            for param in params:
+                p, v = param.split('=', 1)
+                self._params[p] = urllib.parse.unquote(v)
+
+        self._uri = urllib.parse.unquote(self._uri)
+
+        data.pop(0)
+        while True:
+            row = data.pop(0)
+            if row == '':
+                break
+
+            p, v = row.split(':', 1)
+            self._headers[p.strip()] = v.strip()
+
+        self._body = '\r\n'.join(data)
+
+        if self.is_json():
+            self._json = json.loads(self._body)
+
+    def is_json(self):
+        return self._headers.get('Content-Type', '').lower() == 'application/json'
 
     @property
-    def value(self):
-        return self._value
+    def method(self):
+        return self._method
 
     @property
-    def lear(self):
-        return self._lear
+    def uri(self):
+        return self._uri
 
     @property
-    def joker(self):
-        return self._is_joker
+    def protocol(self):
+        return self._protocol
+
+    @property
+    def host(self):
+        return self._headers.get('Host', None)
+
+    @property
+    def params(self):
+        return self._params
+
+    @property
+    def headers(self):
+        return self._headers
+
+    @property
+    def body(self):
+        return self._body
+
+    @property
+    def json(self):
+        return self._json
+
+
+class Response(object):
+
+    def __init__(self, code, status, protocol=None, headers=None, body=None):
+        self._protocol = protocol or 'HTTP/1.1'
+        self._code = code
+        self._status = status
+        self._headers = headers or self.default_headers()
+        self.body = body or ''
+
+    @classmethod
+    def default_headers(cls, headers=None):
+        res = {
+            'Date': datetime.datetime.today().strftime("%a, %d %b %Y %H:%M %Z"),
+            'Server': 'Poker_Svc/1.0.0',
+            'Content-Length': 0,
+            'Content-Type': 'application/json',
+            'Content-Encoding': 'utf-8',
+            'Connection': 'close'
+        }
+
+        res.update(headers or {})
+        return res
+
+    @property
+    def protocol(self):
+        return self._protocol
+
+    @property
+    def code(self):
+        return self._code
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def headers(self):
+        return self._headers
+
+    @property
+    def body(self):
+        # return str representation
+
+        if isinstance(self._body, str):
+            return self._body
+        elif isinstance(self._body, bytes):
+            return utils.decode(self._body)
+        else:
+            return str(self._body)
+
+    @property
+    def bytes(self):
+        # return bytes representation
+
+        if isinstance(self._body, bytes):
+            return self._body
+        elif isinstance(self._body, str):
+            return self._body.encode()
+        else:
+            return str(self._body).encode()
+
+    @protocol.setter
+    def protocol(self, protocol):
+        self._protocol = protocol
+
+    @code.setter
+    def code(self, code):
+        self._code = code
+
+    @status.setter
+    def status(self, status):
+        self._status = status
+
+    @headers.setter
+    def headers(self, headers):
+        self._headers = dict(headers)
+
+    def set_header(self, key, value):
+        self._headers[key] = value
+
+    @body.setter
+    def body(self, body):
+        self._body = body
+        self.set_header('Content-Length', len(self.bytes) if body else 0)
 
     def __str__(self):
-        if self.joker:
-            return f'Joker ({const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]})'
-        else:
-            return f'{const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]}'
+        data = ['{0} {1} {2}'.format(self._protocol, self._code, self._status)]
+        data.extend('{0}: {1}'.format(*head) for head in self._headers.items())
+        data.append('')
+        if self._body is not None:
+            data.append(self.body)
 
+        return '\r\n'.join(data)
 
-class TableItem(object):
+    def __bytes__(self):
+        data = [('{0} {1} {2}'.format(self._protocol, self._code, self._status)).encode()]
+        data.extend(('{0}: {1}'.format(*head)).encode() for head in self._headers.items())
+        data.append(b'')
+        if self._body is not None:
+            data.append(self.bytes)
 
-    def __init__(self, order, card: Card):
-        self.order = order                  # Очередность хода, т.е. порядковый номер, которым была положена карта.
-        self.card = card                    # Карта, которой ходили
-
-    def is_joker(self):
-        """ Флаг - джокер это или нет. Просто пробрасывает соответствующую опцию из карты """
-        return self.card.joker
-
-    def joker_action(self):
-        """ Если джокер - то действие джокером. Просто пробрасывает соответствующую опцию из карты """
-        return self.card.joker_action
-
-    def joker_lear(self):
-        """ Масть, запрошенная джокером. Просто пробрасывает соответствующую опцию из карты """
-        return self.card.joker_lear
-
-
-class Player(object):
-
-    def __init__(self, params=None):
-        self.id = None
-        self.login = None
-        self.password = None
-        self.name = None
-        self.is_robot = None
-        self.risk_level = None
-        self.level = None
-
-        # статистика
-        self.total_money = 0            # сумма всех выигрышей
-        self.total_games = 0            # +1 в начале игры
-        self.completed_games = 0        # +1 при завершении игры (доведения игры до конца)
-        self.interrupted_games = 0      # +1 при прерывании игры
-        self.winned_games = 0           # +1 при выигрыше (набрал больше всех)
-        self.failed_games = 0           # +1 при проигрыше (если ушел в минус)
-        self.neutral_games = 0          # +1 если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
-        self.last_money = 0             # сумма последнего выигрыша
-
-        # игровые переменные
-        self.order = -1                 # заказ в текущем раунде
-        self.take = 0                   # взято в текущем раунде
-        self.scores = 0                 # очки в текущем раунде
-        self.total_scores = 0           # общий счет в текущей игре на текущий момент
-        self.cards = []                 # карты на руках
-        self.order_cards = []           # карты, на которые сделан заказ (заполняется только у ИИ)
-        self.order_is_dark = False      # текущий заказ был сделан в темную или нет
-        self.pass_counter = 0           # счетчик пасов, заказанных подряд
-        self.success_counter = 0        # счетчик успешно сыгранных подряд игр
-
-        if params:
-            self.from_dict(params)
-
-    def from_dict(self, params):
-        self.id = params['id']
-        self.login = params['login']
-        self.password = params['password']
-        self.name = params['name']
-        self.is_robot = params['is_robot']
-        self.risk_level = params['risk_level']
-        self.level = params['level']
-        self.total_money = params['total_money']
-        self.total_games = params['total']
-        self.completed_games = params['completed']
-        self.interrupted_games = params['interrupted']
-        self.winned_games = params['winned']
-        self.failed_games = params['failed']
-        self.last_money = params['last_money']
-
-    def as_dict(self):
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
-
-    def lear_exists(self, lear):
-        """ Проверяет, есть ли у игрока карты заданной масти. Джокер не учитывается. Вернет True/False """
-
-        for card in self.cards:
-            if not card.joker and card.lear == lear:
-                return True
-
-        return False
-
-    def gen_lear_range(self, lear, ascending=False):
-        """
-        Сформировать список карт игрока заданной масти, отсортированный в указанном порядке (по умолчанию убывание).
-        Джокер не включается в список
-        """
-
-        return sorted([card for card in self.cards if not card.joker and card.lear == lear],
-                      key=lambda x: x.value, reverse=not ascending)
-
-    def max_card(self, lear):
-        """ Выдать максимальную карту заданной масти. Джокер не учитывается """
-        lr = self.gen_lear_range(lear)
-        return lr[0] if lr else None
-
-    def min_card(self, lear):
-        """ Выдать минимальную карту заданной масти. Джокер не учитывается """
-        lr = self.gen_lear_range(lear, ascending=True)
-        return lr[0] if lr else None
-
-    def middle_card(self, lear):
-        """ Выдает карту из середины заданной масти (со сдвигом к болшей, если поровну не делиться). Джокер не учитывается """
-
-        lr = self.gen_lear_range(lear)
-
-        if lr:
-            if len(lr) > 1:
-                return lr[round(len(lr) / 2) - 1]
-            else:
-                return lr[0]
-        else:
-            return None
-
-    def cards_sorted(self, ascending=False):
-        """ Вернет список карт, отсортированный без учета масти в указанном порядке (по умолчанию убывание) """
-
-        # предварительно перемешаем карты, чтобы масти каждый раз были в разном порядке. Это добавит элемент случайности
-        mixed = [c for c in self.cards]
-        random.shuffle(mixed)
-        return sorted(mixed, key=lambda x: x.value, reverse=not ascending)
-
-    def index_of_card(self, lear=None, value=None, joker=False):
-        """ Ищет карту у игрока, возвращает ее индекс. Если joker==True - ищет по флагу joker, игнорируя масть и достоинство """
-
-        for i, c in enumerate(self.cards):
-            if (c.lear == lear and c.value == value) or (joker and c.joker):
-                return i
-
-        return -1
-
-    def __str__(self):
-        if self.is_robot:
-            s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
-        else:
-            s = 'Человек'
-
-        return f'{self.name} ({s})'
-
-
-class Deal(object):
-
-    def __init__(self, player: Player, type_: int, cards: int):
-        self.player = player    # первый ходящий в партии (НЕ РАЗДАЮЩИЙ! т.к. смысла его хранить нет - он нужен только для вычисления ходящего)
-        self.type_ = type_      # тип раздачи
-        self.cards = cards      # количество карт, раздаваемых одному игроку
+        return b'\r\n'.join(data)

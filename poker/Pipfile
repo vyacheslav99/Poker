@@ -1,0 +1,14 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+chardet = "*"
+pyqt5 = "*"
+colour = "*"
+
+[requires]
+python_version = "3.6"
