@@ -27,7 +27,7 @@ class QCard(QGraphicsPixmapItem):
         self.side = None
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        # self.setFlag(QGraphicsItem.ItemIsMovable)
+        self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setZValue(const.CARD_BASE_Z_VALUE)
         self.set_std_shadow()
@@ -50,9 +50,7 @@ class QCard(QGraphicsPixmapItem):
         self.side = const.CARD_SIDE_BACK
         self.setPixmap(self.back)
         self.setCursor(Qt.ArrowCursor)
-        # todo: После тестирования убрать показ тултипа когда рубашка вверх
-        self.set_tooltip()
-        # self.setToolTip('')
+        self.setToolTip('')
 
     def is_face_up(self):
         return self.side == const.CARD_SIDE_FACE
@@ -113,7 +111,7 @@ class Face(QGraphicsPixmapItem):
 
 class Lear(QGraphicsPixmapItem):
 
-    def __init__(self, lear, big=False):
+    def __init__(self, lear):
         super(Lear, self).__init__()
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
@@ -375,7 +373,7 @@ class MainWnd(QMainWindow):
                 self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
                 self.players[i].risk_level = random.randint(0, 2)
 
-        self.options['deal_types'] =  [eng_const.DEAL_BROW] # [n for n in range(len(eng_const.DEAL_NAMES))]
+        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES))]
 
         self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
         self.game.start()
@@ -567,7 +565,8 @@ class MainWnd(QMainWindow):
                 if self.game.dark_allowed and d.type_ not in (eng_const.DEAL_DARK, eng_const.DEAL_BROW) and self.order_dark is None:
                     self.show_dark_buttons()
                 else:
-                    self.draw_cards(self.order_dark or d.type_ == eng_const.DEAL_DARK, d.type_ != eng_const.DEAL_BROW)
+                    self.draw_cards(self.order_dark or d.type_ in (eng_const.DEAL_DARK, eng_const.DEAL_BROW),
+                                    d.type_ != eng_const.DEAL_BROW)
                     self.show_order_buttons()
             else:
                 if self.is_new_lap:
@@ -715,8 +714,8 @@ class MainWnd(QMainWindow):
                                            (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_btn.hide()
 
-        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX), 'По старшим',
-                                              (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX),
+                                              'По старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
         self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'Самая\nмладшая',
@@ -726,7 +725,8 @@ class MainWnd(QMainWindow):
         x = pos[0] + 130
         for i, lear in enumerate(const.LEARS):
             x = x + 60
-            btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy), bg_color='Teal')
+            btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy),
+                                  bg_color='Teal')
             btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.png'))
             btn.setToolTip(eng_const.LEAR_NAMES[i])
             btn.hide()
@@ -741,7 +741,7 @@ class MainWnd(QMainWindow):
             else:
                 w = round(const.TABLE_AREA_SIZE[0] / 2) - 10
 
-            lb = self.add_label((w, 100), (pos[i][0], pos[i][1]), 15, 65, color='aqua')
+            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 15, 65, color='aqua')
             lb.setAlignment(aligns[i])
             lb.setTextFormat(Qt.RichText)
 
@@ -1048,7 +1048,8 @@ class MainWnd(QMainWindow):
                 self.show_ja_lear_buttons()
                 return
         else:
-            # если я покрываю джокером: если я забираю - надо установить или козырную масть или масть той карты, с которой зашли;
+            # если я покрываю джокером: если я забираю - надо установить или козырную масть или масть той карты,
+            # с которой зашли;
             # если скидываю - то или по номиналу или масть карты, с которой зашли
             ftbl = self.game.lap_players_order(by_table=True)[0]
             if action == eng_const.JOKER_TAKE:
