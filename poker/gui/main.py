@@ -156,6 +156,7 @@ class MainWnd(QMainWindow):
         self.back_type = None
         self.order_dark = None
         self.joker_walk_card = None
+        self.can_show_results = False
 
         self.buttons = []
         self.labels = []
@@ -359,6 +360,7 @@ class MainWnd(QMainWindow):
         self.back_type = random.randint(1, 9)
         self.order_dark = None
         self.joker_walk_card = None
+        self.can_show_results = False
 
         for i in range(random.choice([3, 4])):
             if i == 0:
@@ -373,7 +375,7 @@ class MainWnd(QMainWindow):
                 self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
                 self.players[i].risk_level = random.randint(0, 2)
 
-        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES))]
+        self.options['deal_types'] =  [eng_const.DEAL_BROW] # [n for n in range(len(eng_const.DEAL_NAMES))]
 
         self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
         self.game.start()
@@ -543,9 +545,12 @@ class MainWnd(QMainWindow):
         """ Обработка игрового цикла """
 
         if not self.started():
-            self.stop_game()
-            self.show_game_results()
-            return
+            if self.can_show_results:
+                self.stop_game()
+                self.show_game_results()
+                return
+            else:
+                self.can_show_results = True
 
         if self.is_new_round:
             self.is_new_round = False
@@ -714,7 +719,7 @@ class MainWnd(QMainWindow):
                                               (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
-        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'Самая\nМладшая',
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'Самая\nмладшая',
                                            (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
         self.ja_give_btn.hide()
 
@@ -865,7 +870,7 @@ class MainWnd(QMainWindow):
     def show_joker_action_buttons(self):
         """ Показ кнопок выбора действия джокером """
 
-        self.table_label.setText('Ход джокером. Выбери действие:')
+        self.table_label.setText('Ход джокером. Выбери действие')
 
         if not self.game.table():
             # если мой ход первый - показать еще вариант "по старшей"
@@ -1067,10 +1072,9 @@ class MainWnd(QMainWindow):
     def next_button_click(self):
         """ Нажатие кнопки Далее """
 
-        if self.started():
-            self.next_button.hide()
-            self.game.next()
-            self.next()
+        self.next_button.hide()
+        self.game.next()
+        self.next()
 
     def _get_face_positions(self):
         """ Позиции для отрисовки аватарок игроков """
