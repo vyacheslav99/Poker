@@ -166,6 +166,7 @@ class MainWnd(QMainWindow):
         self.ja_take_btn = None
         self.ja_take_by_btn = None
         self.ja_give_btn = None
+        self.grid_stat_button = None
         self.ja_lear_buttons = []
         self.round_result_labels = []
 
@@ -424,6 +425,9 @@ class MainWnd(QMainWindow):
         self.remove_widget(self.ja_take_by_btn)
         self.ja_take_by_btn = None
 
+        self.remove_widget(self.grid_stat_button)
+        self.grid_stat_button = None
+
         for btn in self.ja_lear_buttons:
             self.remove_widget(btn)
         self.ja_lear_buttons = []
@@ -461,6 +465,10 @@ class MainWnd(QMainWindow):
 
         self.order_info_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
                                                (pos[0] + 5, pos[1] + 100), 16, 65)
+
+        self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Таблица игры', (160, 50),
+                                                (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
+                                                12, 65, 'LightCyan', 'Purple')
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -648,7 +656,7 @@ class MainWnd(QMainWindow):
         if d.type_ == eng_const.DEAL_NO_TRUMP:
             c = 'Lime'
         elif d.type_ == eng_const.DEAL_DARK:
-            c = 'Gray'
+            c = 'DarkSlateGray'
         elif d.type_ == eng_const.DEAL_GOLD:
             c = 'Yellow'
         elif d.type_ == eng_const.DEAL_MIZER:
@@ -656,7 +664,7 @@ class MainWnd(QMainWindow):
         elif d.type_ == eng_const.DEAL_BROW:
             c = 'Fuchsia'
         else:
-            c = 'Honeydew'
+            c = 'LightCyan'
 
         if d.type_ < 3:
             if d.cards == 1:
@@ -685,7 +693,7 @@ class MainWnd(QMainWindow):
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
             self.scene.addItem(qc)
         else:
-            f = Lear(tl, True)
+            f = Lear(tl)
             f.setPos(pos[0] + const.INFO_AREA_SIZE[0] - 55, pos[1] + 5)
             self.scene.addItem(f)
 
@@ -727,7 +735,7 @@ class MainWnd(QMainWindow):
         for i, lear in enumerate(const.LEARS):
             x = x + 60
             btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy),
-                                  bg_color='Teal')
+                                  bg_color='LightCyan')
             btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.png'))
             btn.setToolTip(eng_const.LEAR_NAMES[i])
             btn.hide()
@@ -1039,7 +1047,6 @@ class MainWnd(QMainWindow):
 
         card = self.joker_walk_card.card
         card.joker_action = action
-        l = None
 
         if not self.game.table():
             # если мой ход первый: если скидываю и в настройках игры установлено, что Джокер играет по номиналу,
@@ -1049,6 +1056,7 @@ class MainWnd(QMainWindow):
                 l = card.lear
             else:
                 self.show_ja_lear_buttons()
+                return
         else:
             # если я покрываю джокером: если я забираю - надо установить или козырную масть или масть той карты,
             # с которой зашли;
@@ -1077,6 +1085,9 @@ class MainWnd(QMainWindow):
         self.next_button.hide()
         self.game.next()
         self.next()
+
+    def show_statistics_grid(self):
+        """ Показ таблицы хода игры """
 
     def _get_face_positions(self):
         """ Позиции для отрисовки аватарок игроков """
