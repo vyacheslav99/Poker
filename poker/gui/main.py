@@ -91,8 +91,8 @@ class QCard(QGraphicsPixmapItem):
 
 class Face(QGraphicsPixmapItem):
 
-    def __init__(self, player, *args):
-        super(Face, self).__init__(*args)
+    def __init__(self, player):
+        super(Face, self).__init__()
         self.player = player
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
@@ -113,21 +113,23 @@ class Face(QGraphicsPixmapItem):
 
 class Lear(QGraphicsPixmapItem):
 
-    def __init__(self, lear, *args):
-        super(Lear, self).__init__(*args)
+    def __init__(self, lear, big=False):
+        super(Lear, self).__init__()
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
+
         if lear == eng_const.LEAR_NOTHING:
-            self.setPixmap(QPixmap(f'{const.SUITS_DIR}/none.ico'))
+            self.setPixmap(QPixmap(f'{const.SUITS_DIR}/n.png'))
             self.setToolTip('Козырь: нет')
         else:
-            self.setPixmap(QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.ico'))
+            self.setPixmap(QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.png'))
             self.setToolTip(f'Козырь: {eng_const.LEAR_NAMES[lear]}')
+
 
 class Area(QGraphicsRectItem):
 
-    def __init__(self, parent, size, *args):
-        super(Area, self).__init__(*args)
+    def __init__(self, parent, size):
+        super(Area, self).__init__()
         self.parent = parent
         self.setRect(QRectF(0, 0, size[0], size[1]))
         color = QColor(Qt.black)
@@ -677,7 +679,7 @@ class MainWnd(QMainWindow):
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
             self.scene.addItem(qc)
         else:
-            f = Lear(tl)
+            f = Lear(tl, True)
             f.setPos(pos[0] + const.INFO_AREA_SIZE[0] - 25, pos[1] + 5)
             self.scene.addItem(f)
 
@@ -719,7 +721,7 @@ class MainWnd(QMainWindow):
         for i, lear in enumerate(const.LEARS):
             x = x + 60
             btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy), bg_color='Teal')
-            btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.ico'))
+            btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.png'))
             btn.setToolTip(eng_const.LEAR_NAMES[i])
             btn.hide()
             self.ja_lear_buttons.append(btn)
@@ -733,10 +735,11 @@ class MainWnd(QMainWindow):
             else:
                 w = round(const.TABLE_AREA_SIZE[0] / 2) - 10
 
-            lb = self.add_label((w, 100), (pos[i][0], pos[i][1]), 15, 65, color='aqua', text=f'{p.name}\n123\nдДр')
+            lb = self.add_label((w, 100), (pos[i][0], pos[i][1]), 15, 65, color='aqua')
             lb.setAlignment(aligns[i])
+            lb.setTextFormat(Qt.RichText)
 
-            # lb.hide()
+            lb.hide()
             self.round_result_labels.append(lb)
 
     def draw_table(self, overall=False):
@@ -841,17 +844,18 @@ class MainWnd(QMainWindow):
 
         cols = round(36 / self.game.party_size() / 2) + 1
         coef = min(self.game.current_deal().cards + 1, cols)
-        x = round(const.AREA_SIZE[0] / 2) - round((55 * coef) / 2)
+        bx = round(const.AREA_SIZE[0] / 2) - round((55 * coef) / 2) - 20
+        x = bx
 
         for i in range(self.game.current_deal().cards + 1):
+            if i == cols + 1:
+                x = bx
+
             x = x + 55
             if i <= cols:
                 y = round(const.AREA_SIZE[1] / 2)
             else:
                 y = round(const.AREA_SIZE[1] / 2) + 60
-
-            if i == cols + 1:
-                x = round(const.AREA_SIZE[0] / 2) - round((55 * coef) / 2)
 
             btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
                                    16, 65, 'DarkGreen', 'Lime')
@@ -883,12 +887,39 @@ class MainWnd(QMainWindow):
         rec = self.game.get_record()
 
         for i, player in enumerate(self.players):
-            txt = '{0}:\n{1} | {2} | {3}\n{4}'
-            # args = [rec[0][player.id][key] for key in rec[0][player.id].keys()] + \
-            #     [rec[-1][player.id][key] for key in rec[0][player.id].keys()]
-            args = [rec[-1][player.id][key] for key in rec[0][player.id].keys()]
+            tmpl = ''.join(('{player}<br>{order} | ',
+                            '<span style="color: {take_color}">{take}</span> | ',
+                            '<span style="color: {scores_color}">{scores}</span><br>',
+                            '<span style="color: {total_color}"><b>{total}</b></span>'))
 
-            self.round_result_labels[i].setText(txt.format(player.name, *args))
+            keys = {k: v for k, v in rec[-1][player.id].items()}
+            keys['player'] = player.name
+
+            order = int(keys['order'].split('*')[0])
+            scores = int(keys['scores'].split(' ')[0])
+
+            if keys['take'] < order:
+                keys['take_color'] = 'OrangeRed'
+            elif keys['take'] > order:
+                keys['take_color'] = 'Fuchsia'
+            else:
+                keys['take_color'] = 'Lime'
+
+            if scores < 0:
+                keys['scores_color'] = 'OrangeRed'
+            elif scores > 0:
+                keys['scores_color'] = 'Lime'
+            else:
+                keys['scores_color'] = 'aqua'
+
+            if keys['total'] < 0:
+                keys['total_color'] = 'OrangeRed'
+            elif keys['total'] > 0:
+                keys['total_color'] = 'Lime'
+            else:
+                keys['total_color'] = 'aqua'
+
+            self.round_result_labels[i].setText(tmpl.format(**keys))
             self.round_result_labels[i].show()
 
         self.table_label.setText(None)
@@ -974,7 +1005,7 @@ class MainWnd(QMainWindow):
     def joker_action_btn_click(self, action):
         """ Нажатие кнопки выбора действия джокером """
 
-        card = self.joker_walk_card
+        card = self.joker_walk_card.card
 
         self.ja_take_by_btn.hide()
         self.ja_take_btn.hide()
@@ -1096,14 +1127,14 @@ class MainWnd(QMainWindow):
             return (
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y - 50),  # лево центр
-                (x - round(const.TABLE_AREA_SIZE[0] / 2) + 110, y - round(const.TABLE_AREA_SIZE[0] / 2) + 120),  # верх центр
+                (x - round(const.TABLE_AREA_SIZE[0] / 2) + 130, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150),  # верх центр
                 (x - 10, y - 50)  # право центр
             )
         else:
             return (
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
-                (x - round(const.TABLE_AREA_SIZE[0] / 2), y - round(const.TABLE_AREA_SIZE[0] / 2) + 60),  # левый верхний угол
-                (x - 10, y - round(const.TABLE_AREA_SIZE[0] / 2) + 60)  # правый верхний угол
+                (x - round(const.TABLE_AREA_SIZE[0] / 2), y - round(const.TABLE_AREA_SIZE[0] / 2) + 150),  # левый верхний угол
+                (x - 10, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150)  # правый верхний угол
             )
 
     def _get_round_info_aligns(self):
