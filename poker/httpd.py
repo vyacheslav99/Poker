@@ -3,7 +3,7 @@ import logging
 import argparse
 
 from configs import config
-from core.http_server import HTTPServer
+from server.http_server import HTTPServer
 
 
 def main():
