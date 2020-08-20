@@ -656,7 +656,7 @@ class MainWnd(QMainWindow):
         if d.type_ == eng_const.DEAL_NO_TRUMP:
             c = 'Lime'
         elif d.type_ == eng_const.DEAL_DARK:
-            c = 'DarkSlateGray'
+            c = 'Black'
         elif d.type_ == eng_const.DEAL_GOLD:
             c = 'Yellow'
         elif d.type_ == eng_const.DEAL_MIZER:
