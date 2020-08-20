@@ -374,7 +374,7 @@ class MainWnd(QMainWindow):
                 self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
                 self.players[i].risk_level = random.randint(0, 2)
 
-        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES))]
+        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
 
         self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
         self.game.start()
@@ -748,7 +748,7 @@ class MainWnd(QMainWindow):
             if i == 0:
                 w = const.TABLE_AREA_SIZE[0] - 10
             else:
-                w = round(const.TABLE_AREA_SIZE[0] / 2) - 10
+                w = round(const.TABLE_AREA_SIZE[0] / 2)
 
             lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 15, 65, color='aqua')
             lb.setAlignment(aligns[i])
@@ -912,6 +912,7 @@ class MainWnd(QMainWindow):
 
             order = int(keys['order'].split('*')[0])
             scores = int(keys['scores'].split(' ')[0])
+            keys['order'] = keys['order'].replace('-1', '-')
 
             if keys['take'] < order:
                 keys['take_color'] = 'OrangeRed'
@@ -1166,14 +1167,14 @@ class MainWnd(QMainWindow):
             return (
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y + 10),  # лево центр
-                (x - round(const.TABLE_AREA_SIZE[0] / 2) + 130, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150),  # верх центр
-                (x - 10, y + 10)  # право центр
+                (x - round(const.TABLE_AREA_SIZE[0] / 2) + 120, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150),  # верх центр
+                (x - 20, y + 10)  # право центр
             )
         else:
             return (
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
                 (x - round(const.TABLE_AREA_SIZE[0] / 2), y - round(const.TABLE_AREA_SIZE[0] / 2) + 150),  # левый верхний угол
-                (x - 10, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150)  # правый верхний угол
+                (x - 20, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150)  # правый верхний угол
             )
 
     def _get_round_info_aligns(self):
