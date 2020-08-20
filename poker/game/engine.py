@@ -977,7 +977,7 @@ class Engine(object):
 
             for p in self._players:
                 if p != player:
-                    if p.cards[0].joker and p.order == 1:
+                    if p.cards[0].joker and p.order in (-1, 1):
                         b = False
                     elif p.cards[0].lear == self._trump:
                         if p.cards[0].value >= 8 - const.RISK_BASE_COEFF[player.risk_level] * 2:
