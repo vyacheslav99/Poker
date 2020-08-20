@@ -936,6 +936,24 @@ class MainWnd(QMainWindow):
     def show_game_results(self):
         """ Показ результатов игры """
 
+        # todo: Пока что такая залепа
+        congratulations = ('УРА, Товарищи!!!', 'Ай, молодца!', 'Учитесь, сынки!')
+
+        pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2) - 50,
+               round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) - 100)
+
+        self.set_text('-= Итоги игры =-', pos, Qt.cyan, 18, 65)
+        winner = max([p for p in self.game.players], key=lambda x: x.last_money)
+
+        for i, p in enumerate(self.game.players, 1):
+            money = '{0:.2f}'.format(p.last_money)
+            rub, kop = money.split('.')
+            self.set_text(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп', (pos[0], pos[1] + i * 25),
+                          Qt.green if p == winner else Qt.yellow, 18, 65)
+
+        self.set_text(f'Победил {winner}', (pos[0], pos[1] + len(self.game.players) * 25 + 25), Qt.green, 18, 65)
+        self.set_text(random.choice(congratulations), (pos[0], pos[1] + len(self.game.players) * 25 + 50), Qt.magenta, 18, 65)
+
     def clear_buttons(self):
         """ Убирает все кнопки с центральной области """
 
