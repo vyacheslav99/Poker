@@ -583,13 +583,14 @@ class MainWnd(QMainWindow):
 
     def clear_cards(self, total=False):
         """
-        Очистка всех карт с игрового стола
+        Очистка всех карт с игрового стола + значков мастей при полной очистке
 
-        :param total: Удалить вобще все карты, что возможно или только карты, помеченные как удаляемые (карты на уках игроков)
+        :param total: Удалить вобще все карты и значки мастей, что возможно
+            или только карты, помеченные как удаляемые (карты на уках игроков)
         """
 
         for w in self.scene.items():
-            if isinstance(w, QCard) and (w.removable or total):
+            if (isinstance(w, QCard) and (w.removable or total)) or (total and isinstance(w, Lear)):
                 self.scene.removeItem(w)
 
     def draw_cards(self, h_back_up=False, r_back_up=True):
@@ -680,7 +681,7 @@ class MainWnd(QMainWindow):
             self.scene.addItem(qc)
         else:
             f = Lear(tl, True)
-            f.setPos(pos[0] + const.INFO_AREA_SIZE[0] - 25, pos[1] + 5)
+            f.setPos(pos[0] + const.INFO_AREA_SIZE[0] - 55, pos[1] + 5)
             self.scene.addItem(f)
 
         self.first_move_label.setText(f'Первый ход: {self.game.players[d.player].name}')
