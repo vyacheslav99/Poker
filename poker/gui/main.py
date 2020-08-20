@@ -145,20 +145,28 @@ class MainWnd(QMainWindow):
 
         self.options = {}
         self.players = []
-        self.buttons = []
-        self.labels = []
         self.table = {}
         self.bet = None
         self.game = None
         self.is_new_round = False
+        self.is_new_lap = False
         self.deck_type = None
         self.back_type = None
         self.order_dark = None
+        self.joker_walk_card = None
+
+        self.buttons = []
+        self.labels = []
         self.table_label = None
         self.next_button = None
         self.deal_label = None
         self.first_move_label = None
         self.order_info_label = None
+        self.ja_take_btn = None
+        self.ja_take_by_btn = None
+        self.ja_give_btn = None
+        self.ja_lear_buttons = []
+        self.round_result_labels = []
 
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -287,9 +295,9 @@ class MainWnd(QMainWindow):
         if font_size is not None or font_weight is not None:
             f = btn.font()
             if font_weight is not None:
-                f.setWeight(65)
+                f.setWeight(font_weight)
             if font_size is not None:
-                f.setPointSize(16)
+                f.setPointSize(font_size)
             btn.setFont(f)
 
         if bg_color or font_color:
@@ -348,6 +356,7 @@ class MainWnd(QMainWindow):
         self.deck_type = random.choice(const.DECK_TYPE)
         self.back_type = random.randint(1, 9)
         self.order_dark = None
+        self.joker_walk_card = None
 
         for i in range(random.choice([3, 4])):
             if i == 0:
@@ -404,14 +413,38 @@ class MainWnd(QMainWindow):
         self.remove_widget(self.order_info_label)
         self.order_info_label = None
 
+        self.remove_widget(self.ja_give_btn)
+        self.ja_give_btn = None
+
+        self.remove_widget(self.ja_take_btn)
+        self.ja_take_btn = None
+
+        self.remove_widget(self.ja_take_by_btn)
+        self.ja_take_by_btn = None
+
+        for btn in self.ja_lear_buttons:
+            self.remove_widget(btn)
+        self.ja_lear_buttons = []
+
+        for lb in self.round_result_labels:
+            self.remove_widget(lb)
+        self.round_result_labels = []
+
         self.scene.clear()
 
     def init_game_table(self):
-        """ Показ игрового поля, отображение на нем игроков """
+        """ Отрисовка основных эл-тов игрового поля в начале игры """
+
         if len(self.players) == 4:
             pos = (20, 45)
+            ipos = (-35, 10)
         else:
             pos = (round(const.WINDOW_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2) + 5, 45)
+            ipos = (round(const.AREA_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2), 10)
+
+        info_area = Area(self, const.INFO_AREA_SIZE)
+        info_area.setPos(*ipos)
+        self.scene.addItem(info_area)
 
         fp = self._get_face_positions()
         ap = self._get_area_positions()
@@ -433,9 +466,9 @@ class MainWnd(QMainWindow):
             else:
                 sz = const.PLAYER_AREA_SIZE
 
-            area = Area(self, sz)
-            area.setPos(*ap[i])
-            self.scene.addItem(area)
+            player_area = Area(self, sz)
+            player_area.setPos(*ap[i])
+            self.scene.addItem(player_area)
 
             player = Face(p)
             player.setPos(*fp[i])
@@ -463,6 +496,7 @@ class MainWnd(QMainWindow):
         :param color: цвет текста, константа Qt.const или экземпляр Qt.Color
         :param int size: размер шрифта
         :param int weight: жирность шрифта
+        :return: QGraphicsTextItem
         """
 
         f = self.scene.font()
@@ -471,6 +505,7 @@ class MainWnd(QMainWindow):
         t = self.scene.addText(text, f)
         t.setPos(*position)
         t.setDefaultTextColor(color)
+        return t
 
     def add_player_label(self, player, type_, text, position, color, font_size, font_weight):
         """
@@ -507,10 +542,13 @@ class MainWnd(QMainWindow):
 
         if not self.started():
             self.stop_game()
+            self.show_game_results()
             return
 
         if self.is_new_round:
             self.is_new_round = False
+            self.hide_order_and_take()
+            self.hide_round_results()
             self.clear_cards(True)
             self.draw_info_area()
 
@@ -525,13 +563,21 @@ class MainWnd(QMainWindow):
                     self.draw_cards(self.order_dark or d.type_ == eng_const.DEAL_DARK, d.type_ != eng_const.DEAL_BROW)
                     self.show_order_buttons()
             else:
+                if self.is_new_lap:
+                    self.is_new_lap = False
+                    self.clear_table()
                 self.draw_cards()
                 self.draw_take()
                 self.draw_table()
         elif self.game.status() == eng_const.EXT_STATE_LAP_PAUSE:
+            self.is_new_lap = True
             self.draw_table(True)
             self.draw_cards()
             self.draw_take()
+        elif self.game.status() == eng_const.EXT_STATE_ROUND_PAUSE:
+            self.is_new_round = True
+            self.clear_table()
+            self.show_round_results()
 
     def clear_cards(self, total=False):
         """
@@ -590,10 +636,6 @@ class MainWnd(QMainWindow):
         else:
             pos = (round(const.AREA_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2), 10)
 
-        area = Area(self, const.INFO_AREA_SIZE)
-        area.setPos(*pos)
-        self.scene.addItem(area)
-
         d = self.game.current_deal()
         if d.type_ == eng_const.DEAL_NO_TRUMP:
             c = 'Lime'
@@ -609,7 +651,13 @@ class MainWnd(QMainWindow):
             c = 'Honeydew'
 
         if d.type_ < 3:
-            text = 'Кон по {0} карт{1}'.format(d.cards, 'е' if d.cards == 1 else '')
+            if d.cards == 1:
+                letter = 'е'
+            elif d.cards < 5:
+                letter = 'ы'
+            else:
+                letter = ''
+            text = 'Кон по {0} карт{1}'.format(d.cards, letter)
         else:
             text = eng_const.DEAL_NAMES[d.type_]
         self.deal_label.setStyleSheet('QLabel {color: %s}' % c)
@@ -636,7 +684,7 @@ class MainWnd(QMainWindow):
         self.first_move_label.setText(f'Первый ход: {self.game.players[d.player].name}')
 
     def draw_table_area(self):
-        """ Отрисовка области расположения карт, которыми ходили """
+        """ Отрисовка области расположения карт, которыми ходили. Делаем один раз в начале игры """
 
         pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2),
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2))
@@ -645,7 +693,7 @@ class MainWnd(QMainWindow):
         area.setPos(*pos)
         self.scene.addItem(area)
 
-        self.table_label = self.add_label((const.TABLE_AREA_SIZE[0] - 20, 24), (pos[0] + 60, pos[1] + 35), 13, 65,
+        self.table_label = self.add_label((const.TABLE_AREA_SIZE[0] - 20, 34), (pos[0] + 60, pos[1] + 35), 13, 65,
                                           color='Yellow')
         self.table_label.setAlignment(Qt.AlignHCenter)
 
@@ -653,8 +701,46 @@ class MainWnd(QMainWindow):
                                            16, 65, 'DarkGreen', 'Lime')
         self.next_button.hide()
 
+        jx = pos[0] + 65
+        jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
+        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'Самая\nстаршая',
+                                           (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
+        self.ja_take_btn.hide()
+
+        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX), 'По старшим',
+                                              (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+        self.ja_take_by_btn.hide()
+
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'Самая\nМладшая',
+                                           (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
+        self.ja_give_btn.hide()
+
+        x = pos[0] + 130
+        for i, lear in enumerate(const.LEARS):
+            x = x + 60
+            btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy), bg_color='Teal')
+            btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.ico'))
+            btn.setToolTip(eng_const.LEAR_NAMES[i])
+            btn.hide()
+            self.ja_lear_buttons.append(btn)
+
+        pos = self._get_round_info_positions()
+        aligns = self._get_round_info_aligns()
+
+        for i, p in enumerate(self.players):
+            if i == 0:
+                w = const.TABLE_AREA_SIZE[0] - 10
+            else:
+                w = round(const.TABLE_AREA_SIZE[0] / 2) - 10
+
+            lb = self.add_label((w, 100), (pos[i][0], pos[i][1]), 15, 65, color='aqua', text=f'{p.name}\n123\nдДр')
+            lb.setAlignment(aligns[i])
+
+            # lb.hide()
+            self.round_result_labels.append(lb)
+
     def draw_table(self, overall=False):
-        """ Отрисовка игрового поля """
+        """ Отрисовка игрового поля. Выполняем после каждого хода """
 
         pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 10)
         ofs = self._get_table_offsets()
@@ -668,8 +754,10 @@ class MainWnd(QMainWindow):
                 self.table[pi] = qc
                 self.scene.addItem(qc)
 
-                if ti.is_joker():
-                    self.table_label.setText(f'{self.players[pi].name}: Джокер: {self._get_joker_info(ti.card)}')
+                if ti.card.joker:
+                    txt = f'Джокер: {self._get_joker_info(ti.card)}'
+                    self.table_label.setText(f'{self.players[pi].name}: {txt}')
+                    qc.setToolTip(txt)
 
                 if ti.order == 0:
                     qc.set_color_shadow()
@@ -680,10 +768,10 @@ class MainWnd(QMainWindow):
             self.next_button.show()
 
     def clear_table(self):
-        """ Очистка всех элементов с игрового стола """
+        """ Очистка всех элементов с центральной обласи, где отображаются карты, которыми походили """
 
         if self.table_label:
-            self.table_label.setText('')
+            self.table_label.setText(None)
 
         if self.next_button:
             self.next_button.hide()
@@ -697,20 +785,19 @@ class MainWnd(QMainWindow):
     def draw_order(self):
         """ Отрисовка заказа игроков """
 
-        show = True
         n = 0
 
         for i, p in enumerate(self.players):
             if p.order > -1:
                 self.labels[i]['order'].setText('{0}{1}'.format(p.order, '*' if p.order_is_dark else ''))
                 n += p.order
-            else:
-                show = False
 
-        if show:
+        if len([p for p in self.players if p.order > -1]) == len(self.players):
             diff = n - self.game.current_deal().cards
             self.order_info_label.setStyleSheet('QLabel {color: %s}' % '{0}'.format('Lime' if diff < 0 else 'OrangeRed'))
             self.order_info_label.setText('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
+        else:
+            self.order_info_label.setText(None)
 
     def draw_take(self):
         """ Отрисовка взяток игроков """
@@ -724,6 +811,13 @@ class MainWnd(QMainWindow):
                 self.labels[i]['take'].setStyleSheet('QLabel {color: Fuchsia}')
             else:
                 self.labels[i]['take'].setStyleSheet('QLabel {color: Lime}')
+
+    def hide_order_and_take(self):
+        """ Убрать информацию о заказе и взятке у игроков """
+
+        for i, p in enumerate(self.players):
+            self.labels[i]['order'].setText(None)
+            self.labels[i]['take'].setText(None)
 
     def show_dark_buttons(self):
         """ Показ кнопок выбора как заказывать - в темную или в светлую """
@@ -750,18 +844,68 @@ class MainWnd(QMainWindow):
         x = round(const.AREA_SIZE[0] / 2) - round((55 * coef) / 2)
 
         for i in range(self.game.current_deal().cards + 1):
-            x = x + 55 * i
+            x = x + 55
             if i <= cols:
                 y = round(const.AREA_SIZE[1] / 2)
             else:
                 y = round(const.AREA_SIZE[1] / 2) + 60
 
+            if i == cols + 1:
+                x = round(const.AREA_SIZE[0] / 2) - round((55 * coef) / 2)
+
             btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
                                    16, 65, 'DarkGreen', 'Lime')
             self.buttons.append(btn)
 
+    def show_joker_action_buttons(self):
+        """ Показ кнопок выбора действия джокером """
+
+        self.table_label.setText('Ход джокером. Выбери действие:')
+
+        if not self.game.table():
+            # если мой ход первый - показать еще вариант "по старшей"
+            self.ja_take_by_btn.show()
+
+        self.ja_take_btn.show()
+        self.ja_give_btn.show()
+
+    def show_ja_lear_buttons(self):
+        """ Показ кнопок выбора масти джокера """
+
+        self.table_label.setText('Ход джокером. Выбери масть:')
+
+        for btn in self.ja_lear_buttons:
+            btn.show()
+
+    def show_round_results(self):
+        """ Показ результатов раунда """
+
+        rec = self.game.get_record()
+
+        for i, player in enumerate(self.players):
+            txt = '{0}:\n{1} | {2} | {3}\n{4}'
+            # args = [rec[0][player.id][key] for key in rec[0][player.id].keys()] + \
+            #     [rec[-1][player.id][key] for key in rec[0][player.id].keys()]
+            args = [rec[-1][player.id][key] for key in rec[0][player.id].keys()]
+
+            self.round_result_labels[i].setText(txt.format(player.name, *args))
+            self.round_result_labels[i].show()
+
+        self.table_label.setText(None)
+        self.next_button.show()
+
+    def hide_round_results(self):
+        """ Скрыть итоги раунта """
+
+        for lb in self.round_result_labels:
+            lb.setText(None)
+            lb.hide()
+
+    def show_game_results(self):
+        """ Показ результатов игры """
+
     def clear_buttons(self):
-        """ Убирает все кнопки с игрового стола """
+        """ Убирает все кнопки с центральной области """
 
         for btn in self.buttons:
             self.remove_widget(btn)
@@ -769,7 +913,7 @@ class MainWnd(QMainWindow):
         self.buttons = []
 
         if self.table_label:
-            self.table_label.setText('')
+            self.table_label.setText(None)
 
     def dark_btn_click(self, is_dark):
         """
@@ -799,11 +943,13 @@ class MainWnd(QMainWindow):
         self.clear_buttons()
         self.next()
 
-    def card_click(self, card):
+    def card_click(self, card, joker_handling=True):
         """
         Обработка нажатия на карты
 
         :param QCard card: карта, на которую нажали
+        :param joker_handling: если карта джокер - показать кнопки действий джокером, или среагировать как на обычную карту
+            нужно для того, чтоб после выбора действий джокером продолжить дальше
         """
 
         c = card.card
@@ -811,20 +957,65 @@ class MainWnd(QMainWindow):
 
         if self.started() and p and not p.is_robot and self.game.status() == eng_const.EXT_STATE_WALKS and not self.game.is_bet():
             try:
-                if c.joker:
-                    # todo: сделать показ контролов выбора действий джокером
-                    pass
+                if c.joker and joker_handling:
+                    self.joker_walk_card = card
+                    self.show_joker_action_buttons()
+                    return
                 else:
                     self.game.do_walk(p.cards.index(c))
                     self.game.give_walk()
                     self.game.next()
+                    self.joker_walk_card = None
             except helpers.GameException as e:
                 QMessageBox.warning(self, 'Ход', f'{e}', QMessageBox.Ok)
 
             self.next()
 
+    def joker_action_btn_click(self, action):
+        """ Нажатие кнопки выбора действия джокером """
+
+        card = self.joker_walk_card
+
+        self.ja_take_by_btn.hide()
+        self.ja_take_btn.hide()
+        self.ja_give_btn.hide()
+
+        if not self.game.table():
+            # если мой ход первый: если скидываю и в настройках игры установлено, что Джокер играет по номиналу,
+            # то масть будет мастью реальной карты - т.е. пика (джокер - это 7 пика);
+            # в остальных случаях надо выбрать, с какой масти заходить
+            if action == eng_const.JOKER_GIVE and self.game.joker_give_at_par:
+                l = card.lear
+            else:
+                self.show_ja_lear_buttons()
+                return
+        else:
+            # если я покрываю джокером: если я забираю - надо установить или козырную масть или масть той карты, с которой зашли;
+            # если скидываю - то или по номиналу или масть карты, с которой зашли
+            ftbl = self.game.lap_players_order(by_table=True)[0]
+            if action == eng_const.JOKER_TAKE:
+                l = self.game.trump()[0] if self.game.trump()[0] != eng_const.LEAR_NOTHING else self.game.table()[ftbl[1]].card.lear
+            else:
+                l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
+
+        card.joker_action = action
+        card.joker_lear = l
+        self.card_click(self.joker_walk_card, False)
+
+    def ja_select_lear_btn_click(self, lear):
+        """ Нажатие кнопки выбора масти джокера """
+
+        for btn in self.ja_lear_buttons:
+            btn.hide()
+
+        self.joker_walk_card.card.joker_lear = lear
+        self.card_click(self.joker_walk_card, False)
+
     def next_button_click(self):
+        """ Нажатие кнопки Далее """
+
         if self.started():
+            self.next_button.hide()
             self.game.next()
             self.next()
 
@@ -896,14 +1087,47 @@ class MainWnd(QMainWindow):
                 (const.CARD_SIZE[0] + 10, -const.CARD_SIZE[1] - 10)  # правый верхний угол
             )
 
+    def _get_round_info_positions(self):
+        """ Позиции расположения лебелов с результатами игры """
+
+        x, y = round(const.AREA_SIZE[0] / 2) + 60, round(const.AREA_SIZE[1] / 2)
+
+        if len(self.players) == 4:
+            return (
+                (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
+                (x - round(const.TABLE_AREA_SIZE[0] / 2), y - 50),  # лево центр
+                (x - round(const.TABLE_AREA_SIZE[0] / 2) + 110, y - round(const.TABLE_AREA_SIZE[0] / 2) + 120),  # верх центр
+                (x - 10, y - 50)  # право центр
+            )
+        else:
+            return (
+                (x - round(const.TABLE_AREA_SIZE[0] / 2), y + round(const.TABLE_AREA_SIZE[0] / 2) - 100),  # позиция человека, низ центр
+                (x - round(const.TABLE_AREA_SIZE[0] / 2), y - round(const.TABLE_AREA_SIZE[0] / 2) + 60),  # левый верхний угол
+                (x - 10, y - round(const.TABLE_AREA_SIZE[0] / 2) + 60)  # правый верхний угол
+            )
+
+    def _get_round_info_aligns(self):
+        """ Выравнивание текста в лебелах с результатами игры """
+
+        if len(self.players) == 4:
+            return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignHCenter, Qt.AlignRight)
+        else:
+            return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignRight)
+
     def _get_joker_info(self, card):
+        """ Представление информации о действии джокером в читабельном виде """
+
         if card.joker:
+            clr = 'red' if card.joker_lear > 1 else 'black'
+            tmpl = '<span style="color:{0}">{1}</span>'.format(clr, '{0}')
+
             if card.joker_action == eng_const.JOKER_TAKE:
-                s, l = 'Самая крупная', eng_const.LEAR_SYMBOLS[card.joker_lear]
+                s, l = 'Самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
-                s, l = 'Забираю по старшей', eng_const.LEAR_SYMBOLS[card.joker_lear]
+                s, l = 'По старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_GIVE:
-                s, l = 'Скидываю как ', eng_const.LEAR_SYMBOLS[card.joker_lear] if not self.game.joker_give_at_par else f'{card}'
+                s, l = 'Самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
+                    if not self.game.joker_give_at_par else f'{card}'
             else:
                 s, l = None, None
 
