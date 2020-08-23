@@ -7,6 +7,7 @@ from PyQt5.QtCore import *
 
 from gui import utils, const
 from game import engine, helpers, const as eng_const
+from gui.game_table import GameTableDialog
 
 # print(QStyleFactory.keys())
 
@@ -167,6 +168,7 @@ class MainWnd(QMainWindow):
         self.ja_take_by_btn = None
         self.ja_give_btn = None
         self.grid_stat_button = None
+        self.game_table = None
         self.ja_lear_buttons = []
         self.round_result_labels = []
 
@@ -401,6 +403,10 @@ class MainWnd(QMainWindow):
         self.clear_player_labels()
         self.clear_table()
 
+        if self.game_table:
+            self.game_table.destroy()
+            self.game_table = None
+
         self.remove_widget(self.table_label)
         self.table_label = None
 
@@ -440,6 +446,8 @@ class MainWnd(QMainWindow):
 
     def init_game_table(self):
         """ Отрисовка основных эл-тов игрового поля в начале игры """
+
+        self.game_table = GameTableDialog(self)
 
         if len(self.players) == 4:
             pos = (20, 45)
@@ -750,7 +758,7 @@ class MainWnd(QMainWindow):
             else:
                 w = round(const.TABLE_AREA_SIZE[0] / 2)
 
-            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 15, 65, color='aqua')
+            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 13, 65, color='aqua')
             lb.setAlignment(aligns[i])
             lb.setTextFormat(Qt.RichText)
 
@@ -1089,6 +1097,8 @@ class MainWnd(QMainWindow):
 
     def show_statistics_grid(self):
         """ Показ таблицы хода игры """
+
+        self.game_table.show()
 
     def _get_face_positions(self):
         """ Позиции для отрисовки аватарок игроков """
