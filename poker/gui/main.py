@@ -447,7 +447,7 @@ class MainWnd(QMainWindow):
     def init_game_table(self):
         """ Отрисовка основных эл-тов игрового поля в начале игры """
 
-        self.game_table = GameTableDialog(self)
+        self.game_table = GameTableDialog(self.players, self)
 
         if len(self.players) == 4:
             pos = (20, 45)
@@ -904,10 +904,55 @@ class MainWnd(QMainWindow):
         for btn in self.ja_lear_buttons:
             btn.show()
 
+    def add_table_row(self, record):
+        row = []
+        colors = ['Purple']
+
+        d = self.game.current_deal()
+        if d.type_ < 3:
+            row.append(f'{d.cards}')
+        else:
+            row.append(eng_const.DEAL_NAMES[d.type_][0])
+
+        for p in self.players:
+            colors.append('aqua')
+            order = int(record[p.id]['order'].split('*')[0])
+            scores = int(record[p.id]['scores'].split(' ')[0])
+
+            if record[p.id]['take'] < order:
+                colors.append('OrangeRed')
+            elif record[p.id]['take'] > order:
+                colors.append('Fuchsia')
+            else:
+                colors.append('Lime')
+
+            if scores < 0:
+                colors.append('OrangeRed')
+            elif scores > 0:
+                colors.append('Lime')
+            else:
+                colors.append('aqua')
+
+            if record[p.id]['total'] < 0:
+                colors.append('OrangeRed')
+            elif record[p.id]['total'] > 0:
+                colors.append('Lime')
+            else:
+                colors.append('aqua')
+
+            for k in record[p.id]:
+                if k == 'order':
+                    row.append(record[p.id][k].replace('-1', '-'))
+                else:
+                    row.append(record[p.id][k])
+
+        self.game_table.add_row(row, colors)
+
     def show_round_results(self):
         """ Показ результатов раунда """
 
         rec = self.game.get_record()
+        self.add_table_row(rec[-1])
 
         for i, player in enumerate(self.players):
             tmpl = ''.join(('{player}<br>{order} | ',
@@ -1098,6 +1143,7 @@ class MainWnd(QMainWindow):
     def show_statistics_grid(self):
         """ Показ таблицы хода игры """
 
+        self.game_table.move(self.pos())
         self.game_table.show()
 
     def _get_face_positions(self):
