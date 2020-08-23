@@ -403,10 +403,6 @@ class MainWnd(QMainWindow):
         self.clear_player_labels()
         self.clear_table()
 
-        if self.game_table:
-            self.game_table.destroy()
-            self.game_table = None
-
         self.remove_widget(self.table_label)
         self.table_label = None
 
@@ -447,6 +443,10 @@ class MainWnd(QMainWindow):
     def init_game_table(self):
         """ Отрисовка основных эл-тов игрового поля в начале игры """
 
+        if self.game_table:
+            self.game_table.destroy()
+            self.game_table = None
+
         self.game_table = GameTableDialog(self.players, self)
 
         if len(self.players) == 4:
@@ -476,7 +476,7 @@ class MainWnd(QMainWindow):
 
         self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Таблица игры', (160, 50),
                                                 (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
-                                                12, 65, 'LightCyan', 'Purple')
+                                                12, 65, 'YellowGreen', 'Purple')
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -562,6 +562,7 @@ class MainWnd(QMainWindow):
             if self.can_show_results:
                 self.stop_game()
                 self.show_game_results()
+                self.show_statistics_grid()
                 return
             else:
                 self.can_show_results = True
@@ -905,12 +906,18 @@ class MainWnd(QMainWindow):
             btn.show()
 
     def add_table_row(self, record):
+        """
+        Добавляет в конец строку к таблице хода игры
+
+        :param record: строка с результатами раунда,  которую надо добавить
+        """
+
         row = []
         colors = ['Purple']
 
         d = self.game.current_deal()
         if d.type_ < 3:
-            row.append(f'{d.cards}')
+            row.append(f'по {d.cards}')
         else:
             row.append(eng_const.DEAL_NAMES[d.type_][0])
 
@@ -928,7 +935,7 @@ class MainWnd(QMainWindow):
 
             if scores < 0:
                 colors.append('OrangeRed')
-            elif scores > 0:
+            elif scores > 9:
                 colors.append('Lime')
             else:
                 colors.append('aqua')
@@ -976,7 +983,7 @@ class MainWnd(QMainWindow):
 
             if scores < 0:
                 keys['scores_color'] = 'OrangeRed'
-            elif scores > 0:
+            elif scores > 9:
                 keys['scores_color'] = 'Lime'
             else:
                 keys['scores_color'] = 'aqua'
@@ -1004,9 +1011,6 @@ class MainWnd(QMainWindow):
     def show_game_results(self):
         """ Показ результатов игры """
 
-        # todo: Пока что такая залепа
-        congratulations = ('УРА, Товарищи!!!', 'Ай, молодца!', 'Учитесь, сынки!')
-
         pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2) + 50,
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
@@ -1023,7 +1027,7 @@ class MainWnd(QMainWindow):
 
         y = y + len(self.game.players) * 30 + 60
         self.set_text(f'Победил {winner}', (x, y), Qt.green, 18, 65)
-        self.set_text(random.choice(congratulations), (x, y + 60), Qt.magenta, 18, 65)
+        self.set_text(random.choice(const.CONGRATULATIONS), (x, y + 60), Qt.magenta, 18, 65)
 
     def clear_buttons(self):
         """ Убирает все кнопки с центральной области """
@@ -1143,6 +1147,8 @@ class MainWnd(QMainWindow):
     def show_statistics_grid(self):
         """ Показ таблицы хода игры """
 
+        if self.can_show_results:
+            self.game_table.setWindowTitle('Итоги игры')
         self.game_table.move(self.pos())
         self.game_table.show()
 
