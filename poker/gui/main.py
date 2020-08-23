@@ -914,6 +914,7 @@ class MainWnd(QMainWindow):
 
         row = []
         colors = ['Purple']
+        max_scores = max([p.total_scores for p in self.players])
 
         d = self.game.current_deal()
         if d.type_ < 3:
@@ -938,11 +939,11 @@ class MainWnd(QMainWindow):
             elif scores > 9:
                 colors.append('Lime')
             else:
-                colors.append('aqua')
+                colors.append('Fuchsia')
 
             if record[p.id]['total'] < 0:
                 colors.append('OrangeRed')
-            elif record[p.id]['total'] > 0:
+            elif record[p.id]['total'] >= max_scores :
                 colors.append('Lime')
             else:
                 colors.append('aqua')
@@ -960,6 +961,7 @@ class MainWnd(QMainWindow):
 
         rec = self.game.get_record()
         self.add_table_row(rec[-1])
+        max_scores = max([p.total_scores for p in self.players])
 
         for i, player in enumerate(self.players):
             tmpl = ''.join(('{player}<br>{order} | ',
@@ -986,11 +988,11 @@ class MainWnd(QMainWindow):
             elif scores > 9:
                 keys['scores_color'] = 'Lime'
             else:
-                keys['scores_color'] = 'aqua'
+                keys['scores_color'] = 'Fuchsia'
 
             if keys['total'] < 0:
                 keys['total_color'] = 'OrangeRed'
-            elif keys['total'] > 0:
+            elif keys['total'] >= max_scores:
                 keys['total_color'] = 'Lime'
             else:
                 keys['total_color'] = 'aqua'
