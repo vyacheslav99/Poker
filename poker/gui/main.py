@@ -474,7 +474,7 @@ class MainWnd(QMainWindow):
         self.order_info_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
                                                (pos[0] + 5, pos[1] + 100), 16, 65)
 
-        self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Таблица игры', (160, 50),
+        self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Запись игры', (160, 50),
                                                 (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
                                                 12, 65, 'YellowGreen', 'Purple')
 
@@ -915,8 +915,8 @@ class MainWnd(QMainWindow):
         row = []
         colors = ['Purple']
         max_scores = max([p.total_scores for p in self.players])
-
         d = self.game.current_deal()
+
         if d.type_ < 3:
             row.append(f'по {d.cards}')
         else:
@@ -927,9 +927,9 @@ class MainWnd(QMainWindow):
             order = int(record[p.id]['order'].split('*')[0])
             scores = int(record[p.id]['scores'].split(' ')[0])
 
-            if record[p.id]['take'] < order:
+            if record[p.id]['take'] < order or d.type_ == eng_const.DEAL_MIZER:
                 colors.append('OrangeRed')
-            elif record[p.id]['take'] > order:
+            elif record[p.id]['take'] > order and d.type_ != eng_const.DEAL_GOLD:
                 colors.append('Fuchsia')
             else:
                 colors.append('Lime')
@@ -962,6 +962,7 @@ class MainWnd(QMainWindow):
         rec = self.game.get_record()
         self.add_table_row(rec[-1])
         max_scores = max([p.total_scores for p in self.players])
+        d = self.game.current_deal()
 
         for i, player in enumerate(self.players):
             tmpl = ''.join(('{player}<br>{order} | ',
@@ -976,9 +977,9 @@ class MainWnd(QMainWindow):
             scores = int(keys['scores'].split(' ')[0])
             keys['order'] = keys['order'].replace('-1', '-')
 
-            if keys['take'] < order:
+            if keys['take'] < order or d.type_ == eng_const.DEAL_MIZER:
                 keys['take_color'] = 'OrangeRed'
-            elif keys['take'] > order:
+            elif keys['take'] > order and d.type_ != eng_const.DEAL_GOLD:
                 keys['take_color'] = 'Fuchsia'
             else:
                 keys['take_color'] = 'Lime'
