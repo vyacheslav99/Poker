@@ -1,5 +1,6 @@
 import os
 
+DEBUG = True
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
 RES_DIR = 'gui/resources'
 MAIN_ICON = f'{RES_DIR}/app.ico'
