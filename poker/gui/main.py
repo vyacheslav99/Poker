@@ -28,7 +28,7 @@ class QCard(QGraphicsPixmapItem):
         self.side = None
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        self.setFlag(QGraphicsItem.ItemIsMovable)
+        # self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setZValue(const.CARD_BASE_Z_VALUE)
         self.set_std_shadow()
