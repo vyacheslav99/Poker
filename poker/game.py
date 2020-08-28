@@ -15,7 +15,7 @@ def run():
     # не убирай переменную wnd!!! Без нее приложение не работает - процесс есть, а окно пропадает
     # т.е. просто main.MainWnd(app) не работает - надо обязательно присвоить его переменной
     app.setStyle('Fusion')
-    wnd = main.MainWnd(app)
+    wnd = main.MainWnd(app, *sys.argv)
     sys.exit(app.exec_())
 
 

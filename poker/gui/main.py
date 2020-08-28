@@ -8,6 +8,7 @@ from PyQt5.QtCore import *
 from gui import utils, const
 from game import engine, helpers, const as eng_const
 from gui.game_table import GameTableDialog
+from gui.service_info import ServiceInfoDialog
 
 # print(QStyleFactory.keys())
 
@@ -141,9 +142,10 @@ class Area(QGraphicsRectItem):
 
 class MainWnd(QMainWindow):
 
-    def __init__(self, app):
+    def __init__(self, app, *args):
         super().__init__()
 
+        self.__dev_mode = '--dev_mode' in args
         self.options = {}
         self.players = []
         self.table = {}
@@ -171,6 +173,7 @@ class MainWnd(QMainWindow):
         self.game_table = None
         self.ja_lear_buttons = []
         self.round_result_labels = []
+        self.service_wnd = None
 
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -207,6 +210,13 @@ class MainWnd(QMainWindow):
         start_actn.triggered.connect(self.start_game)
         file_menu.addAction(start_actn)
 
+        if self.__dev_mode:
+            svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
+            svc_actn.setShortcut('F9')
+            svc_actn.setStatusTip('Показать окно со служебной информацией')
+            svc_actn.triggered.connect(self.show_service_window)
+            file_menu.addAction(svc_actn)
+
         file_menu.addSeparator()
         exit_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
         exit_actn.setShortcut('Esc')
@@ -222,6 +232,14 @@ class MainWnd(QMainWindow):
 
     def closeEvent(self, event):
         super(MainWnd, self).closeEvent(event)
+
+    def show_service_window(self):
+        if self.__dev_mode and self.started():
+            if not self.service_wnd:
+                self.service_wnd = ServiceInfoDialog(self)
+
+            self.service_wnd.players = self.players
+            self.service_wnd.show()
 
     def set_status_messages(self, messages):
         """
@@ -390,6 +408,9 @@ class MainWnd(QMainWindow):
     def stop_game(self):
         """ Остановить игру, очистить игровое поле """
 
+        if self.service_wnd:
+            self.service_wnd.hide()
+
         if self.started():
             self.game.stop()
 
@@ -501,7 +522,7 @@ class MainWnd(QMainWindow):
                 self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35),
                                       'Aqua', 16, 70)
             else:
-                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 15), Qt.cyan, 18, 65)
+                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 12), Qt.cyan, 18, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
                 self.add_player_label(i, 'take', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
 
@@ -602,6 +623,9 @@ class MainWnd(QMainWindow):
             self.is_new_round = True
             self.clear_table()
             self.show_round_results()
+
+        if self.service_wnd and self.service_wnd.isVisible():
+            self.service_wnd.refresh()
 
     def clear_cards(self, total=False):
         """
