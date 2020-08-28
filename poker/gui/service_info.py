@@ -21,7 +21,7 @@ class ServiceInfoDialog(QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.init_ui()
         # self.setFixedSize(*const.WINDOW_SIZE)
-        self.resize(600, 400)
+        self.resize(700, 450)
 
     def init_ui(self):
         self.form = QFormLayout()

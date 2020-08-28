@@ -300,39 +300,6 @@ class Engine(object):
         if self._curr_deal >= len(self._deals) - 1:
             self.stop()
 
-    def _check_order(self, order, is_dark=False):
-        """
-        Выполняет проверку, возможно ли игроку сделать такой заказ.
-
-        :return bool, message (сообщение с причиной, почему заказ невозможен)
-        """
-
-        if order < 0:
-            return False, 'Нельзя заказать отрицательное количество взяток'
-
-        if order > self._deals[self._curr_deal].cards:
-            return False, 'Нельзя заказать взяток больше, чем карт на руках'
-
-        player = self._players[self._curr_player]
-
-        # если заказывал в темную, проверить - разрешено или нет это в текущей игре
-        if is_dark and not self._dark_allowed:
-            return False, 'Возможность заказывать в темную запрещена в этой партии'
-
-        # последний заказывающий не может заказать столько взяток, чтобы сумма всех заказов игроков была равна кол-ву карт на руках
-        if (self._step == self.party_size() - 1) and (
-            order + sum(p.order for p in self._players if p != player) == self._deals[self._curr_deal].cards):
-                return False, 'Сумма заказов всех игроков не может быть равна количеству карт на руках'
-
-        # если включена опция на ограничение трех пасов подряд, проверить
-        if self._third_pass_limit and order == 0 and player.pass_counter >= 2:
-            # только надо исключить ситуации, когда на руках одна карта и ты вобще ничего не можешь заказать из-за этого
-            if not (self._deals[self._curr_deal].cards == 1 and self._step == self.party_size() - 1 and (
-                sum(p.order for p in self._players if p != player) + 1 == 1)):
-                return False, 'Запрещено заказывать 3 паса подряд'
-
-        return True, None
-
     def _check_beat(self, card_index):
         """ Проверка, может ли игрок покрыть этой картой (это для случаев именно последующих за первым ходов) """
 
@@ -521,13 +488,46 @@ class Engine(object):
 
         self._step = self._inc_index(self._step, self.party_size())
 
+    def check_order(self, order, is_dark=False):
+        """
+        Выполняет проверку, возможно ли игроку сделать такой заказ.
+
+        :return bool, message (сообщение с причиной, почему заказ невозможен)
+        """
+
+        if order < 0:
+            return False, 'Нельзя заказать отрицательное количество взяток'
+
+        if order > self._deals[self._curr_deal].cards:
+            return False, 'Нельзя заказать взяток больше, чем карт на руках'
+
+        player = self._players[self._curr_player]
+
+        # если заказывал в темную, проверить - разрешено или нет это в текущей игре
+        if is_dark and not self._dark_allowed:
+            return False, 'Возможность заказывать в темную запрещена в этой партии'
+
+        # последний заказывающий не может заказать столько взяток, чтобы сумма всех заказов игроков была равна кол-ву карт на руках
+        if (self._step == self.party_size() - 1) and (
+            order + sum(p.order for p in self._players if p != player) == self._deals[self._curr_deal].cards):
+            return False, 'Сумма заказов всех игроков не может быть равна количеству карт на руках'
+
+        # если включена опция на ограничение трех пасов подряд, проверить
+        if self._third_pass_limit and order == 0 and player.pass_counter >= 2:
+            # только надо исключить ситуации, когда на руках одна карта и ты вобще ничего не можешь заказать из-за этого
+            if not (self._deals[self._curr_deal].cards == 1 and self._step == self.party_size() - 1 and (
+                sum(p.order for p in self._players if p != player) + 1 == 1)):
+                return False, 'Запрещено заказывать 3 паса подряд'
+
+        return True, None
+
     def make_order(self, order, is_dark=False):
         """
         Фиксация заказа игрока. Выполняет проверки, что такой заказ допустим и записывает его игроку, если все ОК.
         Если не ОК - вызывает исключение
         """
 
-        can_make, cause = self._check_order(order, is_dark)
+        can_make, cause = self.check_order(order, is_dark)
 
         if not can_make:
             raise GameException(cause)
@@ -1013,7 +1013,7 @@ class Engine(object):
         # проверка возможности сделать такой заказ и корректировка его, если нельзя: уменьшаем или увеличиваем
         # в зависимости от ситуации и уровня риска игрока до тех пор, пока не станет возможно
         start_cnt = cnt
-        can, _ = self._check_order(cnt, is_dark)
+        can, _ = self.check_order(cnt, is_dark)
         while not can:
             if cnt <= 0 or cnt >= len(player.cards):
                 start_cnt = cnt
@@ -1026,7 +1026,7 @@ class Engine(object):
                 cnt += (-1, random.choice((-1, 1)), 1)[player.risk_level]
                 # cnt += random.choice((-1, 1))
 
-            can, _ = self._check_order(cnt, is_dark)
+            can, _ = self.check_order(cnt, is_dark)
 
         return cnt, is_dark
 

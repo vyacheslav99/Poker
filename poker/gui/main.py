@@ -905,8 +905,12 @@ class MainWnd(QMainWindow):
             else:
                 y = round(const.AREA_SIZE[1] / 2) + 60
 
+            b, s = self.game.check_order(i, self.order_dark or False)
             btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
-                                   16, 65, 'DarkGreen', 'Lime')
+                                   16, 65, 'DarkGreen' if b else 'Gray', 'Lime' if b else 'DimGray')
+
+            btn.setDisabled(not b)
+            btn.setToolTip(s)
             self.buttons.append(btn)
 
     def show_joker_action_buttons(self):
@@ -1282,11 +1286,11 @@ class MainWnd(QMainWindow):
             tmpl = '<span style="color:{0}">{1}</span>'.format(clr, '{0}')
 
             if card.joker_action == eng_const.JOKER_TAKE:
-                s, l = 'Самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
+                s, l = 'самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
                 s, l = 'По старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_GIVE:
-                s, l = 'Самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
+                s, l = 'самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
                     if not self.game.joker_give_at_par else f'{card}'
             else:
                 s, l = None, None
