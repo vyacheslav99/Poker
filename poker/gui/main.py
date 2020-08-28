@@ -752,15 +752,15 @@ class MainWnd(QMainWindow):
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
-        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'Самая\nстаршая',
+        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'самая\nстаршая',
                                            (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_btn.hide()
 
         self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX),
-                                              'По старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+                                              'по старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
-        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'Самая\nмладшая',
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'самая\nмладшая',
                                            (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
         self.ja_give_btn.hide()
 
@@ -1288,7 +1288,7 @@ class MainWnd(QMainWindow):
             if card.joker_action == eng_const.JOKER_TAKE:
                 s, l = 'самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
-                s, l = 'По старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
+                s, l = 'по старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_GIVE:
                 s, l = 'самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
                     if not self.game.joker_give_at_par else f'{card}'
