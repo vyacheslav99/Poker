@@ -590,6 +590,7 @@ class MainWnd(QMainWindow):
 
         if self.is_new_round:
             self.is_new_round = False
+            self.order_dark = None
             self.hide_order_and_take()
             self.hide_round_results()
             self.clear_cards(True)
