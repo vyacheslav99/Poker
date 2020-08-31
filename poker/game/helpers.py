@@ -31,7 +31,7 @@ class Card(object):
 
     def __str__(self):
         if self.joker:
-            return f'Joker ({const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]})'
+            return f'Джокер ({const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]})'
         else:
             return f'{const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]}'
 

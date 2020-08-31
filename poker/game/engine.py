@@ -300,39 +300,6 @@ class Engine(object):
         if self._curr_deal >= len(self._deals) - 1:
             self.stop()
 
-    def _check_order(self, order, is_dark=False):
-        """
-        Выполняет проверку, возможно ли игроку сделать такой заказ.
-
-        :return bool, message (сообщение с причиной, почему заказ невозможен)
-        """
-
-        if order < 0:
-            return False, 'Нельзя заказать отрицательное количество взяток'
-
-        if order > self._deals[self._curr_deal].cards:
-            return False, 'Нельзя заказать взяток больше, чем карт на руках'
-
-        player = self._players[self._curr_player]
-
-        # если заказывал в темную, проверить - разрешено или нет это в текущей игре
-        if is_dark and not self._dark_allowed:
-            return False, 'Возможность заказывать в темную запрещена в этой партии'
-
-        # последний заказывающий не может заказать столько взяток, чтобы сумма всех заказов игроков была равна кол-ву карт на руках
-        if (self._step == self.party_size() - 1) and (
-            order + sum(p.order for p in self._players if p != player) == self._deals[self._curr_deal].cards):
-                return False, 'Сумма заказов всех игроков не может быть равна количеству карт на руках'
-
-        # если включена опция на ограничение трех пасов подряд, проверить
-        if self._third_pass_limit and order == 0 and player.pass_counter >= 2:
-            # только надо исключить ситуации, когда на руках одна карта и ты вобще ничего не можешь заказать из-за этого
-            if not (self._deals[self._curr_deal].cards == 1 and self._step == self.party_size() - 1 and (
-                sum(p.order for p in self._players if p != player) + 1 == 1)):
-                return False, 'Запрещено заказывать 3 паса подряд'
-
-        return True, None
-
     def _check_beat(self, card_index):
         """ Проверка, может ли игрок покрыть этой картой (это для случаев именно последующих за первым ходов) """
 
@@ -521,13 +488,46 @@ class Engine(object):
 
         self._step = self._inc_index(self._step, self.party_size())
 
+    def check_order(self, order, is_dark=False):
+        """
+        Выполняет проверку, возможно ли игроку сделать такой заказ.
+
+        :return bool, message (сообщение с причиной, почему заказ невозможен)
+        """
+
+        if order < 0:
+            return False, 'Нельзя заказать отрицательное количество взяток'
+
+        if order > self._deals[self._curr_deal].cards:
+            return False, 'Нельзя заказать взяток больше, чем карт на руках'
+
+        player = self._players[self._curr_player]
+
+        # если заказывал в темную, проверить - разрешено или нет это в текущей игре
+        if is_dark and not self._dark_allowed:
+            return False, 'Возможность заказывать в темную запрещена в этой партии'
+
+        # последний заказывающий не может заказать столько взяток, чтобы сумма всех заказов игроков была равна кол-ву карт на руках
+        if (self._step == self.party_size() - 1) and (
+            order + sum(p.order for p in self._players if p != player) == self._deals[self._curr_deal].cards):
+            return False, 'Сумма заказов всех игроков не может быть равна количеству карт на руках'
+
+        # если включена опция на ограничение трех пасов подряд, проверить
+        if self._third_pass_limit and order == 0 and player.pass_counter >= 2:
+            # только надо исключить ситуации, когда на руках одна карта и ты вобще ничего не можешь заказать из-за этого
+            if not (self._deals[self._curr_deal].cards == 1 and self._step == self.party_size() - 1 and (
+                sum(p.order for p in self._players if p != player) + 1 == 1)):
+                return False, 'Запрещено заказывать 3 паса подряд'
+
+        return True, None
+
     def make_order(self, order, is_dark=False):
         """
         Фиксация заказа игрока. Выполняет проверки, что такой заказ допустим и записывает его игроку, если все ОК.
         Если не ОК - вызывает исключение
         """
 
-        can_make, cause = self._check_order(order, is_dark)
+        can_make, cause = self.check_order(order, is_dark)
 
         if not can_make:
             raise GameException(cause)
@@ -675,6 +675,11 @@ class Engine(object):
 
         return max_card
 
+    def _ai_greater_cards_count(self, card):
+        """ Подсчитывает по вышедшим, сколько осталось карт крупнее переданной и возвращает это число """
+
+        return len([c for c in self._released_cards if c.lear == card.lear and c.value > card.value and not c.joker])
+
     def _ai_greater_cards_released(self, card):
         """ Смотрит по вышедшим, вышли ли все карты крупнее переданной. Вернет True - если все, что больше, вышло, иначе - False """
 
@@ -767,12 +772,31 @@ class Engine(object):
     def _ai_card_covered(self, card, cards):
         """
         Оперделяет, прикрыта ли переданная карта.
-        Карту считаем прикрытой, если есть все, что больше или есть столько меньших, сколько не хватает больших
+        Карту считаем прикрытой, если карт меньше нашей столько, сколько от нашей до Т (включительно), за вычитом тех
+        более крупных, что есть у нас на руках (т.к. от них прикрываться не надо).
+        Вернет bool: прикрыта/нет
         """
 
-        # посчитаем кол-во пропущенных карт больше нашей
-        x = 14 - card.value - len([c for c in cards if c.value > card.value])
-        return len([c for c in cards if c.value < card.value]) >= x
+        return len([c for c in cards if c.value != card.value and not c.joker]) >= 14 - card.value
+
+    def _ai_card_covered_wj(self, card, cards, has_joker=False):
+        """
+        Оперделяет, прикрыта ли переданная карта, с учетом джокера.
+        Карту считаем прикрытой, если карт меньше нашей (+ Дж, если передан флаг) столько, сколько от нашей
+        до Т (включительно), за вычитом тех более крупных, что есть у нас на руках (т.к. от них прикрываться не надо).
+        Если has_joker True - то учесть джокера (подразумевается, что он есть), как еще одну из прикрывающих карт.
+        Вернет bool, bool: прикрыта/нет, использован джокер/нет
+        """
+
+        cover_cnt = len([c for c in cards if c.value != card.value and not c.joker])
+
+        if cover_cnt >= 14 - card.value:
+            return True, False
+
+        if has_joker and cover_cnt + 1 >= card.value:
+            return True, True
+        else:
+            return False, False
 
     def _ai_is_cards_line(self, card, cards, start=14):
         """
@@ -784,6 +808,36 @@ class Engine(object):
 
         return len([c for c in cards if c.value > card.value]) >= start - card.value
 
+    def _ai_select_joker_lear_to_shield(self, cards):
+        """
+        Выбирает масть для захода джокером (твой ход первый) чтобы забрать и при этом прикрыть другую карту.
+        Подбирает наиболее перспективную карту для прикрытия.
+
+        :param cards: Упорядоченный в порядке приоритета набор карт, среди которых надо выбрать
+        :return: Найденную масть. Если не выбрал подходящую, вернет None
+        """
+
+        # сначала смотрим по козырям
+        if self._trump != const.LEAR_NOTHING:
+            # составим список крупных неприкрытых карт
+            cand = [c for c in cards if c.value in (12, 13) and c.lear == self._trump
+                    and not self._ai_card_covered(c, cards)]
+            if cand and self._ai_greater_cards_count(cand[0]) - 1 == 0:
+                return cand[0].lear
+
+        # не нашли, посомтрим среди простых
+        # составим список крупных неприкрытых карт
+        cand = [c for c in cards if c.value in (12, 13) and c.lear != self._trump
+                and not self._ai_card_covered(c, cards)]
+        if cand:
+            for c in cand:
+                # простую масть выбираем с подстраховкой, а то можно просрать джокера на козыре
+                if self._ai_lear_exists_or_over_safe(c.lear) and self._ai_greater_cards_count(c) - 1 == 0:
+                    return c.lear
+
+        # подходящую не нашли - или 1 джокера недостаточно, чтоб прикрыть, или прикрывать нечего
+        return None
+
     def _ai_fill_order_cards(self, player, first_move):
         """
         Формирует набор карт игрока, на которые будет сделан заказ. Оболочка для разведения веток алгоритма по разным
@@ -791,25 +845,29 @@ class Engine(object):
         
         :param player: Игрок
         :param first_move: флаг, что этот игрок ходит первым
+        :return: карта, на которую можно сделать доп. заказ, если нельзя сделать рассчитанный
         """
 
         if self._trump == const.LEAR_NOTHING:
-            self._ai_fill_order_no_trump(player, first_move)
+            return self._ai_fill_order_no_trump(player, first_move)
         else:
-            self._ai_fill_order_with_trump(player, first_move)
+            return self._ai_fill_order_with_trump(player, first_move)
 
     def _ai_fill_order_no_trump(self, player, first_move):
         """ Формирует набор карт игрока, на которые будет сделан заказ при бескозырке """
 
+        grow_card = None
         deal_cards = self._deals[self._curr_deal].cards
-        max_cards = round(36 / self.party_size())
-        rt = (round(max_cards / 3), round(max_cards / 2), round(max_cards / 1.3))[player.risk_level]
+        # max_cards = round(36 / self.party_size())
+
         if self.party_size() > 3:
+            ck = (3, 4, 5)[player.risk_level]
             rc = (4, 3, 2)[player.risk_level]
         else:
-            rc = (3, 2, 1.3)[player.risk_level]
-        no_see_cover = deal_cards < rt  # смотреть или нет прикрытость карты
-        b = (12, 11, 10)[player.risk_level]
+            ck = (4, 5, 6)[player.risk_level]
+            rc = (3, 2, 1.5)[player.risk_level]
+        no_see_cover = deal_cards < ck  # смотреть или нет прикрытость карты
+        lim = 14 - (2 + player.risk_level)
         has_joker = player.card_exists(joker=True)
         joker_has_cover = has_joker
 
@@ -828,6 +886,7 @@ class Engine(object):
                         # иначе если есть Т другой масти - можно рискнуть, но не на всю серию, т.к. ее могут выбрать
                         # раньше, чем дойдет ход
                         player.add_to_order(series[:round(len(series) / rc)])
+                        grow_card = series[round(len(series) / rc) - 1]
                 else:
                     if has_joker or first_move:
                         # если есть ДЖ или первый ход - можно смело заказывать
@@ -846,17 +905,18 @@ class Engine(object):
                                     if flip_coin(10 - i * 2):
                                         player.order_cards.append(c)
                                     else:
+                                        grow_card = c
                                         break
             # Вариант 2: ряд начинается с меньшей, чем Т
             elif cards:
                 if self.party_size() > 3:
                     # Если больше 3-х игроков, то так
-                    if cards[0].value == 13 and (self._ai_card_covered(cards[0], cards) or
-                                                 (has_joker and joker_has_cover) or no_see_cover):
+                    covered, joker_used = self._ai_card_covered_wj(cards[0], cards, joker_has_cover)
+                    if cards[0].value == 13 and (covered or no_see_cover):
                         # если первая карта (К) прикрыта, тогда еще что-то можно попробовать.
                         # Заказываем только на короля, т.к. на остальное уже слишком опасно
                         player.order_cards.append(cards[0])
-                        if has_joker and len(cards) == 1:
+                        if joker_used:
                             # прикрылись джокером - дальше им прикрываться нельзя будет
                             joker_has_cover = False
                 else:
@@ -865,11 +925,11 @@ class Engine(object):
                     # уровня риска игрока (порог нужен, чтоб было что скинуть, если вдруг ход не успеет дойти вовремя)
                     if has_joker or has_other_ace:
                         for i, c in enumerate(cards):
-                            if self._ai_card_covered(c, cards) or (no_see_cover and c.value > b):
+                            covered, joker_used = self._ai_card_covered_wj(c, cards, joker_has_cover)
+                            if covered or (no_see_cover and c.value > lim):
                                 player.order_cards.append(c)
-                            elif has_joker and joker_has_cover and c.value > b:
-                                player.order_cards.append(c)
-                                joker_has_cover = False
+                                if covered and joker_used:
+                                    joker_has_cover = False
                             else:
                                 break
 
@@ -879,22 +939,26 @@ class Engine(object):
             if j not in player.order_cards:
                 player.order_cards.append(j)
 
+        return grow_card
+
     def _ai_fill_order_with_trump(self, player, first_move):
         """ Формирует набор карт игрока, на которые будет сделан заказ """
 
+        grow_card = None
         deal_cards = self._deals[self._curr_deal].cards
         max_cards = round(36 / self.party_size())
         is_full = deal_cards == max_cards
-        rt = (round(max_cards / 3), round(max_cards / 2), round(max_cards / 1.3))[player.risk_level]
-        no_see_cover = deal_cards < rt  # смотреть или нет прикрытость карты
         if self.party_size() > 3:
+            ck = (3, 4, 5)[player.risk_level]
             trump_limit = 14 - (2, 3, 4)[player.risk_level]
             limit = 14 - player.risk_level
             x_factor = (3, 4, 5)[player.risk_level]
         else:
+            ck = (4, 5, 6)[player.risk_level]
             trump_limit = 14 - (3, 4, 5)[player.risk_level]
-            limit = 14 - (2 + player.risk_level)
+            limit = 14 - (1 + player.risk_level)
             x_factor = (5, 6, 7)[player.risk_level]
+        no_see_cover = deal_cards < ck  # смотреть или нет прикрытость карты
         has_joker = player.card_exists(joker=True)
         joker_has_cover = has_joker
 
@@ -903,26 +967,25 @@ class Engine(object):
             for card in cards:
                 if lear == self._trump and self._trump != const.LEAR_NOTHING:
                     # если масть козырная - просто смотрим, что прикрыто и заказываем на все
-                    covered = self._ai_card_covered(card, cards)
+                    covered, joker_used = self._ai_card_covered_wj(card, cards, joker_has_cover)
                     if is_full:
-                        if covered or (has_joker and joker_has_cover) or len(cards) == 9:
+                        if covered or len(cards) == 9:
                             player.order_cards.append(card)
-                            if not covered:
+                            if covered and joker_used:
                                 joker_has_cover = False
                     else:
-                        if no_see_cover:
+                        if covered:
+                            player.order_cards.append(card)
+                            if joker_used:
+                                joker_has_cover = False
+                        elif no_see_cover:
                             if card.value > trump_limit:
                                 player.order_cards.append(card)
-                        elif covered:
-                            player.order_cards.append(card)
-                        elif has_joker and joker_has_cover:
-                            player.order_cards.append(card)
-                            joker_has_cover = False
                 else:
                     # если не козырная, заказываем только на самые крупные - и то не всегда
-                    covered = self._ai_card_covered(card, cards)
+                    covered, joker_used = self._ai_card_covered_wj(card, cards, joker_has_cover)
                     if is_full:
-                        if (covered or (has_joker and joker_has_cover)) and card.value >= limit:
+                        if covered and card.value >= limit:
                             f = False
                             if len(cards) > (9 - self.party_size()):
                                 if flip_coin(x_factor):
@@ -931,35 +994,41 @@ class Engine(object):
                             else:
                                 player.order_cards.append(card)
                                 f = True
-                            if f and not covered:
+                            if f and joker_used:
                                 joker_has_cover = False
                     else:
                         if card.value >= limit:
-                            if no_see_cover:
+                            if covered:
+                                player.order_cards.append(card)
+                                if joker_used:
+                                    joker_has_cover = False
+                            elif no_see_cover:
                                 if flip_coin(x_factor - (14 - card.value)):
                                     player.order_cards.append(card)
-                            elif covered:
-                                player.order_cards.append(card)
-                            elif has_joker and joker_has_cover:
-                                player.order_cards.append(card)
-                                joker_has_cover = False
 
         if self.party_size() > 3:
-            # если в заказе больше одной некозырной карты меньше Т - может быть выкинем одну случайно выбранную для подстраховки
-            kings = [(i, c.value) for i, c in enumerate(player.order_cards) if c.lear != self._trump and c.value <= 13]
-            if len(kings) > 1 and flip_coin((6, 4, 2)[player.risk_level]):
-                # если есть дамы - выберем из них
-                queens = list(filter(lambda x: x[1] == 12, kings))
-                if queens:
-                    player.order_cards.pop(queens[random.choice(range(len(queens)))][0])
-                else:
-                    player.order_cards.pop(kings[random.choice(range(len(kings)))][0])
+            k = 13
+        else:
+            k = 12
+
+        # если в заказе больше одной некозырной карты меньше Т - может быть выкинем одну случайно выбранную для подстраховки
+        kings = [(i, c.value) for i, c in enumerate(player.order_cards) if c.lear != self._trump and c.value <= k]
+        if len(kings) > 1 and flip_coin((6, 4, 2)[player.risk_level]):
+            # если есть дамы - выберем из них
+            # если мы что-то выкинули, запомним это - пригодиться, если будет нельзя сделать рассчитанный заказ
+            queens = list(filter(lambda x: x[1] <= k - 1, kings))
+            if queens:
+                grow_card = player.order_cards.pop(queens[random.choice(range(len(queens)))][0])
+            else:
+                grow_card = player.order_cards.pop(kings[random.choice(range(len(kings)))][0])
 
         if has_joker:
             # и закинем джокера, если он есть и еще не там
             j = player.cards[player.index_of_card(joker=True)]
             if j not in player.order_cards:
                 player.order_cards.append(j)
+
+        return grow_card
 
     def _ai_calc_order(self):
         """
@@ -969,6 +1038,7 @@ class Engine(object):
 
         player = self._players[self._curr_player]
         deal_type = self._deals[self._curr_deal].type_
+        gc = None
 
         if deal_type == const.DEAL_BROW:
             # тут я вижу карты игроков, но не вижу свои, в раздаче всегда 1 карта
@@ -993,7 +1063,7 @@ class Engine(object):
         else:
             is_dark = deal_type == const.DEAL_DARK or (random.randint(0, 100) < 10 if self._dark_allowed else False)
             # формируем список карт, на которые рассчитываем взять в любом случае, они понадобятся потом в логике ИИ
-            self._ai_fill_order_cards(player, self._deals[self._curr_deal].player == player)
+            gc = self._ai_fill_order_cards(player, self._deals[self._curr_deal].player == player)
 
         if is_dark:
             if self.party_size() > 3:
@@ -1013,20 +1083,25 @@ class Engine(object):
         # проверка возможности сделать такой заказ и корректировка его, если нельзя: уменьшаем или увеличиваем
         # в зависимости от ситуации и уровня риска игрока до тех пор, пока не станет возможно
         start_cnt = cnt
-        can, _ = self._check_order(cnt, is_dark)
+        can, _ = self.check_order(cnt, is_dark)
         while not can:
             if cnt <= 0 or cnt >= len(player.cards):
                 start_cnt = cnt
 
             if start_cnt <= 0:
                 cnt += 1
+                if gc:
+                    player.order_cards.append(gc)
             elif start_cnt >= len(player.cards):
                 cnt -= 1
             else:
-                cnt += (-1, random.choice((-1, 1)), 1)[player.risk_level]
-                # cnt += random.choice((-1, 1))
+                if gc:
+                    cnt += (-1, random.choice((-1, 1)), 1)[player.risk_level]
+                    player.order_cards.append(gc)
+                else:
+                    cnt -= 1
 
-            can, _ = self._check_order(cnt, is_dark)
+            can, _ = self.check_order(cnt, is_dark)
 
         return cnt, is_dark
 
@@ -1042,9 +1117,11 @@ class Engine(object):
 
         # сразу разведем ветки анализа, когда раздаются все карты и не все
         if no_full:
+            # вышли все крупнее этой карты или у всех, кто после закончилась масть и козырь
             if self._ai_greater_cards_released(card) or self._ai_lear_over_safe(card.lear):
                 return True
         else:
+            # вышли все крупнее этой карты и у всех, кто после масть или есть или нет и нет козыря
             if self._ai_greater_cards_released(card) and self._ai_lear_exists_or_over_safe(card.lear):
                 return True
 
@@ -1091,90 +1168,85 @@ class Engine(object):
         if deal_type == const.DEAL_GOLD or (
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
+            # составим список карт: сначала те, на которые рссчет, потом остальные по убыванию
+            cards = [c for c in player.cards_sorted() if c in player.order_cards] + \
+                    [c for c in player.cards_sorted() if c not in player.order_cards]
 
-            for step in (1, 2):
-                # 1 круг
-                # смотрим в случайном порядке в тех, на которые заказали, можно ли картой уже ходить (т.е. все, что больше, вышло)
-                # 2 круг
-                # если ничего не нашли из заказанного - повторим процедуру со всеми остальными картами, но в порядке убывания величины
-                if step == 1:
-                    cards = [c for c in player.cards_sorted() if c in player.order_cards]
-                    random.shuffle(cards)
-                else:
-                    cards = [c for c in player.cards_sorted()]
-
-                for c in cards:
-                    if self._ai_can_take(c) and (not c.joker or step == 2):
-                        card = c
-                        break
-
-                # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать - ходим джокером
-                if not card:
-                    if deal_type != const.DEAL_GOLD and (player.order - player.take) >= len(player.cards):
-                        n = player.index_of_card(joker=True)
-                        if n > -1:
-                            card = player.cards[n]
-                            # выберем для джокера действие и масть. Зависит от того, прикрывали мы им что-то или нет.
-                            # Прикрыть на заказе им мы могли только короля, так что поищем. Сначала козырного, потом простых
-                            # т.к. до этого мы уже перебрали все, на что рассчитывали - тут можно уже не проверять, вышла ли угрожающая
-                            cnt = [c for c in player.order_cards if c.value == 13 and c.lear != self._trump]
-                            if self._trump != const.LEAR_NOTHING:
-                                ct = [c for c in player.order_cards if c.value == 13 and c.lear == self._trump]
-                                if ct:
-                                    card.joker_action = const.JOKER_TAKE_BY_MAX
-                                    card.joker_lear = ct[0].lear
-                            if card.joker_action is None:
-                                if cnt:
-                                    card.joker_action = const.JOKER_TAKE_BY_MAX
-                                    card.joker_lear = cnt[random.randrange(0, len(cnt))].lear
-
-                # ничего не нашли - нужно кинуть что-то для затравки, чтобы вынудить сбросить мешающую крупную -
-                # подберем что-то не самое мелкое той же масти, как карты из списка заказа
-                if not card:
-                    for co in player.order_cards:
-                        c = player.middle_card(co.lear)
-                        if c:
-                            cl = player.gen_lear_range(co.lear)
-                            i = cl.index(c)
-
-                            while i < len(cl) and (cl[i].value >= co.value or cl[i] in player.order_cards):
-                                i += 1
-
-                            if i < len(cl):
-                                card = cl[i]
-                                break
-                else:
+            # ищем карту, на которую можно гарантированно взять
+            for c in cards:
+                if self._ai_can_take(c) and not c.joker:
+                    card = c
                     break
+
+            # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать - ходим джокером
+            if not card:
+                if deal_type != const.DEAL_GOLD and (player.order - player.take) >= len(player.cards):
+                    n = player.index_of_card(joker=True)
+                    if n > -1:
+                        card = player.cards[n]
+                        card.joker_action = const.JOKER_TAKE_BY_MAX
+                        # выберем для джокера масть - подберем масть так, чтоб прикрыть какую-то из карт,
+                        # которую есть необходимость и возможность прикрыть джокером
+                        card.joker_lear = self._ai_select_joker_lear_to_shield(cards)
+
+                        if card.joker_lear is None:
+                            # прикрывать нечего, а забирать надо без вариантов - просто забираем самый крупный козырь
+                            # или случайно выбранную масть из имеющихся у игрока на бескозырке
+                            card.joker_lear = self._trump if self._trump != const.LEAR_NOTHING else random.choice(
+                                list(set([c.lear for c in player.cards])))
+
+            # ничего не нашли - нужно кинуть что-то для затравки, чтобы вынудить сбросить мешающую крупную -
+            # подберем что-то не самое мелкое той же масти, как карты из списка заказа (сначала, потом все остальные)
+            if not card:
+                for co in cards:
+                    c = player.middle_card(co.lear)
+                    if c:
+                        cl = player.gen_lear_range(co.lear)
+                        i = cl.index(c)
+
+                        while i < len(cl) and (cl[i].value >= co.value or cl[i] in player.order_cards):
+                            i += 1
+
+                        if i < len(cl):
+                            card = cl[i]
+                            break
+
+            # если мы на золотой - можно поискать среди карт неприкрытую крупную и прикрыть ее джокером
+            if deal_type == const.DEAL_GOLD:
+                n = player.index_of_card(joker=True)
+                if n > -1:
+                    card = player.cards[n]
+                    card.joker_action = const.JOKER_TAKE_BY_MAX
+                    card.joker_lear = self._ai_select_joker_lear_to_shield(cards)
+
+                    if card.joker_lear is None:
+                        # прикрыть нечего - значит джокером пока ходим, подождем более благоприятного момента
+                        card = None
 
             # полезного ничего вычислить не получилось (напрмер потому, что розданы не все карты) -
             # просто берем самую большую по номиналу для неполной раздачи или самую мелкую при полной
             if not card:
                 if no_full and deal_cards <= limit:
-                    card = [c for c in player.cards_sorted()][0]
+                    cards = [c for c in player.cards_sorted() if not c.joker]
                 else:
-                    card = [c for c in player.cards_sorted(ascending=True)][0]
+                    cards = [c for c in player.cards_sorted(ascending=True) if not c.joker]
 
-            # если выбран джокер:
-            if card.joker:
-                # если мы на золотой - можно поискать среди карт неприкрытую крупную и прикрыть ее
-                if deal_type == const.DEAL_GOLD:
-                    cnt = [c for c in player.cards if c.value == 13 and c.lear != self._trump]
-                    if self._trump != const.LEAR_NOTHING:
-                        ct = [c for c in player.cards if c.value == 13 and c.lear == self._trump]
-                        if ct:
-                            card.joker_action = const.JOKER_TAKE_BY_MAX
-                            card.joker_lear = ct[0].lear
-                    if card.joker_action is None:
-                        if cnt:
-                            card.joker_action = const.JOKER_TAKE_BY_MAX
-                            card.joker_lear = cnt[random.randrange(0, len(cnt))].lear
-
-                # тут масть и "по самой большой" уже от фонаря - эти вещи если выбраны, то раньше
-                if card.joker_action is None:
-                    card.joker_action = const.JOKER_TAKE_BY_MAX \
-                        if self._joker_demand_peak and flip_coin(3) else const.JOKER_TAKE
-                if card.joker_lear is None:
-                    card.joker_lear = self._trump if self._trump != const.LEAR_NOTHING else random.randint(0, 3)
+                if cards:
+                    card = cards[0]
+                else:
+                    # это значит остался только джокер. Если мы тут - это уже или перебрал или золотая
+                    # если не золотая и все партнеры на данный момент взяли свое - скинем так, чтоб кто-то перебрал
+                    card = player.cards[0]
+                    if deal_type != const.DEAL_GOLD and not no_full and all(
+                            [p.order == p.take for p in self.players if not p.is_robot]):
+                        card.joker_action = const.JOKER_GIVE
+                        card.joker_lear = random.choice([l for l in range(len(const.LEAR_NAMES))
+                                                         if not self._ai_lear_released(l)])
+                    else:
+                        # или просто заберем
+                        card.joker_action = const.JOKER_TAKE
+                        card.joker_lear = self._trump if self._trump != const.LEAR_NOTHING else random.choice(
+                            [l for l in range(len(const.LEAR_NAMES))])
         else:
             # взято свое - надо скинуть - ходим самой мелкой, сразу проверим, что масть этой карты еще не вышла
             # и что не вышли карты крупнее ее (насколько это возможно), чтоб не облажатся
@@ -1225,57 +1297,57 @@ class Engine(object):
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
             # Берем самую большую заданной масти
-            c = player.max_card(walk_lear)
+            card = player.max_card(walk_lear)
 
-            if not c:
+            if not card:
                 # если масти нет - берем самый большой козырь
-                c = player.max_card(self._trump)
+                card = player.max_card(self._trump)
             elif tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
                 # если есть и заказывали по старшей - придется вернуть ее
                 pass
             else:
                 # если самая большая моя не бьет то, что уже на столе или
                 # мой ход не последний и что-то не вышло, что может побить это карту - ищем дальше...
-                take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
+                take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
 
                 if len(self._table) < self.party_size() - 1:
                     # если я хожу не последний - проверить, что вышло все, что больше, и что не вышла масть или вышла с козырем
-                    take = take and self._ai_can_take(c)
+                    take = take and self._ai_can_take(card)
 
                 if not take:
-                    c = player.min_card(walk_lear)
+                    card = player.min_card(walk_lear)
 
                     # посмотрим - не просираем ли мы карту, на которую рассчитывали
-                    if c in player.order_cards:
+                    if card in player.order_cards:
                         n = player.index_of_card(joker=True)
                         if n > -1:
-                            c = player.cards[n]
+                            card = player.cards[n]
 
             # масти нет, козыря нет - придется скидывать - надо выбрать что-то ненужное
-            if not c:
+            if not card:
                 # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать
                 if deal_type == const.DEAL_GOLD or (player.order - player.take) >= len(player.cards):
                     n = player.index_of_card(joker=True)
                     if n > -1:
-                        c = player.cards[n]
+                        card = player.cards[n]
 
-                cards = [c for c in player.cards_sorted(ascending=True) if c not in player.order_cards]
-                if not cards:
-                    cards = [c for c in player.cards_sorted(ascending=True)]
+                if not card:
+                    cards = [c for c in player.cards_sorted(ascending=True) if c not in player.order_cards]
+                    if not cards:
+                        cards = [c for c in player.cards_sorted(ascending=True)]
 
-                if not c:
-                    c = cards[0]
+                    card = cards[0]
 
-            if c.joker:
-                c.joker_action = const.JOKER_TAKE
-                c.joker_lear = self._trump if self._trump != const.LEAR_NOTHING else walk_lear
+            if card.joker:
+                card.joker_action = const.JOKER_TAKE
+                card.joker_lear = self._trump if self._trump != const.LEAR_NOTHING else walk_lear
         else:
             # свое взято - надо сливать - слить надо самую крупную из возможных
-            c = None
+            card = None
 
             if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
                 # если требовали по старшей - придется вернуть старшую. Ищем ее
-                c = player.max_card(walk_lear)
+                card = player.max_card(walk_lear)
             else:
                 # иначе находим самую большую из тех, на которую точно не возьмешь
                 # и точно такая же логика для козыря
@@ -1285,11 +1357,11 @@ class Engine(object):
 
                     take = False
 
-                    for c in player.gen_lear_range(lear):
-                        take = c == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), c)
+                    for card in player.gen_lear_range(lear):
+                        take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
                         if not take:
                             if len(tbl_ordered) < self.party_size() - 1:
-                                take = self._ai_can_take(c)  # not self._ai_can_give(c)
+                                take = self._ai_can_take(card)  # not self._ai_can_give(c)
                             if not take:
                                 break
 
@@ -1301,24 +1373,24 @@ class Engine(object):
                     if take:
                         if len(tbl_ordered) == self.party_size() - 1:
                             if deal_type == const.DEAL_MIZER:
-                                c = player.max_card(lear)
+                                card = player.max_card(lear)
 
-                    if c:
+                    if card:
                         break
 
                 # а теперь посмотрим - если есть серьезный шанс взять - кинем джокера (если он есть конечно)
                 if take:
                     n = player.index_of_card(joker=True)
                     if n > -1:
-                        c = player.cards[n]
+                        card = player.cards[n]
 
             # нет ни масти ни козыря (и джокер не понадобился)
-            if not c:
+            if not card:
                 # выкинуть самую большую из имеющихся
-                c = [c for c in player.cards_sorted()][0]
+                card = [c for c in player.cards_sorted()][0]
 
-            if c.joker:
-                c.joker_action = const.JOKER_GIVE
-                c.joker_lear = c.lear if self._joker_give_at_par else walk_lear
+            if card.joker:
+                card.joker_action = const.JOKER_GIVE
+                card.joker_lear = card.lear if self._joker_give_at_par else walk_lear
 
-        return player.cards.index(c)
+        return player.cards.index(card)

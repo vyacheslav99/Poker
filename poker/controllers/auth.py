@@ -1,4 +1,4 @@
-from core.helpers import Response, HTTPException
+from server.helpers import Response, HTTPException
 
 
 class Auth(object):

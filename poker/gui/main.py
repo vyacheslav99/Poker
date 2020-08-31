@@ -7,6 +7,8 @@ from PyQt5.QtCore import *
 
 from gui import utils, const
 from game import engine, helpers, const as eng_const
+from gui.game_table import GameTableDialog
+from gui.service_info import ServiceInfoDialog
 
 # print(QStyleFactory.keys())
 
@@ -27,7 +29,7 @@ class QCard(QGraphicsPixmapItem):
         self.side = None
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        self.setFlag(QGraphicsItem.ItemIsMovable)
+        # self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setZValue(const.CARD_BASE_Z_VALUE)
         self.set_std_shadow()
@@ -140,9 +142,10 @@ class Area(QGraphicsRectItem):
 
 class MainWnd(QMainWindow):
 
-    def __init__(self, app):
+    def __init__(self, app, *args):
         super().__init__()
 
+        self.__dev_mode = '--dev_mode' in args
         self.options = {}
         self.players = []
         self.table = {}
@@ -167,8 +170,10 @@ class MainWnd(QMainWindow):
         self.ja_take_by_btn = None
         self.ja_give_btn = None
         self.grid_stat_button = None
+        self.game_table = None
         self.ja_lear_buttons = []
         self.round_result_labels = []
+        self.service_wnd = None
 
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -205,6 +210,13 @@ class MainWnd(QMainWindow):
         start_actn.triggered.connect(self.start_game)
         file_menu.addAction(start_actn)
 
+        if self.__dev_mode:
+            svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
+            svc_actn.setShortcut('F9')
+            svc_actn.setStatusTip('Показать окно со служебной информацией')
+            svc_actn.triggered.connect(self.show_service_window)
+            file_menu.addAction(svc_actn)
+
         file_menu.addSeparator()
         exit_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
         exit_actn.setShortcut('Esc')
@@ -220,6 +232,14 @@ class MainWnd(QMainWindow):
 
     def closeEvent(self, event):
         super(MainWnd, self).closeEvent(event)
+
+    def show_service_window(self):
+        if self.__dev_mode and self.started():
+            if not self.service_wnd:
+                self.service_wnd = ServiceInfoDialog(self)
+
+            self.service_wnd.players = self.players
+            self.service_wnd.show()
 
     def set_status_messages(self, messages):
         """
@@ -388,6 +408,9 @@ class MainWnd(QMainWindow):
     def stop_game(self):
         """ Остановить игру, очистить игровое поле """
 
+        if self.service_wnd:
+            self.service_wnd.hide()
+
         if self.started():
             self.game.stop()
 
@@ -441,6 +464,12 @@ class MainWnd(QMainWindow):
     def init_game_table(self):
         """ Отрисовка основных эл-тов игрового поля в начале игры """
 
+        if self.game_table:
+            self.game_table.destroy()
+            self.game_table = None
+
+        self.game_table = GameTableDialog(self.players, self)
+
         if len(self.players) == 4:
             pos = (20, 45)
             ipos = (-35, 10)
@@ -466,9 +495,9 @@ class MainWnd(QMainWindow):
         self.order_info_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
                                                (pos[0] + 5, pos[1] + 100), 16, 65)
 
-        self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Таблица игры', (160, 50),
+        self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Запись игры', (160, 50),
                                                 (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
-                                                12, 65, 'LightCyan', 'Purple')
+                                                12, 65, 'YellowGreen', 'Purple')
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -493,7 +522,7 @@ class MainWnd(QMainWindow):
                 self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35),
                                       'Aqua', 16, 70)
             else:
-                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 15), Qt.cyan, 18, 65)
+                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 12), Qt.cyan, 18, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
                 self.add_player_label(i, 'take', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
 
@@ -554,12 +583,14 @@ class MainWnd(QMainWindow):
             if self.can_show_results:
                 self.stop_game()
                 self.show_game_results()
+                self.show_statistics_grid()
                 return
             else:
                 self.can_show_results = True
 
         if self.is_new_round:
             self.is_new_round = False
+            self.order_dark = None
             self.hide_order_and_take()
             self.hide_round_results()
             self.clear_cards(True)
@@ -593,6 +624,9 @@ class MainWnd(QMainWindow):
             self.is_new_round = True
             self.clear_table()
             self.show_round_results()
+
+        if self.service_wnd and self.service_wnd.isVisible():
+            self.service_wnd.refresh()
 
     def clear_cards(self, total=False):
         """
@@ -719,15 +753,15 @@ class MainWnd(QMainWindow):
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
-        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'Самая\nстаршая',
+        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'самая\nстаршая',
                                            (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_btn.hide()
 
         self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX),
-                                              'По старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+                                              'по старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
-        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'Самая\nмладшая',
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'самая\nмладшая',
                                            (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
         self.ja_give_btn.hide()
 
@@ -750,7 +784,7 @@ class MainWnd(QMainWindow):
             else:
                 w = round(const.TABLE_AREA_SIZE[0] / 2)
 
-            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 15, 65, color='aqua')
+            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 13, 65, color='aqua')
             lb.setAlignment(aligns[i])
             lb.setTextFormat(Qt.RichText)
 
@@ -872,8 +906,12 @@ class MainWnd(QMainWindow):
             else:
                 y = round(const.AREA_SIZE[1] / 2) + 60
 
+            b, s = self.game.check_order(i, self.order_dark or False)
             btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
-                                   16, 65, 'DarkGreen', 'Lime')
+                                   16, 65, 'DarkGreen' if b else 'Gray', 'Lime' if b else 'DimGray')
+
+            btn.setDisabled(not b)
+            btn.setToolTip(s)
             self.buttons.append(btn)
 
     def show_joker_action_buttons(self):
@@ -896,10 +934,64 @@ class MainWnd(QMainWindow):
         for btn in self.ja_lear_buttons:
             btn.show()
 
+    def add_table_row(self, record):
+        """
+        Добавляет в конец строку к таблице хода игры
+
+        :param record: строка с результатами раунда,  которую надо добавить
+        """
+
+        row = []
+        colors = ['Purple']
+        max_scores = max([p.total_scores for p in self.players])
+        d = self.game.current_deal()
+
+        if d.type_ < 3:
+            row.append(f'по {d.cards}')
+        else:
+            row.append(eng_const.DEAL_NAMES[d.type_][0])
+
+        for p in self.players:
+            colors.append('aqua')
+            order = int(record[p.id]['order'].split('*')[0])
+            scores = int(record[p.id]['scores'].split(' ')[0])
+
+            if record[p.id]['take'] < order or d.type_ == eng_const.DEAL_MIZER:
+                colors.append('OrangeRed')
+            elif record[p.id]['take'] > order and d.type_ != eng_const.DEAL_GOLD:
+                colors.append('Fuchsia')
+            else:
+                colors.append('Lime')
+
+            if scores < 0:
+                colors.append('OrangeRed')
+            elif scores > 9:
+                colors.append('Lime')
+            else:
+                colors.append('Fuchsia')
+
+            if record[p.id]['total'] < 0:
+                colors.append('OrangeRed')
+            elif record[p.id]['total'] >= max_scores :
+                colors.append('Lime')
+            else:
+                colors.append('aqua')
+
+            for k in record[p.id]:
+                if k == 'order':
+                    row.append(record[p.id][k].replace('-1', '-'))
+                else:
+                    row.append(record[p.id][k])
+
+        self.game_table.add_row(row, colors)
+
     def show_round_results(self):
         """ Показ результатов раунда """
 
         rec = self.game.get_record()
+        self.add_table_row(rec[-1])
+        max_scores = max([p.total_scores for p in self.players])
+        d = self.game.current_deal()
 
         for i, player in enumerate(self.players):
             tmpl = ''.join(('{player}<br>{order} | ',
@@ -914,23 +1006,23 @@ class MainWnd(QMainWindow):
             scores = int(keys['scores'].split(' ')[0])
             keys['order'] = keys['order'].replace('-1', '-')
 
-            if keys['take'] < order:
+            if keys['take'] < order or d.type_ == eng_const.DEAL_MIZER:
                 keys['take_color'] = 'OrangeRed'
-            elif keys['take'] > order:
+            elif keys['take'] > order and d.type_ != eng_const.DEAL_GOLD:
                 keys['take_color'] = 'Fuchsia'
             else:
                 keys['take_color'] = 'Lime'
 
             if scores < 0:
                 keys['scores_color'] = 'OrangeRed'
-            elif scores > 0:
+            elif scores > 9:
                 keys['scores_color'] = 'Lime'
             else:
-                keys['scores_color'] = 'aqua'
+                keys['scores_color'] = 'Fuchsia'
 
             if keys['total'] < 0:
                 keys['total_color'] = 'OrangeRed'
-            elif keys['total'] > 0:
+            elif keys['total'] >= max_scores:
                 keys['total_color'] = 'Lime'
             else:
                 keys['total_color'] = 'aqua'
@@ -951,9 +1043,6 @@ class MainWnd(QMainWindow):
     def show_game_results(self):
         """ Показ результатов игры """
 
-        # todo: Пока что такая залепа
-        congratulations = ('УРА, Товарищи!!!', 'Ай, молодца!', 'Учитесь, сынки!')
-
         pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2) + 50,
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
@@ -970,7 +1059,7 @@ class MainWnd(QMainWindow):
 
         y = y + len(self.game.players) * 30 + 60
         self.set_text(f'Победил {winner}', (x, y), Qt.green, 18, 65)
-        self.set_text(random.choice(congratulations), (x, y + 60), Qt.magenta, 18, 65)
+        self.set_text(random.choice(const.CONGRATULATIONS), (x, y + 60), Qt.magenta, 18, 65)
 
     def clear_buttons(self):
         """ Убирает все кнопки с центральной области """
@@ -1090,6 +1179,11 @@ class MainWnd(QMainWindow):
     def show_statistics_grid(self):
         """ Показ таблицы хода игры """
 
+        if self.can_show_results:
+            self.game_table.setWindowTitle('Итоги игры')
+        self.game_table.move(self.pos())
+        self.game_table.show()
+
     def _get_face_positions(self):
         """ Позиции для отрисовки аватарок игроков """
 
@@ -1193,11 +1287,11 @@ class MainWnd(QMainWindow):
             tmpl = '<span style="color:{0}">{1}</span>'.format(clr, '{0}')
 
             if card.joker_action == eng_const.JOKER_TAKE:
-                s, l = 'Самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
+                s, l = 'самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
-                s, l = 'По старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
+                s, l = 'по старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == eng_const.JOKER_GIVE:
-                s, l = 'Самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
+                s, l = 'самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
                     if not self.game.joker_give_at_par else f'{card}'
             else:
                 s, l = None, None
