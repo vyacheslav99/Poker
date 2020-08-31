@@ -753,15 +753,15 @@ class MainWnd(QMainWindow):
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
-        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'самая\nстаршая',
+        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'ЗАБРАТЬ',
                                            (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_btn.hide()
 
         self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX),
-                                              'по старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+                                              'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
-        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'самая\nмладшая',
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'СКИНУТЬ',
                                            (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
         self.ja_give_btn.hide()
 

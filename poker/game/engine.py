@@ -1325,19 +1325,22 @@ class Engine(object):
         deal_type = self._deals[self._curr_deal].type_
         walk_lear = tbl_ordered[0][1].card.lear if not tbl_ordered[0][1].is_joker() else tbl_ordered[0][1].joker_lear()
 
+        if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
+            # если требовали по старшей - придется вернуть старшую
+            card = player.max_card(walk_lear)
+            if card:
+                return player.cards.index(card)
+
         if deal_type == const.DEAL_GOLD or (
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
-            # или еще не набрал или уже перебрал - надо брать
-            # Берем самую большую заданной масти
+            # или еще не набрал или уже перебрал - надо брать: Берем самую большую заданной масти
             card = player.max_card(walk_lear)
 
             if not card:
                 # если масти нет - берем самый большой козырь
                 card = player.max_card(self._trump)
-            elif tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
-                # если есть и заказывали по старшей - придется вернуть ее
-                pass
-            else:
+
+            if card:
                 # если самая большая моя не бьет то, что уже на столе или
                 # мой ход не последний и что-то не вышло, что может побить это карту - ищем дальше...
                 take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
@@ -1348,7 +1351,7 @@ class Engine(object):
                     take = take and self._ai_can_take(card)
 
                 if not take:
-                    card = player.min_card(walk_lear)
+                    card = player.min_card(walk_lear) or player.min_card(self._trump)
 
                     # посмотрим - не просираем ли мы карту, на которую рассчитывали, если да - кинем джокера
                     if card in player.order_cards:
@@ -1363,22 +1366,27 @@ class Engine(object):
                             if player.order - player.take <= len([c for c in player.cards if c in player.order_cards]) - 1:
                                 card = player.cards[n]
 
-            # масти нет, козыря нет - придется скидывать - надо выбрать что-то ненужное
+            # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать - кинем джокера
+            if card and not take and not card.joker and \
+                    deal_type == const.DEAL_GOLD or (player.order - player.take) >= len(player.cards):
+                n = player.index_of_card(joker=True)
+                if n > -1:
+                    card = player.cards[n]
+
+            # бьющую карту не нашли - придется скидывать - надо выбрать что-то ненужное
             if not card:
-                # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать - кинем джокера
-                if deal_type == const.DEAL_GOLD or (player.order - player.take) >= len(player.cards):
-                    n = player.index_of_card(joker=True)
-                    if n > -1:
-                        card = player.cards[n]
+                cards = []
+                if self._ai_player_take_state(player) > const.TAKE_STATE_POOR:
+                    cards = [c for c in player.cards_sorted(ascending=True)
+                             if c not in player.order_cards and not c.joker]
+                if not cards:
+                    cards = [c for c in player.cards_sorted(ascending=True) if not c.joker]
 
-                if not card:
-                    cards = []
-                    if self._ai_player_take_state(player) > const.TAKE_STATE_POOR:
-                        cards = [c for c in player.cards_sorted(ascending=True) if c not in player.order_cards]
-                    if not cards:
-                        cards = [c for c in player.cards_sorted(ascending=True)]
-
+                if cards:
                     card = cards[0]
+                else:
+                    # это значит остался только джокер, хотя вобще-то сюда никак зайти не может ;-)
+                    card = player.cards[0]
 
             if card.joker:
                 card.joker_action = const.JOKER_TAKE
@@ -1387,44 +1395,41 @@ class Engine(object):
             # свое взято - надо сливать - слить надо самую крупную из возможных
             card = None
 
-            if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
-                # если требовали по старшей - придется вернуть старшую. Ищем ее
-                card = player.max_card(walk_lear)
-            else:
-                # иначе находим самую большую из тех, на которую точно не возьмешь
-                # и точно такая же логика для козыря
+            # находим самую большую из тех, на которую точно не возьмешь
+            # и точно такая же логика для козыря
+            take = False
+            for lear in (walk_lear, self._trump):
+                if lear == const.LEAR_NOTHING:
+                    continue
+
                 take = False
-                for lear in (walk_lear, self._trump):
-                    if lear == const.LEAR_NOTHING:
-                        continue
 
-                    take = False
-
-                    for card in player.gen_lear_range(lear):
-                        take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
+                for c in player.gen_lear_range(lear):
+                    card = c
+                    take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
+                    if not take:
+                        if len(tbl_ordered) < self.party_size() - 1:
+                            take = self._ai_can_take(card)  # not self._ai_can_give(c)
                         if not take:
-                            if len(tbl_ordered) < self.party_size() - 1:
-                                take = self._ai_can_take(card)  # not self._ai_can_give(c)
-                            if not take:
-                                break
+                            break
 
-                    # если всетаки бьем - найденная будет самой маленькой картой этой масти из моих
-                    # если походили все, кроме меня: на мизере берем самую большую, в остальных - так и оставляем,
-                    # потому что если не мизер - то дальше наша стратегия - набрать как можно больше.
-                    # если походили не все - оставляем маленькую - это шанс, что у кого-то есть больше
-                    if take:
-                        if len(tbl_ordered) == self.party_size() - 1:
-                            if deal_type == const.DEAL_MIZER:
-                                card = player.max_card(lear)
-
-                    if card:
-                        break
-
-                # а теперь посмотрим - если есть серьезный шанс взять - кинем джокера (если он есть конечно)
+                # если всетаки бьем - найденная будет самой маленькой картой этой масти из моих
+                # если походили все, кроме меня: на мизере берем самую большую, в остальных - так и оставляем,
+                # потому что если не мизер - то дальше наша стратегия - набрать как можно больше.
+                # если походили не все - оставляем маленькую - это шанс, что у кого-то есть больше
                 if take:
-                    n = player.index_of_card(joker=True)
-                    if n > -1:
-                        card = player.cards[n]
+                    if len(tbl_ordered) == self.party_size() - 1:
+                        if deal_type == const.DEAL_MIZER:
+                            card = player.max_card(lear)
+
+                if card:
+                    break
+
+            # а теперь посмотрим - если есть серьезный шанс взять - кинем джокера (если он есть конечно)
+            if take:
+                n = player.index_of_card(joker=True)
+                if n > -1:
+                    card = player.cards[n]
 
             # нет ни масти ни козыря (и джокер не понадобился)
             if not card:
