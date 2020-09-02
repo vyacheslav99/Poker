@@ -1,5 +1,7 @@
 import os
 import random
+import pickle
+import json
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -146,6 +148,7 @@ class MainWnd(QMainWindow):
         super().__init__()
 
         self.__dev_mode = '--dev_mode' in args
+        self._started = False
         self.options = {}
         self.players = []
         self.table = {}
@@ -174,6 +177,10 @@ class MainWnd(QMainWindow):
         self.ja_lear_buttons = []
         self.round_result_labels = []
         self.service_wnd = None
+
+        self.start_actn = None
+        self.throw_actn = None
+        self.svc_actn = None
 
         self.app = app
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -204,18 +211,22 @@ class MainWnd(QMainWindow):
         menubar = self.menuBar()
         file_menu = menubar.addMenu('Файл')
         # toolbar = self.addToolBar('Выход')
-        start_actn = QAction(QIcon(const.MAIN_ICON), 'Играть', self)
-        start_actn.setShortcut('F2')
-        start_actn.setStatusTip('Начать новую игру')
-        start_actn.triggered.connect(self.start_game)
-        file_menu.addAction(start_actn)
+        self.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
+        self.start_actn.setShortcut('F2')
+        self.start_actn.triggered.connect(self.on_start_action)
+        file_menu.addAction(self.start_actn)
+
+        self.throw_actn = QAction('Бросить партию', self)
+        self.throw_actn.setStatusTip('Отказаться от текущей партии')
+        self.throw_actn.triggered.connect(self.on_throw_action)
+        file_menu.addAction(self.throw_actn)
 
         if self.__dev_mode:
-            svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
-            svc_actn.setShortcut('F9')
-            svc_actn.setStatusTip('Показать окно со служебной информацией')
-            svc_actn.triggered.connect(self.show_service_window)
-            file_menu.addAction(svc_actn)
+            self.svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
+            self.svc_actn.setShortcut('F9')
+            self.svc_actn.setStatusTip('Показать окно со служебной информацией')
+            self.svc_actn.triggered.connect(self.show_service_window)
+            file_menu.addAction(self.svc_actn)
 
         file_menu.addSeparator()
         exit_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
@@ -223,7 +234,29 @@ class MainWnd(QMainWindow):
         exit_actn.setStatusTip('Выход из игры')
         exit_actn.triggered.connect(self.close)
         file_menu.addAction(exit_actn)
+
+        self.refresh_menu_actions()
         # toolbar.addAction(exit_actn)
+
+    def refresh_menu_actions(self):
+        """ Акуализация состояния игрового меню """
+
+        if self.started():
+            self.start_actn.setText('Отложить партию')
+            self.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
+            self.throw_actn.setEnabled(True)
+            if self.svc_actn:
+                self.svc_actn.setEnabled(True)
+        else:
+            if self.save_exists()[0]:
+                self.start_actn.setText('Продолжить партию')
+                self.start_actn.setStatusTip('Вернуться к отложенной партии')
+            else:
+                self.start_actn.setText('Новая партия')
+                self.start_actn.setStatusTip('Начать новую партию')
+            self.throw_actn.setEnabled(False)
+            if self.svc_actn:
+                self.svc_actn.setEnabled(False)
 
     def center(self):
         screen = QDesktopWidget().screenGeometry()
@@ -344,7 +377,7 @@ class MainWnd(QMainWindow):
             widget.deleteLater()
 
     def started(self):
-        return self.game and self.game.started()
+        return self._started
 
     def set_default_options(self):
         self.options['game_sum_by_diff'] = True
@@ -363,8 +396,37 @@ class MainWnd(QMainWindow):
         self.options['on_all_order'] = True
         self.options['take_block_bonus'] = True
 
+    def on_start_action(self):
+        """ Обработчик меню начала игры """
+
+        if self.started():
+            self.stop_game()
+        else:
+            self.start_game()
+
+        self.refresh_menu_actions()
+
+    def on_throw_action(self):
+        """ Обработчик меню Бросить партию """
+
+        res = QMessageBox.question(self, 'Подтверждение',
+                                   'Хотите бросить партию? Продолжить ее уже будет невозможно.\n',
+                                   QMessageBox.Yes | QMessageBox.No)
+
+        if res == QMessageBox.No:
+            return
+
+        if self.started():
+            self.stop_game()
+            self.clear_save()
+
+        self.refresh_menu_actions()
+
     def start_game(self):
         """ Старт игры - инициализация игры и показ игрового поля """
+
+        if self.save_exists()[0]:
+            return self.load_game()
 
         self.stop_game()
 
@@ -400,10 +462,63 @@ class MainWnd(QMainWindow):
         self.game.start()
 
         # И поехала игра
-        if self.game.started():
-            self.is_new_round = True
-            self.init_game_table()
-            self.next()
+        self._started = True
+        self.is_new_round = True
+        self.init_game_table()
+        self.next()
+
+    def load_game(self):
+        """ Загрузка сохраненной игры """
+
+        self.stop_game()
+
+        self.deck_type = random.choice(const.DECK_TYPE)
+        self.back_type = random.randint(1, 9)
+        self.can_show_results = False
+
+        b, fn = self.save_exists()
+
+        if not b:
+            return
+
+        mt, eng = self.load_save_file(fn)
+
+        # устанавливаем игровые переменные модуля
+        self.order_dark = mt['order_dark']
+        self.joker_walk_card = mt['joker_walk_card']
+        self.is_new_lap = mt['is_new_lap']
+        self.is_new_round = mt['is_new_round']
+
+        # игровой движок
+        self.game = eng
+        self.players = self.game.players
+        self.bet = self.game.bet
+        self._started = True
+
+        # if self.game.started():
+        # отрисуем игровой стол
+        self.init_game_table()
+        self.draw_info_area()
+        # заполняем таблицу игры
+        self.fill_game_table()
+        # продолжаем игру
+        self.next()
+
+    def save_game(self):
+        """ Сохранение игры """
+
+        if not self.started():
+            return
+
+        o = {
+            'order_dark': self.order_dark,
+            'joker_walk_card': self.joker_walk_card,
+            'is_new_lap': self.is_new_lap,
+            'is_new_round': self.is_new_round
+        }
+
+        fn = f'{self.get_profile_dir()}/save/auto.psg'
+        self.write_save_file(fn, o)
 
     def stop_game(self):
         """ Остановить игру, очистить игровое поле """
@@ -411,9 +526,10 @@ class MainWnd(QMainWindow):
         if self.service_wnd:
             self.service_wnd.hide()
 
-        if self.started():
+        if self.game and self.game.started():
             self.game.stop()
 
+        self._started = False
         self.players = []
         self.clear()
 
@@ -461,6 +577,14 @@ class MainWnd(QMainWindow):
 
         self.scene.clear()
 
+    def clear_save(self):
+        """ Удаляет ненужный файл автосохранения """
+
+        b, fn = self.save_exists()
+
+        if b:
+            os.unlink(fn)
+
     def init_game_table(self):
         """ Отрисовка основных эл-тов игрового поля в начале игры """
 
@@ -481,9 +605,9 @@ class MainWnd(QMainWindow):
         info_area.setPos(*ipos)
         self.scene.addItem(info_area)
 
-        fp = self._get_face_positions()
-        ap = self._get_area_positions()
-        lo = self._get_label_offsets()
+        fp = self.get_face_positions()
+        ap = self.get_area_positions()
+        lo = self.get_label_offsets()
         self.draw_table_area()
 
         self.deal_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 37),
@@ -579,8 +703,9 @@ class MainWnd(QMainWindow):
     def next(self):
         """ Обработка игрового цикла """
 
-        if not self.started():
+        if not self.game.started():
             if self.can_show_results:
+                self.clear_save()
                 self.stop_game()
                 self.show_game_results()
                 self.show_statistics_grid()
@@ -628,6 +753,8 @@ class MainWnd(QMainWindow):
         if self.service_wnd and self.service_wnd.isVisible():
             self.service_wnd.refresh()
 
+        self.save_game()
+
     def clear_cards(self, total=False):
         """
         Очистка всех карт с игрового стола + значков мастей при полной очистке
@@ -648,7 +775,7 @@ class MainWnd(QMainWindow):
         :param r_back_up: отобразить карты компьютерных игроков рубашкой вверх или вниз
         """
 
-        ap = self._get_area_positions()
+        ap = self.get_area_positions()
         self.clear_cards()
 
         for i, p in enumerate(self.players):
@@ -775,8 +902,8 @@ class MainWnd(QMainWindow):
             btn.hide()
             self.ja_lear_buttons.append(btn)
 
-        pos = self._get_round_info_positions()
-        aligns = self._get_round_info_aligns()
+        pos = self.get_round_info_positions()
+        aligns = self.get_round_info_aligns()
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -795,7 +922,7 @@ class MainWnd(QMainWindow):
         """ Отрисовка игрового поля. Выполняем после каждого хода """
 
         pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 10)
-        ofs = self._get_table_offsets()
+        ofs = self.get_table_offsets()
 
         for pi, ti in self.game.table().items():
             if pi not in self.table:
@@ -807,7 +934,7 @@ class MainWnd(QMainWindow):
                 self.scene.addItem(qc)
 
                 if ti.card.joker:
-                    txt = f'Джокер: {self._get_joker_info(ti.card)}'
+                    txt = f'Джокер: {self.get_joker_info(ti.card)}'
                     self.table_label.setText(f'{self.players[pi].name}: {txt}')
                     qc.setToolTip(txt)
 
@@ -934,31 +1061,46 @@ class MainWnd(QMainWindow):
         for btn in self.ja_lear_buttons:
             btn.show()
 
-    def add_table_row(self, record):
+    def fill_game_table(self):
+        """ Заливает таблицу хода игры """
+
+        recs = self.game.get_record()
+
+        for i, rec in enumerate(recs[1:]):
+            if rec == recs[-1]:
+                if self.game.status() != eng_const.EXT_STATE_ROUND_PAUSE or (
+                        self.game.status() == eng_const.EXT_STATE_ROUND_PAUSE and not self.is_new_round):
+                    self.add_table_row(rec, self.game.get_deals()[i])
+            else:
+                self.add_table_row(rec, self.game.get_deals()[i])
+
+    def add_table_row(self, record, deal=None):
         """
         Добавляет в конец строку к таблице хода игры
 
-        :param record: строка с результатами раунда,  которую надо добавить
+        :param record: строка с результатами раунда, которую надо добавить
+        :param deal: раздача, связанная с добавляемой строкой. Если нет - берет текущую раздачу игры
         """
 
         row = []
         colors = ['Purple']
         max_scores = max([p.total_scores for p in self.players])
-        d = self.game.current_deal()
+        if not deal:
+            deal = self.game.current_deal()
 
-        if d.type_ < 3:
-            row.append(f'по {d.cards}')
+        if deal.type_ < 3:
+            row.append(f'по {deal.cards}')
         else:
-            row.append(eng_const.DEAL_NAMES[d.type_][0])
+            row.append(eng_const.DEAL_NAMES[deal.type_][0])
 
         for p in self.players:
             colors.append('aqua')
             order = int(record[p.id]['order'].split('*')[0])
             scores = int(record[p.id]['scores'].split(' ')[0])
 
-            if record[p.id]['take'] < order or d.type_ == eng_const.DEAL_MIZER:
+            if record[p.id]['take'] < order or deal.type_ == eng_const.DEAL_MIZER:
                 colors.append('OrangeRed')
-            elif record[p.id]['take'] > order and d.type_ != eng_const.DEAL_GOLD:
+            elif record[p.id]['take'] > order and deal.type_ != eng_const.DEAL_GOLD:
                 colors.append('Fuchsia')
             else:
                 colors.append('Lime')
@@ -1184,7 +1326,7 @@ class MainWnd(QMainWindow):
         self.game_table.move(self.pos())
         self.game_table.show()
 
-    def _get_face_positions(self):
+    def get_face_positions(self):
         """ Позиции для отрисовки аватарок игроков """
 
         if len(self.players) == 4:
@@ -1201,7 +1343,7 @@ class MainWnd(QMainWindow):
                 (const.AREA_SIZE[0] - const.FACE_SIZE[0] + 30, 15)  # правый верхний угол
             )
 
-    def _get_area_positions(self):
+    def get_area_positions(self):
         """ Позиции расположения областей игроков """
 
         if len(self.players) == 4:
@@ -1218,7 +1360,7 @@ class MainWnd(QMainWindow):
                 (const.AREA_SIZE[0] - const.PLAYER_AREA_SIZE[0] + 35, 10)  # правый верхний угол
             )
 
-    def _get_label_offsets(self):
+    def get_label_offsets(self):
         """ Координаты смещения положения лабелов с информацией игроков """
 
         if len(self.players) == 4:
@@ -1235,7 +1377,7 @@ class MainWnd(QMainWindow):
                 (45, 40)  # правый верхний угол
             )
 
-    def _get_table_offsets(self):
+    def get_table_offsets(self):
         """ Координаты смещения положения карт в области ходов """
 
         if len(self.players) == 4:
@@ -1252,7 +1394,7 @@ class MainWnd(QMainWindow):
                 (const.CARD_SIZE[0] + 10, -const.CARD_SIZE[1] - 10)  # правый верхний угол
             )
 
-    def _get_round_info_positions(self):
+    def get_round_info_positions(self):
         """ Позиции расположения лебелов с результатами игры """
 
         x, y = round(const.AREA_SIZE[0] / 2) + 60, round(const.AREA_SIZE[1] / 2)
@@ -1271,7 +1413,7 @@ class MainWnd(QMainWindow):
                 (x - 20, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150)  # правый верхний угол
             )
 
-    def _get_round_info_aligns(self):
+    def get_round_info_aligns(self):
         """ Выравнивание текста в лебелах с результатами игры """
 
         if len(self.players) == 4:
@@ -1279,7 +1421,7 @@ class MainWnd(QMainWindow):
         else:
             return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignRight)
 
-    def _get_joker_info(self, card):
+    def get_joker_info(self, card):
         """ Представление информации о действии джокером в читабельном виде """
 
         if card.joker:
@@ -1299,3 +1441,45 @@ class MainWnd(QMainWindow):
             return '{0} {1}'.format(s, l)
         else:
             return ''
+
+    def get_profile_dir(self):
+        """ возвращает путь к папке активного профиля """
+
+        # todo: когда завезу профили, тут будет вместо 123 имя папки активного профиля (скорее всего его uid)
+        return f'{const.PROFILES_DIR}/123'
+
+    def load_save_file(self, filename):
+        """ Грузит файл сохранения, возвращает загруженные данные в виде 2-х блоков: состояние главного потока и дамп ядра """
+
+        with open(filename, mode='rb') as f:
+            raw = f.read()
+
+        t, e = raw.split(b'\0x4')
+        t = json.loads(t.decode('utf-8'))
+        e = pickle.loads(e, encoding='utf-8')
+
+        return t, e
+
+    def write_save_file(self, filename, opts):
+        """ Запись данных сохранения в файл """
+
+        t = json.dumps(opts).encode('utf-8')
+        e = pickle.dumps(self.game)
+
+        raw = b'\0x4'.join((t, e))
+
+        if not os.path.isdir(os.path.split(filename)[0]):
+            os.makedirs(os.path.split(filename)[0])
+
+        with open(filename, 'wb') as f:
+            f.write(raw)
+
+    def save_exists(self):
+        """ Проверяет, есть ли сохранение для активного профиля и возвращает путь к файлу сохранения """
+
+        fn = f'{self.get_profile_dir()}/save/auto.psg'
+
+        if os.path.exists(fn):
+            return True, fn
+        else:
+            return False, None

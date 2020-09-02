@@ -643,6 +643,13 @@ class Engine(object):
 
         self._players = players
 
+    @property
+    def bet(self):
+        return self._bet
+
+    def get_deals(self):
+        return self._deals
+
     # --==** методы ИИ **==--
 
     def _ai_walk_analyze(self, card):
