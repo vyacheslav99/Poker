@@ -1069,6 +1069,22 @@ class Engine(object):
 
         return grow_card
 
+    def _ai_fill_order_to_gold(self, player):
+        """ Формирует набор карт игрока, на которые потенциально можно взять. Для золотой """
+
+        has_joker = player.card_exists(joker=True)
+        joker_has_cover = has_joker
+
+        for lear in range(4):
+            cards = player.gen_lear_range(lear)
+            for card in cards:
+                # просто закидываем все, что прикрыто
+                covered, joker_used = self._ai_card_covered_wj(card, cards, joker_has_cover)
+                if covered:
+                    player.order_cards.append(card)
+                    if joker_used:
+                        joker_has_cover = False
+
     def _ai_calc_order(self):
         """
         Расчитывает заказ на текущий раунд. Возвращает кол-во взяток, которые предполагает взять и в темную делается заказ или нет.
@@ -1204,6 +1220,10 @@ class Engine(object):
         limit = (round(max_cards / 3), round(max_cards / 2), round(max_cards / 1.3))[player.risk_level]
         card = None
 
+        # для золотой предварительно заполним набор тех карт, на которые потенциально можно взять
+        if deal_type == const.DEAL_GOLD and not player.order_cards:
+            self._ai_fill_order_to_gold(player)
+
         if deal_type == const.DEAL_GOLD or (
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать
@@ -1235,7 +1255,7 @@ class Engine(object):
                                 list(set([c.lear for c in player.cards])))
 
             # ничего не нашли - нужно кинуть что-то для затравки, чтобы вынудить сбросить мешающую крупную;
-            # подберем что-то не самое мелкое той же масти, как то, на что возможно взять,
+            # подберем что-то не самое мелкое той же масти, как то, на что возможно взять
             if not card:
                 for co in cards:
                     c = player.middle_card(co.lear)
@@ -1255,13 +1275,12 @@ class Engine(object):
             if not card and deal_type == const.DEAL_GOLD:
                 n = player.index_of_card(joker=True)
                 if n > -1:
-                    card = player.cards[n]
-                    card.joker_action = const.JOKER_TAKE_BY_MAX
-                    card.joker_lear = self._ai_select_joker_lear_to_shield(cards)
-
-                    if card.joker_lear is None:
-                        # прикрыть нечего - значит джокером пока не ходим, подождем более благоприятного момента
-                        card = None
+                    l = self._ai_select_joker_lear_to_shield(cards)
+                    # есть что прикрыть - выбираем джокера, иначе ждем до более благоприятного момента
+                    if l is not None:
+                        card = player.cards[n]
+                        card.joker_action = const.JOKER_TAKE_BY_MAX
+                        card.joker_lear = l
 
             # в итоге брать не на что...
             # просто берем самую большую по номиналу для неполной раздачи или самую мелкую при полной
@@ -1339,10 +1358,14 @@ class Engine(object):
             if card:
                 return player.cards.index(card)
 
+        # для золотой предварительно заполним набор тех карт, на которые потенциально можно взять
+        if deal_type == const.DEAL_GOLD and not player.order_cards:
+            self._ai_fill_order_to_gold(player)
+
         if deal_type == const.DEAL_GOLD or (
             deal_type not in (const.DEAL_GOLD, const.DEAL_MIZER) and player.order != player.take):
             # или еще не набрал или уже перебрал - надо брать: Берем самую большую заданной масти
-            take = None
+            take = False
             card = player.max_card(walk_lear)
 
             if not card:
@@ -1367,17 +1390,17 @@ class Engine(object):
                     if card in player.order_cards:
                         n = player.index_of_card(joker=True)
                         if n > -1:
-                            # тут надо учесть момент, что если мы набрали на что-то, на что не рассчитывали,
-                            # то какие-то карты из тех, на что рассчитывали будут лишними, а значит это можно отдать
-                            # пока их кол-ва не станет столько, солько осталось взять взяток, а то так можно и перебрать потом.
+                            # Если не золотая, то надо учесть момент, что если мы набрали на что-то, на что не рассчитывали,
+                            # то какие-то карты из тех, на что рассчитывали будут лишними, а значит это можно отдать пока
+                            # их кол-ва не станет столько, солько осталось взять взяток, а то так можно и перебрать потом.
                             # Только смотреть будем не по тем, на кого рассчитывали, а по тем, что остались реально
                             # из тех, на которые расчитывали
-                            if player.order - player.take <= len([c for c in player.cards if c in player.order_cards]):
+                            if deal_type == const.DEAL_GOLD or \
+                                (player.order - player.take <= len([c for c in player.cards if c in player.order_cards])):
                                 card = player.cards[n]
 
             # если уже срочно пора брать, иначе просто не хватит карт, чтоб набрать - кинем джокера
-            if card and not take and not card.joker and \
-                    deal_type == const.DEAL_GOLD or (player.order - player.take) >= len(player.cards):
+            if not take and (player.order - player.take) >= len(player.cards):
                 n = player.index_of_card(joker=True)
                 if n > -1:
                     card = player.cards[n]
@@ -1459,9 +1482,6 @@ class Engine(object):
                 else:
                     # тут вариант один - остался только один джокер
                     card = player.cards[0]
-
-                # старый подход # просто выберем самую большую из случайно выбранной масти
-                # card = [c for c in player.cards_sorted()][0]
 
             if card.joker:
                 card.joker_action = const.JOKER_GIVE
