@@ -456,7 +456,7 @@ class MainWnd(QMainWindow):
                 self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
                 self.players[i].risk_level = random.randint(0, 2)
 
-        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
+        self.options['deal_types'] = [eng_const.DEAL_GOLD] # [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
 
         self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
         self.game.start()
@@ -1189,7 +1189,7 @@ class MainWnd(QMainWindow):
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
         self.set_text('-= Итоги игры =-', pos, Qt.cyan, 18, 65)
-        winner = max([p for p in self.game.players], key=lambda x: x.last_money)
+        winner = max([p for p in self.game.players], key=lambda o: o.last_money)
 
         x, y = pos[0], pos[1] + 20
 
@@ -1417,9 +1417,9 @@ class MainWnd(QMainWindow):
         """ Выравнивание текста в лебелах с результатами игры """
 
         if len(self.players) == 4:
-            return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignHCenter, Qt.AlignRight)
+            return Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignHCenter, Qt.AlignRight
         else:
-            return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignRight)
+            return Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignRight
 
     def get_joker_info(self, card):
         """ Представление информации о действии джокером в читабельном виде """
