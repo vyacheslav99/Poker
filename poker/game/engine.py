@@ -207,18 +207,16 @@ class Engine(base.BaseEngine):
         :return: Найденную масть. Если не выбрал подходящую, вернет None
         """
 
-        # todo: тут сделать анализ рядов
         # сначала смотрим по козырям
         if self._trump != const.LEAR_NOTHING:
-            # составим список крупных неприкрытых карт
-            cand = [c for c in cards if c.value in (12, 13) and c.lear == self._trump
-                    and not self._ai_card_covered(c, cards)]
+            # составим список неприкрытых карт
+            cand = [c for c in cards if c.lear == self._trump and not self._ai_card_covered(c, cards)]
             if cand and self._ai_greater_cards_count(cand[0]) - 1 <= 0:
                 return cand[0].lear
 
         # не нашли, посомтрим среди простых
         # составим список крупных неприкрытых карт
-        cand = [c for c in cards if c.value in (12, 13) and c.lear != self._trump
+        cand = [c for c in cards if c.value > 11 and c.lear != self._trump
                 and not self._ai_card_covered(c, cards)]
         if cand:
             for c in cand:
@@ -623,7 +621,6 @@ class Engine(base.BaseEngine):
         if not card:
             n = player.index_of_card(joker=True)
             if n > -1:
-                # todo: тут сделать анализ рядов
                 l = self._ai_select_joker_lear_to_shield(cards)
                 # есть что прикрыть - выбираем джокера, иначе ждем до более благоприятного момента
                 if l is not None:
@@ -694,7 +691,6 @@ class Engine(base.BaseEngine):
                         card.joker_action = const.JOKER_TAKE_BY_MAX
                         # выберем для джокера масть - подберем масть так, чтоб прикрыть какую-то из карт,
                         # которую есть необходимость и возможность прикрыть джокером
-                        # todo: тут сделать анализ рядов
                         card.joker_lear = self._ai_select_joker_lear_to_shield(cards)
 
                         if card.joker_lear is None:
