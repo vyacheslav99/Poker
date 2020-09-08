@@ -68,3 +68,6 @@ class ServiceInfoDialog(QDialog):
 
                 self.player_labels[i].setText(tmpl.format(p.name, c, o))
                 i += 1
+
+        for j in range(i, len(self.player_labels)):
+            self.player_labels[j].setText(None)

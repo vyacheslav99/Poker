@@ -49,7 +49,9 @@ class Engine(base.BaseEngine):
     def _ai_greater_cards_count(self, card):
         """ Подсчитывает по вышедшим, сколько осталось карт крупнее переданной и возвращает это число """
 
-        return len([c for c in self._released_cards if c.lear == card.lear and c.value > card.value and not c.joker])
+        ex_cards = self._players[self._curr_player].gen_lear_range(card.lear)
+        return len([c for c in self._released_cards
+                    if c.lear == card.lear and c.value > card.value and not c.joker and c not in ex_cards])
 
     def _ai_greater_cards_released(self, card):
         """
@@ -57,7 +59,8 @@ class Engine(base.BaseEngine):
         Вернет True - если все, что больше, вышло, иначе - False
         """
 
-        etalon = [i for i in range(card.value + 1, 15)]
+        ex_cards = [c.value for c in self._players[self._curr_player].gen_lear_range(card.lear)]
+        etalon = [i for i in range(card.value + 1, 15) if i not in ex_cards]
         if not self._no_joker and card.lear == const.LEAR_SPADES and 7 in etalon:
             etalon.pop(etalon.index(7))
 
@@ -65,35 +68,42 @@ class Engine(base.BaseEngine):
             (c.value for c in self._released_cards if c.lear == card.lear and c.value > card.value and not c.joker))
 
     def _ai_smallest_cards_released(self, card):
-        """ Смотрит по вышедшим, вышли ли все карты меньше переданной. Вернет True - если все, что меньше, вышло, иначе - False """
+        """
+        Смотрит по вышедшим, вышли ли все карты меньше переданной.
+        Вернет True - если все, что меньше, вышло, иначе - False
+        """
 
-        etalon = [i for i in range(6, card.value)]
+        ex_cards = [c.value for c in self._players[self._curr_player].gen_lear_range(card.lear)]
+        etalon = [i for i in range(6, card.value) if i not in ex_cards]
         if not self._no_joker and card.lear == const.LEAR_SPADES and 7 in etalon:
             etalon.pop(etalon.index(7))
 
         return set(etalon) == set(
             (c.value for c in self._released_cards if c.lear == card.lear and c.value < card.value and not c.joker))
 
-    def _ai_lear_released(self, lear, exclude_card=None):
-        """ Смотрит по вышедшим все ли карты масти уже вышли (кроме указанной, если она передана). True - если да, иначе False """
+    def _ai_lear_released(self, lear):
+        """ Смотрит по вышедшим все ли карты масти уже вышли """
 
-        etalon = [i for i in range(6, 15) if exclude_card is None or exclude_card.value != i]
+        ex_cards = [c.value for c in self._players[self._curr_player].gen_lear_range(lear)]
+        etalon = [i for i in range(6, 15) if i not in ex_cards]
         if not self._no_joker and lear == const.LEAR_SPADES and 7 in etalon:
             etalon.pop(etalon.index(7))
 
-        return set(etalon) == set((c.value for c in self._released_cards if c.lear == lear and (
-            exclude_card is None or exclude_card.value != c.value) and not c.joker))
+        return set(etalon) == set((c.value for c in self._released_cards if c.lear == lear and not c.joker))
 
-    def _ai_lear_over_safe(self, lear):
+    def _ai_lear_over_safe(self, lear, oper=True):
         """
-        Смотрит по вышедшим мастям, по каждому игроку, кто еще не походил в этом круге (исключая текущего),
-        что масть у пользователя уже закончилась вместе с козырем и т.о. по этому признаку
-        на карту этой масти можно точно взять, если ходишь первый.
+        Смотрит по вышедшим мастям, по каждому игроку, что масть у пользователя уже закончилась вместе с козырем и
+        т.о. по этому признаку на карту этой масти можно точно взять, если ходишь первый.
+        Игроков просматиривает или по оперативной ситуации на столе (oper=True) - т.е. только тех, кто еще не ходил;
+        или всех (oper=False).
         True - если масти нет, козыря нет ни у кого, иначе False
         """
 
-        ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
-        ex_players.append(self._curr_player)
+        if oper:
+            ex_players = [ti[0] for ti in self._order_table()]
+        else:
+            ex_players = [self._curr_player]
 
         for p in self._released_lears:
             if p not in ex_players:
@@ -105,16 +115,19 @@ class Engine(base.BaseEngine):
 
         return True
 
-    def _ai_lear_exists_or_over_safe(self, lear):
+    def _ai_lear_exists_or_over_safe(self, lear, oper=True):
         """
-        Смотрит по вышедшим мастям, по каждому игроку, кто еще не походил в этом круге (исключая текущего),
-        что масть у пользователя или есть или закончилась вместе с козырем и т.о. по этому признаку на карту этой
-        масти можно взять, если у тебя самая большая.
+        Смотрит по вышедшим мастям, по каждому игроку, что масть у пользователя или есть или закончилась
+        вместе с козырем и т.о. по этому признаку на карту этой масти можно взять, если у тебя самая большая.
+        Игроков просматиривает или по оперативной ситуации на столе (oper=True) - т.е. только тех, кто еще не ходил;
+        или всех (oper=False).
         True - если масть есть или масти нет и козыря нет по каждому, иначе False
         """
 
-        ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
-        ex_players.append(self._curr_player)
+        if oper:
+            ex_players = [ti[0] for ti in self._order_table()]
+        else:
+            ex_players = [self._curr_player]
 
         for p in self._released_lears:
             if p not in ex_players:
@@ -124,16 +137,19 @@ class Engine(base.BaseEngine):
 
         return True
 
-    def _ai_lear_or_trump_exists(self, lear):
+    def _ai_lear_or_trump_exists(self, lear, oper=True):
         """
-        Смотрит по вышедшим мастям, по каждому игроку, кто еще не походил в этом круге (исключая текущего),
-        что у пользователя есть или масть или козырь и т.о. по этому признаку на карту этой
-        масти можно скинуть, если у тебя самая маленькая.
+        Смотрит по вышедшим мастям, по каждому игроку, что у пользователя есть или масть или козырь и т.о.
+        по этому признаку на карту этой масти можно скинуть, если у тебя самая маленькая.
+        Игроков просматиривает или по оперативной ситуации на столе (oper=True) - т.е. только тех, кто еще не ходил;
+        или всех (oper=False).
         True - если масть есть или козырь есть по каждому, иначе False
         """
 
-        ex_players = [ti[0] for i, ti in enumerate(self._order_table()) if i > self._step]
-        ex_players.append(self._curr_player)
+        if oper:
+            ex_players = [ti[0] for ti in self._order_table()]
+        else:
+            ex_players = [self._curr_player]
 
         for p in self._released_lears:
             if p not in ex_players:
@@ -191,12 +207,13 @@ class Engine(base.BaseEngine):
         :return: Найденную масть. Если не выбрал подходящую, вернет None
         """
 
+        # todo: тут сделать анализ рядов
         # сначала смотрим по козырям
         if self._trump != const.LEAR_NOTHING:
             # составим список крупных неприкрытых карт
             cand = [c for c in cards if c.value in (12, 13) and c.lear == self._trump
                     and not self._ai_card_covered(c, cards)]
-            if cand and self._ai_greater_cards_count(cand[0]) - 1 == 0:
+            if cand and self._ai_greater_cards_count(cand[0]) - 1 <= 0:
                 return cand[0].lear
 
         # не нашли, посомтрим среди простых
@@ -206,7 +223,7 @@ class Engine(base.BaseEngine):
         if cand:
             for c in cand:
                 # простую масть выбираем с подстраховкой, а то можно просрать джокера на козыре
-                if self._ai_lear_exists_or_over_safe(c.lear) and self._ai_greater_cards_count(c) - 1 == 0:
+                if self._ai_lear_exists_or_over_safe(c.lear) and self._ai_greater_cards_count(c) - 1 <= 0:
                     return c.lear
 
         # подходящую не нашли - или 1 джокера недостаточно, чтоб прикрыть, или прикрывать нечего
@@ -528,8 +545,12 @@ class Engine(base.BaseEngine):
 
         return cnt, is_dark
 
-    def _ai_can_take(self, card):
-        """ Вычисляет, возможно ли взять на карту. Пока True/False, но потом вполне возможно буду вероятность расчитывать """
+    def _ai_can_take(self, card, oper=True):
+        """
+        Вычисляет, возможно ли взять на карту.
+        Смотрит игроков или по оперативному анализу ситуации на столе (только еще не походивших в этом круге игроков)
+        или всех
+        """
 
         deal_cards = self._deals[self._curr_deal].cards
         max_cards = round(36 / self.party_size())
@@ -541,17 +562,17 @@ class Engine(base.BaseEngine):
         # сразу разведем ветки анализа, когда раздаются все карты и не все
         if no_full:
             # вышли все крупнее этой карты или у всех, кто после закончилась масть и козырь
-            if self._ai_greater_cards_released(card) or self._ai_lear_over_safe(card.lear):
+            if self._ai_greater_cards_released(card) or self._ai_lear_over_safe(card.lear, oper):
                 return True
         else:
             # вышли все крупнее этой карты и у всех, кто после масть или есть или нет и нет козыря
-            if self._ai_greater_cards_released(card) and self._ai_lear_exists_or_over_safe(card.lear):
+            if self._ai_greater_cards_released(card) and self._ai_lear_exists_or_over_safe(card.lear, oper):
                 return True
 
         return False
 
     def _ai_can_give(self, card, soft=False):
-        """ Вычисляет, возможно ли сбросить карту. Пока True/False, но потом вполне возможно буду вероятность расчитывать """
+        """ Вычисляет, возможно ли сбросить карту. По оперативному анализу ситуации на столе и еще непоходивших игроков """
 
         deal_cards = self._deals[self._curr_deal].cards
         max_cards = round(36 / self.party_size())
@@ -581,8 +602,6 @@ class Engine(base.BaseEngine):
         """
 
         player = self._players[self._curr_player]
-        deal_cards = self._deals[self._curr_deal].cards
-        max_cards = round(36 / self.party_size())
         card = None
 
         # предварительно заполним набор тех карт, на которые потенциально можно взять
@@ -604,6 +623,7 @@ class Engine(base.BaseEngine):
         if not card:
             n = player.index_of_card(joker=True)
             if n > -1:
+                # todo: тут сделать анализ рядов
                 l = self._ai_select_joker_lear_to_shield(cards)
                 # есть что прикрыть - выбираем джокера, иначе ждем до более благоприятного момента
                 if l is not None:
@@ -674,6 +694,7 @@ class Engine(base.BaseEngine):
                         card.joker_action = const.JOKER_TAKE_BY_MAX
                         # выберем для джокера масть - подберем масть так, чтоб прикрыть какую-то из карт,
                         # которую есть необходимость и возможность прикрыть джокером
+                        # todo: тут сделать анализ рядов
                         card.joker_lear = self._ai_select_joker_lear_to_shield(cards)
 
                         if card.joker_lear is None:
@@ -765,23 +786,25 @@ class Engine(base.BaseEngine):
 
         player = self._players[self._curr_player]
         tbl_ordered = self._order_table()
-        deal_type = self._deals[self._curr_deal].type_
         walk_lear = tbl_ordered[0][1].card.lear if not tbl_ordered[0][1].is_joker() else tbl_ordered[0][1].joker_lear()
 
         # предварительно заполним набор тех карт, на которые потенциально можно взять
         if not player.order_cards:
             self._ai_fill_order_to_gold(player)
 
-        # без вариантов - надо брать: берем самую большую заданной масти
+        # без вариантов - надо брать - выбрать надо наименьшую на которую можно гарантированно взять
         take = False
-        card = player.max_card(walk_lear)
+        card = None
+        cards = player.gen_lear_range(walk_lear, ascending=True)
 
-        if not card:
-            # если масти нет - берем самый большой козырь
-            card = player.max_card(self._trump)
+        if not cards:
+            # если масти нет - берем козырь
+            cards = player.gen_lear_range(self._trump, ascending=True)
 
-        if card:
-            # если самая большая моя не бьет то, что уже на столе или
+        # а дальше начнинаем увеличивать достоинство карты до тех пор, пока карта гарантированно побьет
+        while not take and cards:
+            card = cards.pop(0)
+            # если выбранная карта не бьет то, что уже на столе или
             # мой ход не последний и что-то не вышло, что может побить это карту - ищем дальше...
             take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
 
@@ -790,24 +813,24 @@ class Engine(base.BaseEngine):
                 # или вышла с козырем
                 take = take and self._ai_can_take(card)
 
-            if not take:
-                # всетаки не беру на найденную - выбираю самую мелкую (масти или козырь, в зависимости от наличия масти)
-                card = player.min_card(walk_lear) or player.min_card(self._trump)
+        if not take:
+            # всетаки не беру на найденную - просто выберем самую мелкую заданной масти (или козрь)
+            card = player.min_card(walk_lear) or player.min_card(self._trump)
 
-                # посмотрим - не просираем ли мы карту, на которую рассчитывали, если да - кинем джокера
-                if card in player.order_cards:
-                    n = player.index_of_card(joker=True)
-                    if n > -1:
-                        card = player.cards[n]
-                        take = True
+            # посмотрим - не просираем ли мы карту, на которую рассчитывали, если да - кинем джокера
+            if card in player.order_cards:
+                n = player.index_of_card(joker=True)
+                if n > -1:
+                    card = player.cards[n]
+                    take = True
 
-        # посмотрим - если оставшиеся карты гарантированно берут при условии, что ходишь первый + одну из наибольших
-        # из них можно прикрыть и тогда ей взять - кинем джокера
-        # todo: пока не знаю как
-        # if not take and (player.order - player.take) >= len(player.cards):
-        #     n = player.index_of_card(joker=True)
-        #     if n > -1:
-        #         card = player.cards[n]
+        # если выбранная карта не берет, но при этом оставшиеся карты гарантированно берут при условии,
+        # что ходишь первый - кидаем джокера, чтобы перехватить ход
+        if not take:
+            n = player.index_of_card(joker=True)
+            if n > -1:
+                if len([c for c in player.cards if self._ai_can_take(c, False)]) == len(player.cards):
+                    card = player.cards[n]
 
         # масти нет и козыря нет, джокера не задействовали - надо выбрать что-то ненужное другой масти;
         # при выборе постараемся исключить те, на которые рассчитывали, если возможно
@@ -819,12 +842,12 @@ class Engine(base.BaseEngine):
 
             if cards:
                 card = cards[0]
-                # todo: пока недоделано
-                # if card in player.order_cards:
-                #     # если на карту расчитывали, есть джокер и ее возможно прикрыть - кидаем джокера
-                #     n = player.index_of_card(joker=True)
-                #     if n > -1:
-                #         card = player.cards[n]
+                if card in player.order_cards:
+                    # если на карту расчитывали, есть джокер и ее возможно прикрыть - кидаем джокера
+                    n = player.index_of_card(joker=True)
+                    if n > -1:
+                        if self._ai_lear_exists_or_over_safe(card.lear) and self._ai_greater_cards_count(card) - 1 <= 0:
+                            card = player.cards[n]
             else:
                 # это значит остался только джокер
                 card = player.cards[0]
