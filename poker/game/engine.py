@@ -13,24 +13,41 @@ class Engine(base.BaseEngine):
 
     # --==** Реализация движка ИИ **==--
 
-    def _ai_walk_analyze(self, card):
+    def _ai_fix_released_card(self, card):
         """
-        Предварительный анализ карты, которой ходит игрок + сбор статистики ходов.
+        Сбор и анализ данных по ходам игроков
         Результаты будут использованы в алгоритмах ИИ
         """
 
-        # определим, закончилась ли у игрока масть, которой заходили и если да, то запишем игроку в вышедшие масти
-        # заодно можно вычислить, закончился ли козырь
-        # На этом пока все :))
-        if self._step > 0:
-            _, tbl_item = self._order_table()[0]
-            if tbl_item.card.lear != card.lear:
-                # если походил не в масть - эта масть у него закончилась
-                self._released_lears[self._curr_player].add(tbl_item.card.lear)
+        super(Engine, self)._ai_fix_released_card(card)
 
-                # если еще и не козырем - значит и козрь закончился
-                if self._trump != const.LEAR_NOTHING and card.lear != self._trump:
-                    self._released_lears[self._curr_player].add(self._trump)
+        if self._curr_player is not None:
+            # 1. посмотрим по вышедшим картам - если все карты масти вышли - запишем всем игрокам
+            # в вышедшие масти эту масть
+            if not card.joker:
+                all_cards = [i for i in range(6, 15)]
+                if not self._no_joker and card.lear == const.LEAR_SPADES and 7 in all_cards:
+                    all_cards.pop(all_cards.index(7))
+
+                released = [c.value for c in self._released_cards if c.lear == card.lear and not c.joker]
+
+                if set(all_cards) == set(released):
+                    for p in range(self.party_size()):
+                        self._released_lears[p].add(card.lear)
+
+            # 2. определим, закончилась ли у игрока масть, которой заходили, и если да, то запишем игроку
+            # в вышедшие масти; заодно можно вычислить, закончился ли козырь
+            if self._step > 0 and not card.joker:
+                _, tbl_item = self._order_table()[0]
+                tbl_lear = tbl_item.card.lear if not tbl_item.card.joker else tbl_item.card.joker_lear
+
+                if card.lear != tbl_lear:
+                    # если походил не в масть - эта масть у него закончилась
+                    self._released_lears[self._curr_player].add(tbl_lear)
+
+                    # если еще и не козырем - значит и козрь закончился
+                    if self._trump != const.LEAR_NOTHING and card.lear != self._trump:
+                        self._released_lears[self._curr_player].add(self._trump)
 
     def _ai_max_card(self, *cards):
         """ Определяет, какая из карт списка бьет. Учитывает порядок карт в списке. Возвращает побившую карту """
@@ -97,13 +114,15 @@ class Engine(base.BaseEngine):
         т.о. по этому признаку на карту этой масти можно точно взять, если ходишь первый.
         Игроков просматиривает или по оперативной ситуации на столе (oper=True) - т.е. только тех, кто еще не ходил;
         или всех (oper=False).
-        True - если масти нет, козыря нет ни у кого, иначе False
+        True - если масти нет, козыря нет НИ У КОГО, иначе False
         """
 
         if oper:
             ex_players = [ti[0] for ti in self._order_table()]
         else:
-            ex_players = [self._curr_player]
+            ex_players = []
+
+        ex_players.append(self._curr_player)
 
         for p in self._released_lears:
             if p not in ex_players:
@@ -121,13 +140,15 @@ class Engine(base.BaseEngine):
         вместе с козырем и т.о. по этому признаку на карту этой масти можно взять, если у тебя самая большая.
         Игроков просматиривает или по оперативной ситуации на столе (oper=True) - т.е. только тех, кто еще не ходил;
         или всех (oper=False).
-        True - если масть есть или масти нет и козыря нет по каждому, иначе False
+        True - если масть есть или масти нет и козыря нет У ВСЕХ ИГРОКОВ, иначе False
         """
 
         if oper:
             ex_players = [ti[0] for ti in self._order_table()]
         else:
-            ex_players = [self._curr_player]
+            ex_players = []
+
+        ex_players.append(self._curr_player)
 
         for p in self._released_lears:
             if p not in ex_players:
@@ -143,21 +164,25 @@ class Engine(base.BaseEngine):
         по этому признаку на карту этой масти можно скинуть, если у тебя самая маленькая.
         Игроков просматиривает или по оперативной ситуации на столе (oper=True) - т.е. только тех, кто еще не ходил;
         или всех (oper=False).
-        True - если масть есть или козырь есть по каждому, иначе False
+        True - если масть или козырь ЕСТЬ ХОТЯ БЫ У ОДНОГО из игроков, иначе False
         """
 
         if oper:
             ex_players = [ti[0] for ti in self._order_table()]
         else:
-            ex_players = [self._curr_player]
+            ex_players = []
+
+        ex_players.append(self._curr_player)
 
         for p in self._released_lears:
             if p not in ex_players:
                 if lear in self._released_lears[p]:
-                    if self._trump == const.LEAR_NOTHING or self._trump in self._released_lears[p]:
-                        return False
+                    if self._trump != const.LEAR_NOTHING and self._trump not in self._released_lears[p]:
+                        return True
+                else:
+                    return True
 
-        return True
+        return False
 
     def _ai_card_covered(self, card, cards):
         """
@@ -510,7 +535,9 @@ class Engine(base.BaseEngine):
                 max_cnt = round(self._deals[self._curr_deal].cards / 2) - 1 - const.RISK_BASE_COEFF[player.risk_level]
             if max_cnt < 1:
                 max_cnt = self._deals[self._curr_deal].cards
-            cnt = random.randint(0, max_cnt)
+
+            min_cnt = 0 if flip_coin(10, 100) else 1
+            cnt = random.randint(min_cnt, max_cnt)
 
             # сбросим флаг, т.к. это не заказ в темную, а такая раздача - для игровой логики это имеет значение
             if deal_type == const.DEAL_DARK:
@@ -951,7 +978,7 @@ class Engine(base.BaseEngine):
                     take = card == self._ai_max_card(*(ti[1].card for ti in tbl_ordered), card)
                     if not take:
                         if len(tbl_ordered) < self.party_size() - 1:
-                            take = self._ai_can_take(card)  # not self._ai_can_give(c)
+                            take = not self._ai_can_give(card)  # self._ai_can_take(card)
                         if not take:
                             break
 

@@ -457,6 +457,7 @@ class MainWnd(QMainWindow):
                 self.players[i].risk_level = random.randint(0, 2)
 
         self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
+        # self.options['deal_types'] = [1, 3, 4, 5, 6]
 
         self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
         self.game.start()

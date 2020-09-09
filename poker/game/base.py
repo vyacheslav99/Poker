@@ -183,7 +183,7 @@ class BaseEngine(object):
             if deal.cards < round(36 / self.party_size()):
                 # если раздаем не всю колоду, надо запомнить козырную для ИИ и убрать ее из колоды,
                 # т.к. по правилам она кладется на стол и никому попасть не должна
-                self._released_cards.append(deck[card])
+                self._ai_fix_released_card(deck[card])
                 self._trump_card = deck.pop(card)
 
         # ну а теперь собственно раздадим карты, начинаем раздавать с первого игрока (определенного случайно при инициализации раздач)
@@ -562,8 +562,7 @@ class BaseEngine(object):
         # осуществляем ход: извелечем карту у игрока, добавим в массивы вышедших и на стол
         card = player.cards.pop(card_index)
         self._table[self._curr_player] = TableItem(self._step, card)
-        self._released_cards.append(card)
-        self._ai_walk_analyze(card)
+        self._ai_fix_released_card(card)
 
         if self._step == self.party_size() - 1:
             # определяем, кто побил
@@ -659,11 +658,13 @@ class BaseEngine(object):
     # они просто выдают случайные значения, не противоречащие правилам игры, так что движок будет вполне работоспособен,
     # но абсолютно уныл, если играть с ИИ.
 
-    def _ai_walk_analyze(self, card):
+    def _ai_fix_released_card(self, card):
         """
         Предварительный анализ карты, которой ходит игрок + сбор статистики ходов.
         Результаты будут использованы в алгоритмах ИИ
         """
+
+        self._released_cards.append(card)
 
     def _ai_calc_order(self):
         """
