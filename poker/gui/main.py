@@ -1448,8 +1448,7 @@ class MainWnd(QMainWindow):
     def get_profile_dir(self):
         """ возвращает путь к папке активного профиля """
 
-        # todo: когда завезу профили, тут будет вместо 123 имя папки активного профиля (скорее всего его uid)
-        return f'{const.PROFILES_DIR}/123'
+        return f'{const.PROFILES_DIR}/{self.params.user}'
 
     def load_save_file(self, filename):
         """ Грузит файл сохранения, возвращает загруженные данные в виде 2-х блоков: состояние главного потока и дамп ядра """
