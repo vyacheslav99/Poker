@@ -11,6 +11,7 @@ from gui import utils, const
 from game import engine, helpers, const as eng_const
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
+from modules.params import Params
 
 # print(QStyleFactory.keys())
 
@@ -149,6 +150,7 @@ class MainWnd(QMainWindow):
 
         self.__dev_mode = '--dev_mode' in args
         self._started = False
+        self.params = Params(filename=const.PARAMS_FILE if os.path.exists(const.PARAMS_FILE) else None)
         self.options = {}
         self.players = []
         self.table = {}
@@ -1484,3 +1486,11 @@ class MainWnd(QMainWindow):
             return True, fn
         else:
             return False, None
+
+    def save_params(self):
+        """ Сохранение параметров """
+
+        if not os.path.isdir(const.APP_DATA_DIR):
+            os.makedirs(const.APP_DATA_DIR)
+
+        self.params.save(const.PARAMS_FILE)
