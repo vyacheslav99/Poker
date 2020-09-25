@@ -8,8 +8,8 @@ from .helpers import flip_coin
 
 class Engine(base.BaseEngine):
 
-    def __init__(self, players: list, bet: int, **options):
-        super(Engine, self).__init__(players, bet, **options)
+    def __init__(self, players: list, **options):
+        super(Engine, self).__init__(players, **options)
 
     # --==** Реализация движка ИИ **==--
 

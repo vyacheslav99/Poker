@@ -8,12 +8,12 @@ from .helpers import GameException, Player, Deal, Card, TableItem
 
 class BaseEngine(object):
 
-    def __init__(self, players: list, bet: int, **options):
+    def __init__(self, players: list, **options):
         # игроки и опции игры
         self._allow_no_human = options.get('allow_no_human', False)     # разрешить игру без игроков-людей
         self._self_control = options.get('self_control', True)          # флаг, что игровой цикл (передача ходов и пр.) контролируется изнутри этого движка, иначе извне
         self.players = players                                          # список игроков, экземпляры Player
-        self._bet = bet                                                 # ставка на игру (стоимость одного очка в копейках)
+        self._bet = options['bet']                                      # ставка на игру (стоимость одного очка в копейках)
         self._deal_types = set(options['deal_types'])                   # типы раздач, учавствующих в игре (const.DEAL_...)
         self._game_sum_by_diff = options['game_sum_by_diff']            # переключить подведение итогов игры: по разнице между игроками (True) или по старшим очкам, что жопистее (False)
         self._dark_allowed = options['dark_allowed']                    # вкл/выкл возможность заказывать в темную (в обычных раздачах)
@@ -114,7 +114,7 @@ class BaseEngine(object):
         cap = {}
 
         for p in self._players:
-            cap[p.id] = {'order': 'Заказ', 'take': 'Взято', 'scores': 'Очки', 'total': 'Счет'}
+            cap[p.uid] = {'order': 'Заказ', 'take': 'Взято', 'scores': 'Очки', 'total': 'Счет'}
 
         self._game_record.append(cap)
 
@@ -280,7 +280,7 @@ class BaseEngine(object):
             p.total_scores += p.scores
             det_str = ' + '.join([str(s) for s in detailed]) if len(detailed) > 1 else ''
             scores_str = '{0}{1}'.format(p.scores, f' ({det_str})' if det_str else '')
-            rec[p.id] = {'order': f'{p.order}{"*" if p.order_is_dark else ""}', 'take': p.take, 'scores': scores_str,
+            rec[p.uid] = {'order': f'{p.order}{"*" if p.order_is_dark else ""}', 'take': p.take, 'scores': scores_str,
                          'total': p.total_scores}
 
         self._game_record.append(rec)
@@ -414,7 +414,7 @@ class BaseEngine(object):
         # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
         for p in self._players:
             p.last_money = p.last_money * self._bet / 100.0
-            p.total_money += p.last_money
+            p.money += p.last_money
 
     def next(self):
         """ Центральный метод реализации игрового цикла """

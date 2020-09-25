@@ -3,6 +3,7 @@ import os
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
 PROFILES_DIR = f'{APP_DATA_DIR}/profile'
 PARAMS_FILE = f'{APP_DATA_DIR}/params.json'
+PROFILES_FILE = f'{APP_DATA_DIR}/profiles.json'
 RES_DIR = 'gui/resources'
 MAIN_ICON = f'{RES_DIR}/app.ico'
 BG_DIR = f'{RES_DIR}/background'

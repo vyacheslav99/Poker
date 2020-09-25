@@ -2,6 +2,7 @@
 
 import random
 from . import const
+from modules.base_model import BaseModel
 
 
 class GameException(Exception):
@@ -55,26 +56,33 @@ class TableItem(object):
         return self.card.joker_lear
 
 
-class Player(object):
+class Player(BaseModel):
 
-    def __init__(self, params=None):
-        self.id = None
+    __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'throw', 'winned', 'lost',
+                   'scores', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money']
+
+    def __init__(self, filename=None, **kwargs):
+        self.uid = None
         self.login = None
         self.password = None
         self.name = None
+        self.avatar = None
         self.is_robot = None
         self.risk_level = None
         # self.level = None
 
         # статистика
-        self.total_money = 0            # сумма всех выигрышей
-        self.total_games = 0            # +1 в начале игры
-        self.completed_games = 0        # +1 при завершении игры (доведения игры до конца)
-        self.interrupted_games = 0      # +1 при прерывании игры
-        self.winned_games = 0           # +1 при выигрыше (набрал больше всех)
-        self.failed_games = 0           # +1 при проигрыше (если ушел в минус)
-        self.neutral_games = 0          # +1 если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
-        self.last_money = 0             # сумма последнего выигрыша
+        self.started = 0            # кол-во начатых игр (+1 в начале игры)
+        self.completed = 0          # кол-во сыгранных игр (+1 при завершении игры)
+        self.throw = 0              # кол-во брошенных партий (+1 когда бросаешь игру)
+        self.winned = 0             # кол-во выигранных партий (+1 при выигрыше (набрал больше всех))
+        self.lost = 0               # кол-во проигранных партий (+1 при проигрыше)
+        self.scores = 0             # общий суммарный выигрыш (сумма очков всех сыгранных партий)
+        self.money = 0.0            # общая сумма денег (сумма денег всех сыгранных партий)
+        self.last_scores = 0        # последний выигрыш (очки)
+        self.last_money = 0.0       # последний выигрыш (деньги)
+        self.best_scores = 0        # лучший выигрыш (очки)
+        self.best_money = 0.0       # лучший выигрыш (деньги)
 
         # игровые переменные
         self.order = -1                 # заказ в текущем раунде
@@ -87,27 +95,10 @@ class Player(object):
         self.pass_counter = 0           # счетчик пасов, заказанных подряд
         self.success_counter = 0        # счетчик успешно сыгранных подряд игр
 
-        if params:
-            self.from_dict(params)
-
-    def from_dict(self, params):
-        self.id = params['id']
-        self.login = params['login']
-        self.password = params['password']
-        self.name = params['name']
-        self.is_robot = params['is_robot']
-        self.risk_level = params['risk_level']
-        # self.level = params['level']
-        self.total_money = params['total_money']
-        self.total_games = params['total']
-        self.completed_games = params['completed']
-        self.interrupted_games = params['interrupted']
-        self.winned_games = params['winned']
-        self.failed_games = params['failed']
-        self.last_money = params['last_money']
+        super(Player, self).__init__(filename, **kwargs)
 
     def as_dict(self):
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
+        return {k: self.__dict__[k] for k in self.__dict__ if k in self.__dump_keys}
 
     def lear_exists(self, lear):
         """ Проверяет, есть ли у игрока карты заданной масти. Джокер не учитывается. Вернет True/False """

@@ -1,17 +1,16 @@
 import os
 import random
 import pickle
-import json
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import utils, const
+from gui import const
 from game import engine, helpers, const as eng_const
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
-from modules.params import Params
+from modules.params import *
 
 # print(QStyleFactory.keys())
 
@@ -108,7 +107,9 @@ class Face(QGraphicsPixmapItem):
     def player(self, player):
         self._player = player
 
-        if os.path.exists(f'{const.FACE_DIR}/{self._player.name}.bmp'):
+        if player.avatar and os.path.exists(f'{const.PROFILES_DIR}/{player.uid}/{player.avatar}'):
+            self.setPixmap(QPixmap(f'{const.PROFILES_DIR}/{player.uid}/{player.avatar}'))
+        elif os.path.exists(f'{const.FACE_DIR}/{self._player.name}.bmp'):
             self.setPixmap(QPixmap(f'{const.FACE_DIR}/{self._player.name}.bmp'))
         else:
             self.setPixmap(QPixmap(f'{const.FACE_DIR}/user.jpg'))
@@ -148,18 +149,19 @@ class MainWnd(QMainWindow):
     def __init__(self, app, *args):
         super().__init__()
 
+        self.app = app
         self.__dev_mode = '--dev_mode' in args
-        self._started = False
         self.params = Params(filename=const.PARAMS_FILE if os.path.exists(const.PARAMS_FILE) else None)
-        self.options = {}
+        self.profiles = Profiles(filename=const.PROFILES_FILE if os.path.exists(const.PROFILES_FILE) else None)
+        self.options = Options()
+        self.curr_profile = None
+
+        self._started = False
         self.players = []
         self.table = {}
-        self.bet = None
         self.game = None
         self.is_new_round = False
         self.is_new_lap = False
-        self.deck_type = None
-        self.back_type = None
         self.order_dark = None
         self.joker_walk_card = None
         self.can_show_results = False
@@ -179,12 +181,13 @@ class MainWnd(QMainWindow):
         self.ja_lear_buttons = []
         self.round_result_labels = []
         self.service_wnd = None
+        self.sb_label = None
 
         self.start_actn = None
         self.throw_actn = None
         self.svc_actn = None
 
-        self.app = app
+        self.init_profile()
         self.setWindowIcon(QIcon(const.MAIN_ICON))
         self.setWindowTitle(const.MAIN_WINDOW_TITLE)
 
@@ -195,12 +198,6 @@ class MainWnd(QMainWindow):
         self.scene.setBackgroundBrush(felt)
         view.setScene(self.scene)
         self.init_menu_actions()
-
-        sb_scales = (1, 2, 0)
-        self.status_labels = []
-        for i in range(3):
-            self.status_labels.append(QLabel())
-            self.statusBar().addWidget(self.status_labels[i], sb_scales[i])
 
         # view.setFocusPolicy(Qt.StrongFocus)
         self.setCentralWidget(view)
@@ -266,6 +263,7 @@ class MainWnd(QMainWindow):
         self.move((screen.width() - size.width()) / 2, 10)  # (screen.height() - size.height()) / 3)
 
     def closeEvent(self, event):
+        self.save_params()
         super(MainWnd, self).closeEvent(event)
 
     def show_service_window(self):
@@ -276,20 +274,7 @@ class MainWnd(QMainWindow):
             self.service_wnd.players = self.players
             self.service_wnd.show()
 
-    def set_status_messages(self, messages):
-        """
-        Записать сообщение в статусбар
-
-        :param messages: list, tuple: массив сообщений. Сообщения распределяются по индексам:
-            0 - в первую панель статусбара (слева - направо), 1 - во вторую и т.д.
-            Длина списка сообщений не должна превышать кол-во панелей статусбара. Все, что больше, будет игнорироваться
-        """
-
-        for i in range(len(messages)):
-            if i < len(self.status_labels):
-                self.status_labels[i].setText(messages[i])
-
-    def set_status_message(self, message, index=0):
+    def set_status_message(self, message):
         """
         Записать сообщение в статусбар
 
@@ -297,11 +282,11 @@ class MainWnd(QMainWindow):
         :param index: int: Индекс панели статусбара, где надо вывести сообщение
         """
 
-        if 0 < index < len(self.status_labels):
-            self.status_labels[index].setText(message)
+        if self.sb_label:
+            self.statusBar().removeWidget(self.sb_label)
 
-    def clear_status_messages(self):
-        self.set_status_messages(('', '', ''))
+        self.sb_label = QLabel(message)
+        self.statusBar().addPermanentWidget(self.sb_label, 1)
 
     def add_label(self, size, position, font_size, font_weight, color=None, text=None, tooltip=None):
         """
@@ -381,22 +366,28 @@ class MainWnd(QMainWindow):
     def started(self):
         return self._started
 
-    def set_default_options(self):
-        self.options['game_sum_by_diff'] = True
-        self.options['dark_allowed'] = False
-        self.options['third_pass_limit'] = False
-        self.options['fail_subtract_all'] = False
-        self.options['no_joker'] = False
-        self.options['joker_give_at_par'] = False
-        self.options['joker_demand_peak'] = True
-        self.options['pass_factor'] = 5
-        self.options['gold_mizer_factor'] = 15
-        self.options['dark_notrump_factor'] = 20
-        self.options['brow_factor'] = 50
-        self.options['dark_mult'] = 2
-        self.options['gold_mizer_on_null'] = True
-        self.options['on_all_order'] = True
-        self.options['take_block_bonus'] = True
+    def init_profile(self):
+        """ Инициализация текущего профиля """
+
+        if self.profiles.count() == 0:
+            self.profiles.create()
+
+        if not self.params.user or not self.profiles.get(self.params.user):
+            self.params.user = self.profiles.profiles[0].uid
+
+        self.set_profile(self.params.user)
+
+    def set_profile(self, uid):
+        """ Смена текущего профиля """
+
+        self.params.user = uid
+        self.curr_profile = self.profiles.get(uid)
+        self.set_status_message(self.curr_profile.name)
+
+        if os.path.exists(f'{self.get_profile_dir()}/options.json'):
+            self.options = Options(filename=f'{self.get_profile_dir()}/options.json')
+        else:
+            self.options = Options()
 
     def on_start_action(self):
         """ Обработчик меню начала игры """
@@ -435,33 +426,25 @@ class MainWnd(QMainWindow):
         # Настройка договоренностей игры, игроков и т.п.
         # todo: Пока что накидываем все опции дефолтно, без возможности выбора. Потом сделаю форму
         robots = [r for r in const.ROBOTS]
-        humans = [h for h in const.HUMANS]
         self.players = []
-        self.bet = 10
-        self.set_default_options()
-        self.deck_type = random.choice(const.DECK_TYPE)
-        self.back_type = random.randint(1, 9)
         self.order_dark = None
         self.joker_walk_card = None
         self.can_show_results = False
 
-        for i in range(random.choice([3, 4])):
+        for i in range(self.options.players_cnt):
             if i == 0:
-                self.players.append(helpers.Player())
-                self.players[i].id = i
-                self.players[i].is_robot = False
-                self.players[i].name = f'{humans.pop(random.randrange(0, len(humans)))}'
+                self.players.append(self.curr_profile)
             else:
                 self.players.append(helpers.Player())
-                self.players[i].id = i
+                self.players[i].uid = i
                 self.players[i].is_robot = True
                 self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
                 self.players[i].risk_level = random.randint(0, 2)
 
-        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
-        # self.options['deal_types'] = [1, 3, 4, 5, 6]
+        # self.options.deal_types = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
+        # self.options.deal_types = [1, 3, 4, 5, 6]
 
-        self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
+        self.game = engine.Engine(self.players, allow_no_human=False, **self.options.as_dict())
         self.game.start()
 
         # И поехала игра
@@ -474,11 +457,7 @@ class MainWnd(QMainWindow):
         """ Загрузка сохраненной игры """
 
         self.stop_game()
-
-        self.deck_type = random.choice(const.DECK_TYPE)
-        self.back_type = random.randint(1, 9)
         self.can_show_results = False
-
         b, fn = self.save_exists()
 
         if not b:
@@ -495,7 +474,6 @@ class MainWnd(QMainWindow):
         # игровой движок
         self.game = eng
         self.players = self.game.players
-        self.bet = self.game.bet
         self._started = True
 
         # if self.game.started():
@@ -785,7 +763,7 @@ class MainWnd(QMainWindow):
             if not p.is_robot:
                 start_x = const.PLAYER_AREA_SIZE[0]
                 for n, card in enumerate(p.cards):
-                    qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
+                    qc = QCard(self, card, p, self.params.deck_type, f'back{self.params.back_type}')
                     if h_back_up:
                         qc.turn_back_up()
                     else:
@@ -799,7 +777,7 @@ class MainWnd(QMainWindow):
                     start_x = ap[i][0] + const.FACE_SIZE[0] + 98 - len(p.cards) * const.CARD_OFFSET[0]
 
                 for n, card in enumerate(p.cards):
-                    qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
+                    qc = QCard(self, card, p, self.params.deck_type, f'back{self.params.back_type}')
                     qc.setZValue(const.CARD_BASE_Z_VALUE + n)
                     if r_back_up:
                         qc.turn_back_up()
@@ -851,7 +829,7 @@ class MainWnd(QMainWindow):
                 clr = 'red' if tc.lear > 1 else 'navy'
                 hint = f'<span style="color:{clr}">{eng_const.LEAR_SYMBOLS[tc.lear]}</span>'
 
-            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False,
+            qc = QCard(self, tc, None, self.params.deck_type, f'back{self.params.back_type}', removable=False,
                        tooltip=f'Козырь: {hint}', replace_tooltip=True)
             qc.turn_face_up()
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
@@ -929,8 +907,8 @@ class MainWnd(QMainWindow):
 
         for pi, ti in self.game.table().items():
             if pi not in self.table:
-                qc = QCard(self, ti.card, self.players[pi], self.deck_type, f'back{self.back_type}', removable=False,
-                           tooltip=f'{self.players[pi].name}:')
+                qc = QCard(self, ti.card, self.players[pi], self.params.deck_type, f'back{self.params.back_type}',
+                           removable=False, tooltip=f'{self.players[pi].name}:')
                 qc.turn_face_up()
                 qc.setPos(pos[0] + ofs[pi][0], pos[1] + ofs[pi][1])
                 self.table[pi] = qc
@@ -1098,12 +1076,12 @@ class MainWnd(QMainWindow):
 
         for p in self.players:
             colors.append('aqua')
-            order = int(record[p.id]['order'].split('*')[0])
-            scores = int(record[p.id]['scores'].split(' ')[0])
+            order = int(record[p.uid]['order'].split('*')[0])
+            scores = int(record[p.uid]['scores'].split(' ')[0])
 
-            if record[p.id]['take'] < order or deal.type_ == eng_const.DEAL_MIZER:
+            if record[p.uid]['take'] < order or deal.type_ == eng_const.DEAL_MIZER:
                 colors.append('OrangeRed')
-            elif record[p.id]['take'] > order and deal.type_ != eng_const.DEAL_GOLD:
+            elif record[p.uid]['take'] > order and deal.type_ != eng_const.DEAL_GOLD:
                 colors.append('Fuchsia')
             else:
                 colors.append('Lime')
@@ -1115,18 +1093,18 @@ class MainWnd(QMainWindow):
             else:
                 colors.append('Fuchsia')
 
-            if record[p.id]['total'] < 0:
+            if record[p.uid]['total'] < 0:
                 colors.append('OrangeRed')
-            elif record[p.id]['total'] >= max_scores :
+            elif record[p.uid]['total'] >= max_scores :
                 colors.append('Lime')
             else:
                 colors.append('aqua')
 
-            for k in record[p.id]:
+            for k in record[p.uid]:
                 if k == 'order':
-                    row.append(record[p.id][k].replace('-1', '-'))
+                    row.append(record[p.uid][k].replace('-1', '-'))
                 else:
-                    row.append(record[p.id][k])
+                    row.append(record[p.uid][k])
 
         self.game_table.add_row(row, colors)
 
@@ -1144,7 +1122,7 @@ class MainWnd(QMainWindow):
                             '<span style="color: {scores_color}">{scores}</span><br>',
                             '<span style="color: {total_color}"><b>{total}</b></span>'))
 
-            keys = {k: v for k, v in rec[-1][player.id].items()}
+            keys = {k: v for k, v in rec[-1][player.uid].items()}
             keys['player'] = player.name
 
             order = int(keys['order'].split('*')[0])
@@ -1493,3 +1471,16 @@ class MainWnd(QMainWindow):
             os.makedirs(const.APP_DATA_DIR)
 
         self.params.save(const.PARAMS_FILE)
+        self.profiles.save(const.PROFILES_FILE)
+        self.save_profile_options()
+
+    def save_profile_options(self):
+        """ Сохранение параметров текущего профиля """
+
+        if self.params.user and self.curr_profile:
+            fn = f'{self.get_profile_dir()}/options.json'
+
+            if not os.path.isdir(os.path.split(fn)[0]):
+                os.makedirs(os.path.split(fn)[0])
+
+            self.options.save(fn)
