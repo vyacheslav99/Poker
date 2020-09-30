@@ -29,12 +29,16 @@
 #### Развертывание
 
 * утановить/обновить зависимости одной из команд:
+  * `python -m pip install -r requirements.txt`
+  или для запуска через `pipenv`:
   * `pipenv install`
   * `pipenv update`
 * создать файл конфига `config.py` в папке `configs/` скопировав `config.py.tmpl` в `config.py`
 * настроить конфиг в полученном файле `configs/config.py`
 * запустить сервер командой:
 
+  `python httpd.py`
+  или для запуска через `pipenv`:
   `pipenv run python httpd.py`
   
 Параметры запуска:
@@ -56,8 +60,11 @@
 Развертывание и запуск
 
 * утановить/обновить зависимости одной из команд:
+  * `python -m pip install -r requirements.txt`
+  или для запуска через `pipenv`:
   * `pipenv install`
   * `pipenv update`
 * запустить игру:
-
-  `pipenv run python game.py`
+  `python poker.py`
+  или для запуска через `pipenv`:
+  `pipenv run python poker.py`
