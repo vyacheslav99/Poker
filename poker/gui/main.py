@@ -1,16 +1,17 @@
 import os
 import random
 import pickle
+import json
 
+from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 
 from gui import const
 from game import engine, helpers, const as eng_const
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
-from modules.params import *
+from modules.params import Params, Options, Profiles
 
 # print(QStyleFactory.keys())
 
@@ -279,7 +280,6 @@ class MainWnd(QMainWindow):
         Записать сообщение в статусбар
 
         :param message: str: Строка сообщения.
-        :param index: int: Индекс панели статусбара, где надо вывести сообщение
         """
 
         if self.sb_label:

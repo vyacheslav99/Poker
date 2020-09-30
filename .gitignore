@@ -15,3 +15,6 @@ logs/
 __pycache__/
 .idea/
 Pipfile.lock
+build/
+dist/
+poker.spec
