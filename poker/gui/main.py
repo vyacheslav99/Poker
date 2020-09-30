@@ -8,7 +8,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from gui import const
-from game import engine, helpers, const as eng_const
+from modules.core import engine, helpers, const as core_const
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
 from modules.params import Params, Options, Profiles
@@ -65,7 +65,7 @@ class QCard(QGraphicsPixmapItem):
             val = self._tooltip
         else:
             c = 'red' if self.card.lear > 1 else 'navy'
-            val = f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>'
+            val = f'{core_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{core_const.LEAR_SYMBOLS[self.card.lear]}</span>'
             if self.card.joker:
                 val = f'Джокер ({val})'
             if self._tooltip:
@@ -123,12 +123,12 @@ class Lear(QGraphicsPixmapItem):
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
-        if lear == eng_const.LEAR_NOTHING:
+        if lear == core_const.LEAR_NOTHING:
             self.setPixmap(QPixmap(f'{const.SUITS_DIR}/n.png'))
             self.setToolTip('Козырь: нет')
         else:
             self.setPixmap(QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.png'))
-            self.setToolTip(f'Козырь: {eng_const.LEAR_NAMES[lear]}')
+            self.setToolTip(f'Козырь: {core_const.LEAR_NAMES[lear]}')
 
 
 class Area(QGraphicsRectItem):
@@ -620,7 +620,7 @@ class MainWnd(QMainWindow):
 
             if p.is_robot:
                 self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]), Qt.cyan, 18, 65)
-                self.set_text(eng_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
+                self.set_text(core_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
                               Qt.gray, 13, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]),
                                       'Aqua', 16, 70)
@@ -702,16 +702,16 @@ class MainWnd(QMainWindow):
             self.clear_cards(True)
             self.draw_info_area()
 
-        if self.game.status() == eng_const.EXT_STATE_WALKS:
+        if self.game.status() == core_const.EXT_STATE_WALKS:
             d = self.game.current_deal()
             self.draw_order()
 
             if self.game.is_bet():
-                if self.game.dark_allowed and d.type_ not in (eng_const.DEAL_DARK, eng_const.DEAL_BROW) and self.order_dark is None:
+                if self.game.dark_allowed and d.type_ not in (core_const.DEAL_DARK, core_const.DEAL_BROW) and self.order_dark is None:
                     self.show_dark_buttons()
                 else:
-                    self.draw_cards(self.order_dark or d.type_ in (eng_const.DEAL_DARK, eng_const.DEAL_BROW),
-                                    d.type_ != eng_const.DEAL_BROW)
+                    self.draw_cards(self.order_dark or d.type_ in (core_const.DEAL_DARK, core_const.DEAL_BROW),
+                                    d.type_ != core_const.DEAL_BROW)
                     self.show_order_buttons()
             else:
                 if self.is_new_lap:
@@ -721,12 +721,12 @@ class MainWnd(QMainWindow):
                 self.draw_cards()
                 self.draw_take()
                 self.draw_table()
-        elif self.game.status() == eng_const.EXT_STATE_LAP_PAUSE:
+        elif self.game.status() == core_const.EXT_STATE_LAP_PAUSE:
             self.is_new_lap = True
             self.draw_table(True)
             self.draw_cards()
             self.draw_take()
-        elif self.game.status() == eng_const.EXT_STATE_ROUND_PAUSE:
+        elif self.game.status() == core_const.EXT_STATE_ROUND_PAUSE:
             self.is_new_round = True
             self.clear_table()
             self.show_round_results()
@@ -795,15 +795,15 @@ class MainWnd(QMainWindow):
             pos = (round(const.AREA_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2), 10)
 
         d = self.game.current_deal()
-        if d.type_ == eng_const.DEAL_NO_TRUMP:
+        if d.type_ == core_const.DEAL_NO_TRUMP:
             c = 'Lime'
-        elif d.type_ == eng_const.DEAL_DARK:
+        elif d.type_ == core_const.DEAL_DARK:
             c = 'Black'
-        elif d.type_ == eng_const.DEAL_GOLD:
+        elif d.type_ == core_const.DEAL_GOLD:
             c = 'Yellow'
-        elif d.type_ == eng_const.DEAL_MIZER:
+        elif d.type_ == core_const.DEAL_MIZER:
             c = 'OrangeRed'
-        elif d.type_ == eng_const.DEAL_BROW:
+        elif d.type_ == core_const.DEAL_BROW:
             c = 'Fuchsia'
         else:
             c = 'LightCyan'
@@ -817,7 +817,7 @@ class MainWnd(QMainWindow):
                 letter = ''
             text = 'Кон по {0} карт{1}'.format(d.cards, letter)
         else:
-            text = eng_const.DEAL_NAMES[d.type_]
+            text = core_const.DEAL_NAMES[d.type_]
         self.deal_label.setStyleSheet('QLabel {color: %s}' % c)
         self.deal_label.setText(text)
 
@@ -827,7 +827,7 @@ class MainWnd(QMainWindow):
                 hint = 'нет'
             else:
                 clr = 'red' if tc.lear > 1 else 'navy'
-                hint = f'<span style="color:{clr}">{eng_const.LEAR_SYMBOLS[tc.lear]}</span>'
+                hint = f'<span style="color:{clr}">{core_const.LEAR_SYMBOLS[tc.lear]}</span>'
 
             qc = QCard(self, tc, None, self.params.deck_type, f'back{self.params.back_type}', removable=False,
                        tooltip=f'Козырь: {hint}', replace_tooltip=True)
@@ -861,15 +861,15 @@ class MainWnd(QMainWindow):
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
-        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'ЗАБРАТЬ',
+        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE), 'ЗАБРАТЬ',
                                            (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_btn.hide()
 
-        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX),
+        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE_BY_MAX),
                                               'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
-        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'СКИНУТЬ',
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_GIVE), 'СКИНУТЬ',
                                            (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
         self.ja_give_btn.hide()
 
@@ -879,7 +879,7 @@ class MainWnd(QMainWindow):
             btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy),
                                   bg_color='LightCyan')
             btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.png'))
-            btn.setToolTip(eng_const.LEAR_NAMES[i])
+            btn.setToolTip(core_const.LEAR_NAMES[i])
             btn.hide()
             self.ja_lear_buttons.append(btn)
 
@@ -1049,8 +1049,8 @@ class MainWnd(QMainWindow):
 
         for i, rec in enumerate(recs[1:]):
             if rec == recs[-1]:
-                if self.game.status() != eng_const.EXT_STATE_ROUND_PAUSE or (
-                        self.game.status() == eng_const.EXT_STATE_ROUND_PAUSE and not self.is_new_round):
+                if self.game.status() != core_const.EXT_STATE_ROUND_PAUSE or (
+                    self.game.status() == core_const.EXT_STATE_ROUND_PAUSE and not self.is_new_round):
                     self.add_table_row(rec, self.game.get_deals()[i])
             else:
                 self.add_table_row(rec, self.game.get_deals()[i])
@@ -1072,16 +1072,16 @@ class MainWnd(QMainWindow):
         if deal.type_ < 3:
             row.append(f'по {deal.cards}')
         else:
-            row.append(eng_const.DEAL_NAMES[deal.type_][0])
+            row.append(core_const.DEAL_NAMES[deal.type_][0])
 
         for p in self.players:
             colors.append('aqua')
             order = int(record[p.uid]['order'].split('*')[0])
             scores = int(record[p.uid]['scores'].split(' ')[0])
 
-            if record[p.uid]['take'] < order or deal.type_ == eng_const.DEAL_MIZER:
+            if record[p.uid]['take'] < order or deal.type_ == core_const.DEAL_MIZER:
                 colors.append('OrangeRed')
-            elif record[p.uid]['take'] > order and deal.type_ != eng_const.DEAL_GOLD:
+            elif record[p.uid]['take'] > order and deal.type_ != core_const.DEAL_GOLD:
                 colors.append('Fuchsia')
             else:
                 colors.append('Lime')
@@ -1129,9 +1129,9 @@ class MainWnd(QMainWindow):
             scores = int(keys['scores'].split(' ')[0])
             keys['order'] = keys['order'].replace('-1', '-')
 
-            if keys['take'] < order or d.type_ == eng_const.DEAL_MIZER:
+            if keys['take'] < order or d.type_ == core_const.DEAL_MIZER:
                 keys['take_color'] = 'OrangeRed'
-            elif keys['take'] > order and d.type_ != eng_const.DEAL_GOLD:
+            elif keys['take'] > order and d.type_ != core_const.DEAL_GOLD:
                 keys['take_color'] = 'Fuchsia'
             else:
                 keys['take_color'] = 'Lime'
@@ -1235,7 +1235,7 @@ class MainWnd(QMainWindow):
         c = card.card
         p = card.player
 
-        if self.started() and p and not p.is_robot and self.game.status() == eng_const.EXT_STATE_WALKS and not self.game.is_bet():
+        if self.started() and p and not p.is_robot and self.game.status() == core_const.EXT_STATE_WALKS and not self.game.is_bet():
             try:
                 if c.joker and joker_handling:
                     self.joker_walk_card = card
@@ -1265,7 +1265,7 @@ class MainWnd(QMainWindow):
             # если мой ход первый: если скидываю и в настройках игры установлено, что Джокер играет по номиналу,
             # то масть будет мастью реальной карты - т.е. пика (джокер - это 7 пика);
             # в остальных случаях надо выбрать, с какой масти заходить
-            if action == eng_const.JOKER_GIVE and self.game.joker_give_at_par:
+            if action == core_const.JOKER_GIVE and self.game.joker_give_at_par:
                 l = card.lear
             else:
                 self.show_ja_lear_buttons()
@@ -1275,8 +1275,8 @@ class MainWnd(QMainWindow):
             # с которой зашли;
             # если скидываю - то или по номиналу или масть карты, с которой зашли
             ftbl = self.game.lap_players_order(by_table=True)[0]
-            if action == eng_const.JOKER_TAKE:
-                l = self.game.trump()[0] if self.game.trump()[0] != eng_const.LEAR_NOTHING else self.game.table()[ftbl[1]].card.lear
+            if action == core_const.JOKER_TAKE:
+                l = self.game.trump()[0] if self.game.trump()[0] != core_const.LEAR_NOTHING else self.game.table()[ftbl[1]].card.lear
             else:
                 l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
 
@@ -1409,12 +1409,12 @@ class MainWnd(QMainWindow):
             clr = 'red' if card.joker_lear > 1 else 'black'
             tmpl = '<span style="color:{0}">{1}</span>'.format(clr, '{0}')
 
-            if card.joker_action == eng_const.JOKER_TAKE:
-                s, l = 'самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
-            elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
-                s, l = 'по старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
-            elif card.joker_action == eng_const.JOKER_GIVE:
-                s, l = 'самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
+            if card.joker_action == core_const.JOKER_TAKE:
+                s, l = 'самая старшая', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])
+            elif card.joker_action == core_const.JOKER_TAKE_BY_MAX:
+                s, l = 'по старшим', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])
+            elif card.joker_action == core_const.JOKER_GIVE:
+                s, l = 'самая младшая', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])\
                     if not self.game.joker_give_at_par else f'{card}'
             else:
                 s, l = None, None

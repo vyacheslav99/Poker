@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from gui import const
-from game import const as eng_const
+from modules.core import const as core_const
 
 
 class ServiceInfoDialog(QDialog):
@@ -54,16 +54,16 @@ class ServiceInfoDialog(QDialog):
             else:
                 c = 'red'
 
-            return f'<span style="color: {c}">{eng_const.LEAR_SYMBOLS[lear]}</span>'
+            return f'<span style="color: {c}">{core_const.LEAR_SYMBOLS[lear]}</span>'
 
         tmpl = '<b>{0}</b>: {1}<br>{2}'
         i = 0
 
         for p in self.players:
             if p.is_robot:
-                c = ' : '.join([f"{'Дж' if c.joker else eng_const.CARD_LETTERS[c.value]} " \
+                c = ' : '.join([f"{'Дж' if c.joker else core_const.CARD_LETTERS[c.value]} " \
                                 f"{'' if c.joker else fmt_lear(c.lear)}" for c in p.cards])
-                o = ' : '.join([f"{'Дж' if c.joker else eng_const.CARD_LETTERS[c.value]} " \
+                o = ' : '.join([f"{'Дж' if c.joker else core_const.CARD_LETTERS[c.value]} " \
                                 f"{'' if c.joker else fmt_lear(c.lear)}" for c in p.order_cards])
 
                 self.player_labels[i].setText(tmpl.format(p.name, c, o))

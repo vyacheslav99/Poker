@@ -5,7 +5,7 @@ import random
 
 from modules.base_model import BaseModel
 from gui import const
-from game.helpers import Player
+from modules.core.helpers import Player
 
 
 class Params(BaseModel):
