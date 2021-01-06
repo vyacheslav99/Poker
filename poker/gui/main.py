@@ -11,6 +11,7 @@ from gui import const
 from modules.core import engine, helpers, const as core_const
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
+from gui.players_dlg import PlayersDialog
 from modules.params import Params, Options, Profiles
 
 # print(QStyleFactory.keys())
@@ -423,24 +424,37 @@ class MainWnd(QMainWindow):
 
         self.stop_game()
 
-        # Настройка договоренностей игры, игроков и т.п.
-        # todo: Пока что накидываем все опции дефолтно, без возможности выбора. Потом сделаю форму
         robots = [r for r in const.ROBOTS]
+        players = []
+
+        for i in range(self.options.players_cnt - 1):
+            players.append(helpers.Player())
+            players[i].uid = i
+            players[i].is_robot = True
+            players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
+            players[i].risk_level = random.randint(0, 2)
+
+        # Настройка договоренностей игры, игроков и т.п.
         self.players = []
         self.order_dark = None
         self.joker_walk_card = None
         self.can_show_results = False
 
-        for i in range(self.options.players_cnt):
-            if i == 0:
-                self.players.append(self.curr_profile)
-            else:
-                self.players.append(helpers.Player())
-                self.players[i].uid = i
-                self.players[i].is_robot = True
-                self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
-                self.players[i].risk_level = random.randint(0, 2)
+        # диалог настройки игроков
+        if self.params.start_type in (1, 3):
+            players_dlg = PlayersDialog(self, players=players)
+            result = players_dlg.exec()
+            if result == 0:
+                return
 
+            players = players_dlg.players
+
+        # Накидываем игроков
+        self.players.append(self.curr_profile)
+        for p in players:
+            self.players.append(p)
+
+        # todo: Пока что накидываем все опции дефолтно, без возможности выбора. Потом сделаю форму
         # self.options.deal_types = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
         # self.options.deal_types = [1, 3, 4, 5, 6]
 
@@ -557,6 +571,7 @@ class MainWnd(QMainWindow):
         self.round_result_labels = []
 
         self.scene.clear()
+        self.refresh_menu_actions()
 
     def clear_save(self):
         """ Удаляет ненужный файл автосохранения """
@@ -824,7 +839,7 @@ class MainWnd(QMainWindow):
         tl, tc = self.game.trump()
         if tc:
             if tc.joker:
-                hint = 'нет'
+                hint = 'нет (Бескозырка)'
             else:
                 clr = 'red' if tc.lear > 1 else 'navy'
                 hint = f'<span style="color:{clr}">{core_const.LEAR_SYMBOLS[tc.lear]}</span>'
@@ -1037,7 +1052,7 @@ class MainWnd(QMainWindow):
     def show_ja_lear_buttons(self):
         """ Показ кнопок выбора масти джокера """
 
-        self.table_label.setText('Ход джокером. Выбери масть:')
+        self.table_label.setText('Ход джокером. Выбери масть')
 
         for btn in self.ja_lear_buttons:
             btn.show()
@@ -1181,7 +1196,7 @@ class MainWnd(QMainWindow):
                           Qt.green if p == winner else Qt.yellow, 18, 65)
 
         y = y + len(self.game.players) * 30 + 60
-        self.set_text(f'Победил {winner}', (x, y), Qt.green, 18, 65)
+        self.set_text(f'Победил {winner.name}', (x, y), Qt.green, 18, 65)
         self.set_text(random.choice(const.CONGRATULATIONS), (x, y + 60), Qt.magenta, 18, 65)
 
     def clear_buttons(self):
