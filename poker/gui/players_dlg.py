@@ -3,7 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from modules.core import helpers
+from modules.core import helpers, const as eng_const
 from gui import const
 from gui.graphics import Face2
 
@@ -15,6 +15,7 @@ class PlayersDialog(QDialog):
         self._players_cnt = kwargs.get('players_cnt', 2)
         self._cb_items = []
         self._comboboxes = []
+        self._radiogroups = []
 
         robots = sorted([r for r in const.ROBOTS])
         for i, rob in enumerate(robots):
@@ -44,10 +45,12 @@ class PlayersDialog(QDialog):
         buttons_box.addWidget(btn_cancel)
 
         players_box = QHBoxLayout()
+        players_box.setAlignment(Qt.AlignLeft)
         players_box.addWidget(QLabel('Количество участников парии (кроме вас)'))
         sb = QSpinBox()
         sb.setMinimum(2)
         sb.setMaximum(3)
+        sb.setFixedWidth(50)
         sb.setValue(self._players_cnt)
         sb.valueChanged.connect(self._count_change)
         players_box.addWidget(sb)
@@ -65,21 +68,37 @@ class PlayersDialog(QDialog):
             cb = QComboBox()
             cb.setEditable(False)
             cb.setIconSize(QSize(64, 64))
-            cb.setFixedWidth(250)
+            cb.setFixedWidth(200)
             cb.setEnabled(i < self._players_cnt)
 
             for el in self._cb_items:
                 cb.addItem(QIcon(Face2(el)), f'    {el.name}', QVariant(el))
 
-            i = random.randrange(0, len(self._cb_items))
-            while i in selected:
-                i = random.randrange(0, len(self._cb_items))
-            selected.add(i)
-            cb.setCurrentIndex(i)
+            x = random.randrange(0, len(self._cb_items))
+            while x in selected:
+                x = random.randrange(0, len(self._cb_items))
+            selected.add(x)
+            cb.setCurrentIndex(x)
+            cb.currentIndexChanged.connect(self._combo_change)
             self._comboboxes.append(cb)
 
+            gb = QGroupBox('Уровень риска')
+            l = QHBoxLayout()
+            bg = QButtonGroup()
+            bg.setExclusive(True)
+            for n in range(3):
+                rbtn = QRadioButton(eng_const.RISK_LVL_NAMES[n])
+                rbtn.setEnabled(i < self._players_cnt)
+                bg.addButton(rbtn, id=n)
+                l.addWidget(rbtn)
+
+            bg.buttons()[self._cb_items[x].risk_level].setChecked(True)
+            self._radiogroups.append(bg)
+
+            gb.setLayout(l)
             pb.addWidget(lb)
             pb.addWidget(cb)
+            pb.addWidget(gb)
             main_layout.addLayout(pb)
 
         main_layout.addLayout(buttons_box)
@@ -89,10 +108,20 @@ class PlayersDialog(QDialog):
         self._players_cnt = value
         self._comboboxes[-1].setEnabled(len(self._comboboxes) <= self._players_cnt)
 
+        for btn in self._radiogroups[-1].buttons():
+            btn.setEnabled(len(self._comboboxes) <= self._players_cnt)
+
+    def _combo_change(self, index):
+        # т.к. мы тут не знаем, какой именно комбобокс вызвал  событие - просто переберем все
+        for i, cb in enumerate(self._comboboxes):
+            self._radiogroups[i].buttons()[cb.currentData().risk_level].setChecked(True)
+
     def get_players(self):
         players = []
 
         for i in range(self._players_cnt):
+            p = self._comboboxes[i].currentData()
+            p.risk_level = self._radiogroups[i].checkedId()
             players.append(self._comboboxes[i].currentData())
 
         return players
