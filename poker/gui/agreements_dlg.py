@@ -63,7 +63,6 @@ class AgreementsDialog(QDialog):
         self._players_cnt.setMinimum(3)
         self._players_cnt.setMaximum(4)
         self._players_cnt.setFixedWidth(50)
-        self._players_cnt.setEnabled(False)
         l2.addWidget(self._players_cnt)
         layout.addLayout(l2, 1, 1, Qt.AlignLeft)
 

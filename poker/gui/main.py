@@ -301,6 +301,16 @@ class MainWnd(QMainWindow):
         self.joker_walk_card = None
         self.can_show_results = False
 
+        # диалог настройки договоренностей
+        if self.params.start_type in (2, 3):
+            agreements_dlg = AgreementsDialog(self, self.options.as_dict())
+            result = agreements_dlg.exec()
+            if result == 0:
+                return
+
+            self.options.from_dict(agreements_dlg.get_agreements())
+            agreements_dlg.destroy()
+
         # диалог настройки игроков (создаем всегда, но показываем только если включена опция)
         players_dlg = PlayersDialog(self, players_cnt=self.options.players_cnt - 1)
         if self.params.start_type in (1, 3):
@@ -317,17 +327,6 @@ class MainWnd(QMainWindow):
             self.players.append(p)
 
         self.options.players_cnt = len(self.players)
-
-        # диалог настройки игроков
-        if self.params.start_type in (2, 3):
-            agreements_dlg = AgreementsDialog(self, self.options.as_dict())
-            result = agreements_dlg.exec()
-            if result == 0:
-                return
-
-            self.options.from_dict(agreements_dlg.get_agreements())
-            agreements_dlg.destroy()
-
         self.game = engine.Engine(self.players, allow_no_human=False, **self.options.as_dict())
         self.game.start()
 
