@@ -117,17 +117,17 @@ class MainWnd(QMainWindow):
         menu.addAction(actn)
 
         actn = QAction(QIcon(f'{const.RES_DIR}/list.png'), 'Договоренности', self)
-        # actn.setShortcut('F10')
+        actn.setShortcut('F5')
         actn.triggered.connect(self.show_agreements)
         menu.addAction(actn)
 
         actn = QAction(QIcon(f'{const.RES_DIR}/player.ico'), 'Профили', self)
-        # actn.setShortcut('F10')
+        actn.setShortcut('F6')
         actn.triggered.connect(self.show_profiles)
         menu.addAction(actn)
 
         actn = QAction('Статистика', self)
-        # actn.setShortcut('F10')
+        actn.setShortcut('F8')
         actn.triggered.connect(self.show_statistic)
         menu.addAction(actn)
 
@@ -175,7 +175,7 @@ class MainWnd(QMainWindow):
         print('Settings action')
 
     def show_agreements(self):
-        dlg = AgreementsDialog(self, self.options.as_dict())
+        dlg = AgreementsDialog(self, self.game.options_as_dict() if self.started() else self.options.as_dict())
         try:
             if self.started():
                 dlg.deactivate()

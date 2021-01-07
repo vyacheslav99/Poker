@@ -652,6 +652,30 @@ class BaseEngine(object):
     def get_deals(self):
         return self._deals
 
+    def options_as_dict(self):
+        """ Получить набор текущих опций, для чтения """
+
+        return {
+            'game_sum_by_diff': self._game_sum_by_diff,
+            'dark_allowed': self._dark_allowed,
+            'third_pass_limit': self._third_pass_limit,
+            'fail_subtract_all': self._fail_subtract_all,
+            'no_joker': self._no_joker,
+            'joker_give_at_par': self._joker_give_at_par,
+            'joker_demand_peak': self._joker_demand_peak,
+            'pass_factor': self._pass_factor,
+            'gold_mizer_factor': self._gold_mizer_factor,
+            'dark_notrump_factor': self._dark_notrump_factor,
+            'brow_factor': self._brow_factor,
+            'dark_mult': self._dark_mult,
+            'gold_mizer_on_null': self._gold_mizer_on_null,
+            'on_all_order': self._on_all_order,
+            'take_block_bonus': self._take_block_bonus,
+            'bet': self.bet,
+            'players_cnt': len(self.players),
+            'deal_types': list(self._deal_types)
+        }
+
     # --==** Далее методы ИИ **==--
     # Далее идут методы ИИ, которые определяют поведение компьютерных игроков.
     # Данная реализация просто описывает минимальный интерфейс класса ИИ. Здесь это просто заглушки -
