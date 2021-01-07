@@ -13,9 +13,8 @@ from modules.core import engine, helpers, const as core_const
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
 from gui.players_dlg import PlayersDialog
+from gui.agreements_dlg import AgreementsDialog
 from modules.params import Params, Options, Profiles
-
-# print(QStyleFactory.keys())
 
 
 class MainWnd(QMainWindow):
@@ -307,18 +306,27 @@ class MainWnd(QMainWindow):
         if self.params.start_type in (1, 3):
             result = players_dlg.exec()
             if result == 0:
+                players_dlg.destroy()
                 return
 
         # Накидываем игроков
         players = players_dlg.get_players()
+        players_dlg.destroy()
         self.players.append(self.curr_profile)
         for p in players:
             self.players.append(p)
 
         self.options.players_cnt = len(self.players)
-        # todo: Пока что накидываем все опции дефолтно, без возможности выбора. Потом сделаю форму
-        # self.options.deal_types = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
-        # self.options.deal_types = [1, 3, 4, 5, 6]
+
+        # диалог настройки игроков
+        if self.params.start_type in (2, 3):
+            agreements_dlg = AgreementsDialog(self, self.options.as_dict())
+            result = agreements_dlg.exec()
+            if result == 0:
+                return
+
+            self.options.from_dict(agreements_dlg.get_agreements())
+            agreements_dlg.destroy()
 
         self.game = engine.Engine(self.players, allow_no_human=False, **self.options.as_dict())
         self.game.start()

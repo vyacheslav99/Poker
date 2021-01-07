@@ -33,11 +33,11 @@ class PlayersDialog(QDialog):
         # self.setFixedWidth(400)
 
     def init_ui(self):
-        btn_ok = QPushButton("OK")
+        btn_ok = QPushButton(QIcon(f'{const.RES_DIR}/ok.png'), 'OK')
         btn_ok.setDefault(True)
         btn_ok.setFixedWidth(140)
         btn_ok.clicked.connect(self.accept)
-        btn_cancel = QPushButton("Отмена")
+        btn_cancel = QPushButton(QIcon(f'{const.RES_DIR}/cancel.png'), 'Отмена')
         btn_cancel.setFixedWidth(140)
         btn_cancel.clicked.connect(self.reject)
         buttons_box = QHBoxLayout()
