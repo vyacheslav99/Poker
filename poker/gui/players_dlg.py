@@ -46,7 +46,7 @@ class PlayersDialog(QDialog):
 
         players_box = QHBoxLayout()
         players_box.setAlignment(Qt.AlignLeft)
-        players_box.addWidget(QLabel('Количество участников парии (кроме вас)'))
+        players_box.addWidget(QLabel('Количество участников парии (кроме вас)  '))
         sb = QSpinBox()
         sb.setMinimum(2)
         sb.setMaximum(3)
@@ -63,12 +63,12 @@ class PlayersDialog(QDialog):
             pb = QHBoxLayout()
             pb.setAlignment(Qt.AlignLeft)
             lb = QLabel()
-            lb.setText(f'Игрок {i + 1}')
+            lb.setText(f'Игрок {i + 1}  ')
 
             cb = QComboBox()
             cb.setEditable(False)
             cb.setIconSize(QSize(64, 64))
-            cb.setFixedWidth(200)
+            cb.setFixedWidth(230)
             cb.setEnabled(i < self._players_cnt)
 
             for el in self._cb_items:
@@ -82,7 +82,7 @@ class PlayersDialog(QDialog):
             cb.currentIndexChanged.connect(self._combo_change)
             self._comboboxes.append(cb)
 
-            gb = QGroupBox('Уровень риска')
+            gb = QGroupBox()
             l = QHBoxLayout()
             bg = QButtonGroup()
             bg.setExclusive(True)

@@ -81,31 +81,55 @@ class MainWnd(QMainWindow):
 
     def init_menu_actions(self):
         menubar = self.menuBar()
-        file_menu = menubar.addMenu('Файл')
+
+        # Меню Файл
+        menu = menubar.addMenu('Файл')
         # toolbar = self.addToolBar('Выход')
         self.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
         self.start_actn.setShortcut('F2')
         self.start_actn.triggered.connect(self.on_start_action)
-        file_menu.addAction(self.start_actn)
+        menu.addAction(self.start_actn)
 
         self.throw_actn = QAction('Бросить партию', self)
         self.throw_actn.setStatusTip('Отказаться от текущей партии')
         self.throw_actn.triggered.connect(self.on_throw_action)
-        file_menu.addAction(self.throw_actn)
+        menu.addAction(self.throw_actn)
 
         if self.__dev_mode:
             self.svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
             self.svc_actn.setShortcut('F9')
             self.svc_actn.setStatusTip('Показать окно со служебной информацией')
             self.svc_actn.triggered.connect(self.show_service_window)
-            file_menu.addAction(self.svc_actn)
+            menu.addAction(self.svc_actn)
 
-        file_menu.addSeparator()
-        exit_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
-        exit_actn.setShortcut('Esc')
-        exit_actn.setStatusTip('Выход из игры')
-        exit_actn.triggered.connect(self.close)
-        file_menu.addAction(exit_actn)
+        menu.addSeparator()
+        actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
+        actn.setShortcut('Esc')
+        actn.setStatusTip('Выход из игры')
+        actn.triggered.connect(self.close)
+        menu.addAction(actn)
+
+        # Меню Настройка
+        menu = menubar.addMenu('Настройка')
+        actn = QAction(QIcon(f'{const.RES_DIR}/settings.ico'), 'Настройки', self)
+        actn.setShortcut('F10')
+        actn.triggered.connect(self.show_settings)
+        menu.addAction(actn)
+
+        actn = QAction(QIcon(f'{const.RES_DIR}/list.png'), 'Договоренности', self)
+        # actn.setShortcut('F10')
+        actn.triggered.connect(self.show_agreements)
+        menu.addAction(actn)
+
+        actn = QAction(QIcon(f'{const.RES_DIR}/player.ico'), 'Профили', self)
+        # actn.setShortcut('F10')
+        actn.triggered.connect(self.show_profiles)
+        menu.addAction(actn)
+
+        actn = QAction('Статистика', self)
+        # actn.setShortcut('F10')
+        actn.triggered.connect(self.show_statistic)
+        menu.addAction(actn)
 
         self.refresh_menu_actions()
         # toolbar.addAction(exit_actn)
@@ -146,6 +170,30 @@ class MainWnd(QMainWindow):
 
             self.service_wnd.players = self.players
             self.service_wnd.show()
+
+    def show_settings(self):
+        print('Settings action')
+
+    def show_agreements(self):
+        dlg = AgreementsDialog(self, self.options.as_dict())
+        try:
+            if self.started():
+                dlg.deactivate()
+            result = dlg.exec()
+
+            if result == 0 or self.started():
+                return
+
+            self.options.from_dict(dlg.get_agreements())
+            self.save_params()
+        finally:
+            dlg.destroy()
+
+    def show_profiles(self):
+        print('Profiles action')
+
+    def show_statistic(self):
+        print('Statistic action')
 
     def set_status_message(self, message):
         """

@@ -13,8 +13,17 @@ class Params(BaseModel):
     def __init__(self, filename=None, **kwargs):
         self.user = None
         self.color_theme = 'green'
+        # Вариант колоды
         self.deck_type = random.choice(const.DECK_TYPE)
+        # Вариант рубашки
         self.back_type = random.randint(1, 9)
+
+        # todo: это пока нигде не применяется
+        # Сортировка карт пр показе у игрока: 0: По возрастанию, 1: По убыванию
+        self.sort_order = 1
+        # Порядок расположения мастей
+        self.lear_order = list(const.LEARS)
+        # todo: вот до сюда
 
         # Варианты начала игры:
         #   0 - быстрый: без диалогов: игроки случайно; договоренности сохраненные/дефолтные

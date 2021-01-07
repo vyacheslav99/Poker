@@ -13,6 +13,7 @@ class AgreementsDialog(QDialog):
         self._agreements = agreements
 
         # элементы управления
+        self._btn_ok = None
         self._game_sum_by_diff = None       # подведение итогов игры: по разнице между игроками (True) или по старшим очкам, что жопистее (False)
         self._dark_allowed = None           # вкл/выкл возможность заказывать в темную в обычных раздачах
         self._third_pass_limit = None       # вкл/выкл ограничение на 3 паса подряд
@@ -41,15 +42,15 @@ class AgreementsDialog(QDialog):
     def init_ui(self):
         # Кнопки ОК, Отмена
         main_layout = QVBoxLayout()
-        btn_ok = QPushButton(QIcon(f'{const.RES_DIR}/ok.png'), 'OK')
-        btn_ok.setDefault(True)
-        btn_ok.setFixedWidth(140)
-        btn_ok.clicked.connect(self.accept)
+        self._btn_ok = QPushButton(QIcon(f'{const.RES_DIR}/ok.png'), 'OK')
+        self._btn_ok.setDefault(True)
+        self._btn_ok.setFixedWidth(140)
+        self._btn_ok.clicked.connect(self.accept)
         btn_cancel = QPushButton(QIcon(f'{const.RES_DIR}/cancel.png'), 'Отмена')
         btn_cancel.setFixedWidth(140)
         btn_cancel.clicked.connect(self.reject)
         buttons_box = QHBoxLayout()
-        buttons_box.addWidget(btn_ok)
+        buttons_box.addWidget(self._btn_ok)
         buttons_box.addWidget(btn_cancel)
 
         # Кол-во игроков, ставка и прочие самостоятельне опции
@@ -247,3 +248,6 @@ class AgreementsDialog(QDialog):
         self._agreements['deal_types'] = list(self._agreements['deal_types'])
 
         return self._agreements
+
+    def deactivate(self):
+        self._btn_ok.setEnabled(False)
