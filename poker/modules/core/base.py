@@ -91,6 +91,7 @@ class BaseEngine(object):
 
     def _reset(self):
         """ Сброс состояния внутренних переменных до начального """
+
         self._started = False
         self._status = const.EXT_STATE_DEAL
         self._game_record = []
@@ -107,6 +108,9 @@ class BaseEngine(object):
         self._take_player = None
         self._released_cards = []
         self._released_lears = {}
+
+        for p in self.players:
+            p.reset_game_variables()
 
     def _init_record(self):
         """ Инициализирует таблицу игровых результатов, добавляет в нее одну строку - шапку """
@@ -403,18 +407,17 @@ class BaseEngine(object):
         if self._game_sum_by_diff:
             for i in range(len(ordered)):
                 for j in range(len(ordered)):
-                    self._players[ordered[i][0]].last_money += ordered[i][1] - ordered[j][1]
+                    self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[j][1]
         else:
             for i in range(len(ordered)):
                 if i == 0:
-                    self._players[ordered[i][0]].last_money += ordered[0][1]
+                    self._players[ordered[i][0]].total_money += ordered[0][1]
                 else:
-                    self._players[ordered[i][0]].last_money += ordered[i][1] - ordered[0][1]
+                    self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[0][1]
 
         # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
         for p in self._players:
-            p.last_money = p.last_money * self._bet / 100.0
-            p.money += p.last_money
+            p.total_money = p.total_money * self._bet / 100.0
 
     def next(self):
         """ Центральный метод реализации игрового цикла """

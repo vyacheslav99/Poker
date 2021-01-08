@@ -89,6 +89,7 @@ class Player(BaseModel):
         self.take = 0                   # взято в текущем раунде
         self.scores = 0                 # очки в текущем раунде
         self.total_scores = 0           # общий счет в текущей игре на текущий момент
+        self.total_money = 0.0          # выигрыш в текущей игре (деньги)
         self.cards = []                 # карты на руках
         self.order_cards = []           # карты, на которые сделан заказ (заполняется только у ИИ)
         self.order_is_dark = False      # текущий заказ был сделан в темную или нет
@@ -180,6 +181,20 @@ class Player(BaseModel):
 
         for c in cards:
             self.order_cards.append(c)
+
+    def reset_game_variables(self):
+        """ Сброс игровых переменных """
+
+        self.order = -1
+        self.take = 0
+        self.scores = 0
+        self.total_scores = 0
+        self.total_money = 0.0
+        self.cards = []
+        self.order_cards = []
+        self.order_is_dark = False
+        self.pass_counter = 0
+        self.success_counter = 0
 
     def __str__(self):
         if self.is_robot:

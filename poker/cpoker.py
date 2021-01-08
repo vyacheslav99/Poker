@@ -271,12 +271,12 @@ class Game:
         self.skip_lines(2)
         print('-= Итоги игры =-')
         for p in self.game.players:
-            money = '{0:.2f}'.format(p.last_money)
+            money = '{0:.2f}'.format(p.total_money)
             rub, kop = money.split('.')
             print(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп')
 
         self.skip_lines(1)
-        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')
+        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.total_money)}')
         print(random.choice(congratulations))
 
     def ask_joker_walk(self, card):

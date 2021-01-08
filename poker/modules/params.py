@@ -5,6 +5,7 @@ import random
 
 from modules.base_model import BaseModel
 from gui import const
+from modules.core import const as eng_const
 from modules.core.helpers import Player
 
 
@@ -17,14 +18,10 @@ class Params(BaseModel):
         self.deck_type = random.choice(const.DECK_TYPE)
         # Вариант рубашки
         self.back_type = random.randint(1, 9)
-
-        # todo: это пока нигде не применяется
         # Сортировка карт пр показе у игрока: 0: По возрастанию, 1: По убыванию
-        self.sort_order = 1
+        self.sort_order = 0
         # Порядок расположения мастей
-        self.lear_order = ('h', 'd', 'c', 's')
-        # todo: вот до сюда
-
+        self.lear_order = (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS)
         # Варианты начала игры:
         self.start_type = const.GAME_START_TYPE_ALL
 

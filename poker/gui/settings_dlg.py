@@ -154,9 +154,9 @@ class SettingsDialog(QDialog):
 
         self._lear_order.clear()
         for lear in self._params.get('lear_order', []):
-            px = QPixmap(f'{const.SUITS_DIR}/{lear}.png')
+            px = QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.png')
             item = QListWidgetItem(QIcon(px), '')
-            item.setData(Qt.DisplayRole, QVariant(lear))
+            item.setData(Qt.DisplayRole, QVariant((lear,)))
             self._lear_order.addItem(item)
 
     def get_params(self):
@@ -168,7 +168,7 @@ class SettingsDialog(QDialog):
 
         self._params['lear_order'] = []
         for i in range(self._lear_order.count()):
-            self._params['lear_order'].append(self._lear_order.item(i).data(Qt.DisplayRole))
+            self._params['lear_order'].append(self._lear_order.item(i).data(Qt.DisplayRole)[0])
 
         return self._params
 

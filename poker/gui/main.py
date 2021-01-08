@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import *
 from gui import const
 from gui.graphics import QCard, Face, Lear, Area
 from modules.core import engine, helpers, const as core_const
+from gui import utils
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
 from gui.players_dlg import PlayersDialog
@@ -705,7 +706,9 @@ class MainWnd(QMainWindow):
         for i, p in enumerate(self.players):
             if not p.is_robot:
                 start_x = const.PLAYER_AREA_SIZE[0]
-                for n, card in enumerate(p.cards):
+                cards = utils.sort_cards(p.cards, self.params.sort_order, self.params.lear_order)
+
+                for n, card in enumerate(cards):
                     qc = QCard(self, card, p, self.params.deck_type, f'back{self.params.back_type}')
                     if h_back_up:
                         qc.turn_back_up()
@@ -1113,12 +1116,12 @@ class MainWnd(QMainWindow):
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
         self.set_text('-= Итоги игры =-', pos, Qt.cyan, 18, 65)
-        winner = max([p for p in self.game.players], key=lambda o: o.last_money)
+        winner = max([p for p in self.game.players], key=lambda o: o.total_money)
 
         x, y = pos[0], pos[1] + 20
 
         for i, p in enumerate(self.game.players, 1):
-            money = '{0:.2f}'.format(p.last_money)
+            money = '{0:.2f}'.format(p.total_money)
             rub, kop = money.split('.')
             self.set_text(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп', (x, y + i * 30),
                           Qt.green if p == winner else Qt.yellow, 18, 65)
