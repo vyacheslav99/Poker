@@ -19,7 +19,7 @@ class SettingsDialog(QDialog):
         self._sort_order = None             # Порядок сортировки карт на руках
         self._lear_order = None             # Порядок расположения мастей на руках
         self._start_type = None             # Вариант начала игры
-        self._start_type_descr = None
+        # self._start_type_descr = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/settings.ico'))
         self.setWindowTitle('Настройки')
@@ -56,11 +56,11 @@ class SettingsDialog(QDialog):
         for descr in const.GAME_START_TYPES:
             self._start_type.addItem(f'{descr[0]}', QVariant(descr[1]))
 
-        self._start_type.currentIndexChanged.connect(self._start_type_change)
+        # self._start_type.currentIndexChanged.connect(self._start_type_change)
         l2.addWidget(self._start_type)
         layout.addLayout(l2, 1, 1, Qt.AlignLeft)
-        self._start_type_descr = QLabel('Выбери вариант')
-        layout.addWidget(self._start_type_descr, 1, 2)
+        # self._start_type_descr = QLabel('Выбери вариант')
+        # layout.addWidget(self._start_type_descr, 1, 2)
 
         # Тема оформления
         l2 = QHBoxLayout()
@@ -93,7 +93,7 @@ class SettingsDialog(QDialog):
         # Порядок мастей
         l2 = QVBoxLayout()
         l2.setAlignment(Qt.AlignLeft)
-        l2.addWidget(QLabel('Порядок расположения мастей<br>(перетаскивай масти для изменения)'))
+        l2.addWidget(QLabel('Порядок расположения мастей'))
         l2.addSpacing(5)
         self._lear_order = QListWidget()
         self._lear_order.setFlow(QListView.LeftToRight)
@@ -102,6 +102,7 @@ class SettingsDialog(QDialog):
         self._lear_order.setFixedHeight(50)
         self._lear_order.setFixedWidth(300)
         self._lear_order.setDefaultDropAction(Qt.MoveAction)
+        self._lear_order.setToolTip('Чтобы изменить порядок, перетащи масть мышкой в нужное место')
         l2.addWidget(self._lear_order)
         layout.addLayout(l2, 4, 1, Qt.AlignLeft)
 
@@ -137,6 +138,12 @@ class SettingsDialog(QDialog):
         l2.addWidget(self._back_type)
         layout.addLayout(l2, 3, 2, Qt.AlignLeft)
 
+        # Кнопка сброса на стандартные
+        btn_reset = QPushButton('Сброс настроек')
+        btn_reset.setFixedWidth(150)
+        btn_reset.clicked.connect(self.reset)
+        layout.addWidget(btn_reset, 4, 2, Qt.AlignRight | Qt.AlignBottom)
+
         group.setLayout(layout)
         main_layout.addWidget(group)
         main_layout.addLayout(buttons_box)
@@ -149,8 +156,8 @@ class SettingsDialog(QDialog):
         self._color_theme.setCurrentText(self._params.get('color_theme', 'green'))
         self._deck_type.setCurrentIndex(const.DECK_TYPE.index(self._params.get('deck_type', 'eng')))
         self._back_type.setCurrentIndex(self._params.get('back_type', 1) - 1)
-        self._sort_order.setCurrentIndex(self._params.get('sort_order', 1))
-        self._start_type.setCurrentIndex(self._params.get('start_type', 3))
+        self._sort_order.setCurrentIndex(self._params.get('sort_order', 0))
+        self._start_type.setCurrentIndex(self._params.get('start_type', const.GAME_START_TYPE_ALL))
 
         self._lear_order.clear()
         for lear in self._params.get('lear_order', []):
@@ -172,5 +179,24 @@ class SettingsDialog(QDialog):
 
         return self._params
 
-    def _start_type_change(self):
-        self._start_type_descr.setText(self._start_type.currentData())
+    def reset(self):
+        res = QMessageBox.question(self, 'Подтверждение', 'Действительно сбросить настройки до стандартных?',
+                                   QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if res != QMessageBox.Yes:
+            return
+
+        self._color_theme.setCurrentText('green')
+        self._deck_type.setCurrentIndex(0)
+        self._back_type.setCurrentIndex(0)
+        self._sort_order.setCurrentIndex(0)
+        self._start_type.setCurrentIndex(const.GAME_START_TYPE_ALL)
+
+        self._lear_order.clear()
+        for lear in (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS):
+            px = QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.png')
+            item = QListWidgetItem(QIcon(px), '')
+            item.setData(Qt.DisplayRole, QVariant((lear,)))
+            self._lear_order.addItem(item)
+
+    # def _start_type_change(self):
+    #     self._start_type_descr.setText(self._start_type.currentData())
