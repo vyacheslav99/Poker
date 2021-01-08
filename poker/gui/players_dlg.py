@@ -112,7 +112,7 @@ class PlayersDialog(QDialog):
             btn.setEnabled(len(self._comboboxes) <= self._players_cnt)
 
     def _combo_change(self, index):
-        # т.к. мы тут не знаем, какой именно комбобокс вызвал  событие - просто переберем все
+        # т.к. мы тут не знаем, какой именно комбобокс вызвал событие - просто переберем все
         for i, cb in enumerate(self._comboboxes):
             self._radiogroups[i].buttons()[cb.currentData().risk_level].setChecked(True)
 

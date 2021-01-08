@@ -14,6 +14,7 @@ from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
 from gui.players_dlg import PlayersDialog
 from gui.agreements_dlg import AgreementsDialog
+from gui.settings_dlg import SettingsDialog
 from modules.params import Params, Options, Profiles
 
 
@@ -172,7 +173,17 @@ class MainWnd(QMainWindow):
             self.service_wnd.show()
 
     def show_settings(self):
-        print('Settings action')
+        dlg = SettingsDialog(self, self.params.as_dict())
+        try:
+            result = dlg.exec()
+
+            if result == 0:
+                return
+
+            self.params.from_dict(dlg.get_params())
+            self.save_params()
+        finally:
+            dlg.destroy()
 
     def show_agreements(self):
         dlg = AgreementsDialog(self, self.game.options_as_dict() if self.started() else self.options.as_dict())
@@ -350,7 +361,7 @@ class MainWnd(QMainWindow):
         self.can_show_results = False
 
         # диалог настройки договоренностей
-        if self.params.start_type in (2, 3):
+        if self.params.start_type in (const.GAME_START_TYPE_AGREEMENTS, const.GAME_START_TYPE_ALL):
             agreements_dlg = AgreementsDialog(self, self.options.as_dict())
             result = agreements_dlg.exec()
             if result == 0:
@@ -361,7 +372,7 @@ class MainWnd(QMainWindow):
 
         # диалог настройки игроков (создаем всегда, но показываем только если включена опция)
         players_dlg = PlayersDialog(self, players_cnt=self.options.players_cnt - 1)
-        if self.params.start_type in (1, 3):
+        if self.params.start_type in (const.GAME_START_TYPE_PLAYERS, const.GAME_START_TYPE_ALL):
             result = players_dlg.exec()
             if result == 0:
                 players_dlg.destroy()
