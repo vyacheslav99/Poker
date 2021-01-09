@@ -14,7 +14,7 @@ class AgreementsDialog(QDialog):
 
         # элементы управления
         self._btn_ok = None
-        self._game_sum_by_diff = None       # подведение итогов игры: по разнице между игроками (True) или по старшим очкам, что жопистее (False)
+        self._game_sum_by_diff = None       # подведение итогов игры: по разнице между игроками (0) или по старшим очкам (1)
         self._dark_allowed = None           # вкл/выкл возможность заказывать в темную в обычных раздачах
         self._third_pass_limit = None       # вкл/выкл ограничение на 3 паса подряд
         self._fail_subtract_all = None      # способ расчета при недоборе: True - минусовать весь заказ / False - минусовать только не взятые
@@ -69,10 +69,11 @@ class AgreementsDialog(QDialog):
 
         l2 = QHBoxLayout()
         l2.setAlignment(Qt.AlignLeft)
-        l2.addWidget(QLabel('Ставка на игру (стоимость одного очка, коп)  '))
+        l2.addWidget(QLabel('Ставка на игру, коп  '))
         self._bet = QSpinBox()
         self._bet.setMinimum(1)
         self._bet.setFixedWidth(70)
+        self._bet.setToolTip('Стоимость одного очка в копейках для вычисления суммы выигрыша при рассчете итогов игры')
         l2.addWidget(self._bet)
         layout.addLayout(l2, 2, 1, Qt.AlignLeft)
 
@@ -108,17 +109,29 @@ class AgreementsDialog(QDialog):
         layout = QGridLayout()
         layout.setHorizontalSpacing(20)
 
-        layout.addWidget(QLabel('Подведение итогов игры:<ul><li>по разнице между игроками (если отмечено):<br>'
-                                'рассчитывается разница между всеми игроками; при этом несколько<br>игроков могут '
-                                'оказаться в плюсе</li><li>по старшим очкам:<br>рассчитывается разница между игроком, '
-                                'набравшим больше всех<br>и каждым другим; в этом случае в плюсе окажется только игрок,'
-                                '<br>набравший больше всех очков</li></ul>'), 1, 1)
-        self._game_sum_by_diff = QCheckBox('По разнице между игроками')
+        layout.addWidget(QLabel('Способ рассчета выигрыша'), 1, 1)
+        self._game_sum_by_diff = QComboBox()
+        self._game_sum_by_diff.setEditable(False)
+        self._game_sum_by_diff.setFixedWidth(230)
+        self._game_sum_by_diff.setToolTip('<ul><li>Взаиморасчеты: '
+                                          'Каждый игрок рассчитывается с каждым: тот, у кого меньше очков отдает разницу тому, '
+                                          'у кого больше. После этого подводится общий итог по каждому игроку. '
+                                          'В итоге несколько игроков может оказаться в плюсе.</li><li>'
+                                          'По старшим очкам: Каждый игрок рассчитывается только с набравшим больше всех очков - '
+                                          'отдает ему разницу между своими и его очками. В итоге в плюсе остается только игрок, '
+                                          'набравший больше всех очков.</li></ul>')
+        self._game_sum_by_diff.addItem('Взаиморасчеты')
+        self._game_sum_by_diff.addItem('По старшим очкам')
         layout.addWidget(self._game_sum_by_diff, 2, 1)
 
-        layout.addWidget(QLabel('Как вычитать недоборы:<ul><li>вычитать сумму всего заказа (если отмечено)</li>'
-                                '<li>вычитать разницу между заказом и взятым</li></ul>'), 1, 2)
-        self._fail_subtract_all = QCheckBox('Вычитать сумму заказа')
+        layout.addWidget(QLabel('Как вычитать недоборы'), 1, 2)
+        self._fail_subtract_all = QComboBox()
+        self._fail_subtract_all.setEditable(False)
+        self._fail_subtract_all.setFixedWidth(230)
+        self._fail_subtract_all.setToolTip('<ul><li>Весь заказ: вычитать сумму всего заказа</li>'
+                                           '<li>Только не взятое: вычитать разницу между заказом и взятым</li></ul>')
+        self._fail_subtract_all.addItem('Весь заказ')
+        self._fail_subtract_all.addItem('Только не взятое')
         layout.addWidget(self._fail_subtract_all, 2, 2)
 
         l2 = QHBoxLayout()
@@ -200,10 +213,10 @@ class AgreementsDialog(QDialog):
         if agreements:
             self._agreements = agreements
 
-        self._game_sum_by_diff.setChecked(self._agreements.get('game_sum_by_diff', True))
+        self._game_sum_by_diff.setCurrentIndex(0 if self._agreements.get('game_sum_by_diff', True) else 1)
         self._dark_allowed.setChecked(self._agreements.get('dark_allowed', False))
         self._third_pass_limit.setChecked(self._agreements.get('third_pass_limit', False))
-        self._fail_subtract_all.setChecked(self._agreements.get('fail_subtract_all', False))
+        self._fail_subtract_all.setCurrentIndex(0 if self._agreements.get('fail_subtract_all', False) else 1)
         self._no_joker.setChecked(self._agreements.get('no_joker', False))
         self._joker_give_at_par.setChecked(self._agreements.get('joker_give_at_par', False))
         self._joker_demand_peak.setChecked(self._agreements.get('joker_demand_peak', True))
@@ -222,10 +235,10 @@ class AgreementsDialog(QDialog):
             self._deal_types.button(i).setChecked(i in self._agreements.get('deal_types', [1]))
 
     def get_agreements(self):
-        self._agreements['game_sum_by_diff'] = self._game_sum_by_diff.isChecked()
+        self._agreements['game_sum_by_diff'] = self._game_sum_by_diff.currentIndex() == 0
         self._agreements['dark_allowed'] = self._dark_allowed.isChecked()
         self._agreements['third_pass_limit'] = self._third_pass_limit.isChecked()
-        self._agreements['fail_subtract_all'] = self._fail_subtract_all.isChecked()
+        self._agreements['fail_subtract_all'] = self._fail_subtract_all.currentIndex() == 0
         self._agreements['no_joker'] = self._no_joker.isChecked()
         self._agreements['joker_give_at_par'] = self._joker_give_at_par.isChecked()
         self._agreements['joker_demand_peak'] = self._joker_demand_peak.isChecked()
