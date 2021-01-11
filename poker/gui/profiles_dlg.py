@@ -271,6 +271,9 @@ class ProfilesDialog(QDialog):
                 'avatar': os.path.split(avatar)[1]
             })
         else:
+            user.login = self._login.text()
+            user.password = self._password.text()
+            user.name = self._username.text()
             user.avatar = os.path.split(avatar)[1]
 
         self._profiles.set_profile(user)
