@@ -166,6 +166,9 @@ class SettingsDialog(QDialog):
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
 
+    def allow_profile_change(self, allowed):
+        self._current_profile.setEnabled(allowed)
+
     def set_params(self, params: dict=None):
         if params:
             self._params = params

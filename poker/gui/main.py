@@ -176,6 +176,7 @@ class MainWnd(QMainWindow):
     def show_settings(self):
         prv_user = self.params.user
         dlg = SettingsDialog(self, self.params.as_dict(), self.profiles)
+        dlg.allow_profile_change(not self.started())
 
         try:
             result = dlg.exec()
@@ -215,6 +216,7 @@ class MainWnd(QMainWindow):
             curr_changed = dlg.exec()
             if curr_changed:
                 self.set_profile(self.params.user)
+                # todo: если игра запущена, надо перерисовать имя и картинку на игровом столе
 
             self.save_params()
         finally:
@@ -422,7 +424,7 @@ class MainWnd(QMainWindow):
         if not b:
             return
 
-        mt, eng = self.load_save_file(fn)
+        mt, self.game = self.load_save_file(fn)
 
         # устанавливаем игровые переменные модуля
         self.order_dark = mt['order_dark']
@@ -430,12 +432,17 @@ class MainWnd(QMainWindow):
         self.is_new_lap = mt['is_new_lap']
         self.is_new_round = mt['is_new_round']
 
-        # игровой движок
-        self.game = eng
+        # загруженного игрока надо подменить на текущего (по сути это он и есть, но объекты уже разные)
         self.players = self.game.players
+        for i, p in enumerate(self.players):
+            if p.uid == self.params.user:
+                user = self.profiles.get(self.params.user)
+                user.assign_game_variables(p)
+                self.players[i] = user
+                break
+
         self._started = True
 
-        # if self.game.started():
         # отрисуем игровой стол
         self.init_game_table()
         self.draw_info_area()

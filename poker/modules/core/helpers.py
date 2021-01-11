@@ -196,6 +196,20 @@ class Player(BaseModel):
         self.pass_counter = 0
         self.success_counter = 0
 
+    def assign_game_variables(self, source):
+        """ Копирование игровых переменных из игрока-источника """
+
+        self.order = source.order
+        self.take = source.take
+        self.scores = source.scores
+        self.total_scores = source.total_scores
+        self.total_money = source.total_money
+        self.cards = source.cards
+        self.order_cards = source.order_cards
+        self.order_is_dark = source.order_is_dark
+        self.pass_counter = source.pass_counter
+        self.success_counter = source.success_counter
+
     def __str__(self):
         if self.is_robot:
             # s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'

@@ -153,7 +153,7 @@ class ProfilesDialog(QDialog):
         self._avatar_btn = QToolButton()
         self._avatar_btn.setFixedSize(QSize(190, 190))
         self._avatar_btn.setToolTip('Нажми, чтобы изменить аватарку')
-        self._avatar_btn.setIconSize(QSize(180, 180))
+        self._avatar_btn.setIconSize(QSize(*const.USER_FACE_SIZE))
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
         self._avatar_btn.setPopupMode(QToolButton.InstantPopup)
         # self._avatar_btn.clicked.connect(self._select_avatar)
@@ -270,6 +270,8 @@ class ProfilesDialog(QDialog):
                 'name': self._username.text(),
                 'avatar': os.path.split(avatar)[1]
             })
+        else:
+            user.avatar = os.path.split(avatar)[1]
 
         self._profiles.set_profile(user)
 
@@ -281,9 +283,20 @@ class ProfilesDialog(QDialog):
             if not os.path.isdir(fldr):
                 os.makedirs(fldr)
 
-            with open(avatar, 'rb') as src:
-                with open(os.path.join(fldr, user.avatar), 'wb') as dst:
-                    dst.write(src.read())
+            pixmap = QPixmap(avatar)
+            sz = pixmap.size()
+            if sz.width() != const.USER_FACE_SIZE[0] or sz.height() != const.USER_FACE_SIZE[1]:
+                if sz.width() > sz.height():
+                    mode = Qt.KeepAspectRatio
+                elif sz.width() < sz.height():
+                    mode = Qt.KeepAspectRatioByExpanding
+                else:
+                    mode = Qt.IgnoreAspectRatio
+
+                pixmap = pixmap.scaled(QSize(*const.USER_FACE_SIZE), mode, Qt.FastTransformation)
+                pixmap = pixmap.copy(0, 0, const.USER_FACE_SIZE[0], const.USER_FACE_SIZE[1])
+
+            pixmap.save(os.path.join(fldr, user.avatar), None, -1)
 
     def _select_avatar(self):
         filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.png *.jpg *ico)')[0]
