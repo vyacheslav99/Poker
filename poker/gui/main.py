@@ -7,16 +7,16 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from gui import const
-from gui.graphics import QCard, Face, Lear, Area
 from modules.core import engine, helpers, const as core_const
-from gui import utils
+from modules.params import Params, Options, Profiles
+from gui import const, utils
+from gui.graphics import QCard, Face, Lear, Area
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
 from gui.players_dlg import PlayersDialog
 from gui.agreements_dlg import AgreementsDialog
 from gui.settings_dlg import SettingsDialog
-from modules.params import Params, Options, Profiles
+from gui.profiles_dlg import ProfilesDialog
 
 
 class MainWnd(QMainWindow):
@@ -174,7 +174,9 @@ class MainWnd(QMainWindow):
             self.service_wnd.show()
 
     def show_settings(self):
-        dlg = SettingsDialog(self, self.params.as_dict())
+        prv_user = self.params.user
+        dlg = SettingsDialog(self, self.params.as_dict(), self.profiles)
+
         try:
             result = dlg.exec()
 
@@ -182,6 +184,10 @@ class MainWnd(QMainWindow):
                 return
 
             self.params.from_dict(dlg.get_params())
+
+            if self.params.user != prv_user:
+                self.set_profile(self.params.user)
+
             self.save_params()
         finally:
             dlg.destroy()
@@ -202,7 +208,14 @@ class MainWnd(QMainWindow):
             dlg.destroy()
 
     def show_profiles(self):
-        print('Profiles action')
+        dlg = ProfilesDialog(self, self.profiles, self.params.user)
+        try:
+            # в форму передаем сам объект Profiles, сохраняем (или отменяем) изменения в каждом профиле прям там,
+            # так что после закрытия диалога в профилях уже все изменения есть, остается только сохранить в файл
+            dlg.exec()
+            self.save_params()
+        finally:
+            dlg.destroy()
 
     def show_statistic(self):
         print('Statistic action')

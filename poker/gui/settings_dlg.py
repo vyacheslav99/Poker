@@ -4,13 +4,15 @@ from PyQt5.QtCore import *
 
 from gui import const
 from modules.core import const as eng_const
+from modules.params import Profiles
 
 
 class SettingsDialog(QDialog):
 
-    def __init__(self, parent, params: dict):
+    def __init__(self, parent, params: dict, profiles: Profiles):
         super().__init__(parent)
         self._params = params
+        self._profiles = profiles
 
         # элементы управления
         self._color_theme = None            # Цветовая тема
@@ -19,6 +21,7 @@ class SettingsDialog(QDialog):
         self._sort_order = None             # Порядок сортировки карт на руках
         self._lear_order = None             # Порядок расположения мастей на руках
         self._start_type = None             # Вариант начала игры
+        self._current_profile = None        # Смена текущего профиля
         # self._start_type_descr = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/settings.ico'))
@@ -45,6 +48,34 @@ class SettingsDialog(QDialog):
         layout = QGridLayout()
         layout.setHorizontalSpacing(20)
 
+        # Текущий профиль
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Текущий профиль'))
+        l2.addSpacing(35)
+        self._current_profile = QComboBox()
+        self._current_profile.setEditable(False)
+        self._current_profile.setFixedWidth(230)
+
+        for p in self._profiles.profiles:
+            self._current_profile.addItem(p.name, QVariant(p.uid))
+
+        l2.addWidget(self._current_profile)
+        layout.addLayout(l2, 1, 1, Qt.AlignLeft)
+
+        # Тема оформления
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Тема оформления'))
+        l2.addSpacing(10)
+        self._color_theme = QComboBox()
+        self._color_theme.setEditable(False)
+        self._color_theme.setFixedWidth(100)
+
+        for theme in const.COLOR_THEMES:
+            self._color_theme.addItem(theme)
+
+        l2.addWidget(self._color_theme)
+        layout.addLayout(l2, 1, 2, Qt.AlignLeft)
+
         # Вариант начала игры
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Вариант начала игры'))
@@ -58,23 +89,9 @@ class SettingsDialog(QDialog):
 
         # self._start_type.currentIndexChanged.connect(self._start_type_change)
         l2.addWidget(self._start_type)
-        layout.addLayout(l2, 1, 1, Qt.AlignLeft)
+        layout.addLayout(l2, 2, 1, Qt.AlignLeft)
         # self._start_type_descr = QLabel('Выбери вариант')
         # layout.addWidget(self._start_type_descr, 1, 2)
-
-        # Тема оформления
-        l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Тема оформления'))
-        l2.addSpacing(35)
-        self._color_theme = QComboBox()
-        self._color_theme.setEditable(False)
-        self._color_theme.setFixedWidth(100)
-
-        for theme in const.COLOR_THEMES:
-            self._color_theme.addItem(theme)
-
-        l2.addWidget(self._color_theme)
-        layout.addLayout(l2, 2, 1, Qt.AlignLeft)
 
         # Сортировка карт
         l2 = QHBoxLayout()
@@ -159,6 +176,9 @@ class SettingsDialog(QDialog):
         self._sort_order.setCurrentIndex(self._params.get('sort_order', 0))
         self._start_type.setCurrentIndex(self._params.get('start_type', const.GAME_START_TYPE_ALL))
 
+        if self._profiles.count():
+            self._current_profile.setCurrentIndex(self._profiles.get_item(self._params.get('user'))[0])
+
         self._lear_order.clear()
         for lear in self._params.get('lear_order', []):
             px = QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.png')
@@ -172,6 +192,7 @@ class SettingsDialog(QDialog):
         self._params['back_type'] = self._back_type.currentIndex() + 1
         self._params['sort_order'] = self._sort_order.currentIndex()
         self._params['start_type'] = self._start_type.currentIndex()
+        self._params['user'] = self._current_profile.currentData()
 
         self._params['lear_order'] = []
         for i in range(self._lear_order.count()):

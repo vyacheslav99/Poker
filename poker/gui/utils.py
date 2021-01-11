@@ -1,3 +1,6 @@
+import secrets
+import string
+import random
 from modules.core import const
 
 
@@ -34,3 +37,12 @@ def sort_cards(cards: list, direction, lear_order):
         result += sorted(lears[lear], key=lambda x: (x.value), reverse=direction == 1)
 
     return result
+
+
+def gen_passwd(length=9):
+    password = list(''.join([secrets.choice(string.ascii_uppercase) for _ in range(length // 3)]) +
+                    ''.join([secrets.choice(string.ascii_lowercase) for _ in range(length // 3)]) +
+                    ''.join([secrets.choice(string.digits) for _ in range(length-(length // 3 * 2))]))
+    random.shuffle(password)
+    password = ''.join(password)
+    return password

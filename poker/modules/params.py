@@ -4,7 +4,7 @@ import uuid
 import random
 
 from modules.base_model import BaseModel
-from gui import const
+from gui import const, utils
 from modules.core import const as eng_const
 from modules.core.helpers import Player
 
@@ -118,7 +118,7 @@ class Profiles(BaseModel):
             kwargs['uid'] = uuid.uuid4().hex
 
         if 'login' not in kwargs:
-            kwargs['login'] = os.getlogin()
+            kwargs['login'] = f'{os.getlogin()}-{utils.gen_passwd(6).lower()}'
 
         if 'name' not in kwargs:
             kwargs['name'] = random.choice(const.HUMANS)
@@ -127,3 +127,4 @@ class Profiles(BaseModel):
             kwargs['is_robot'] = False
 
         self.__items.append(Player(**kwargs))
+        return self.__items[-1]
