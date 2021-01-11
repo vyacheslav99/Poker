@@ -108,11 +108,25 @@ class Profiles(BaseModel):
         else:
             self.__items.append(profile)
 
+    def delete(self, uid):
+        i, item = self.get_item(uid)
+
+        if item:
+            self.__items.pop(i)
+            return True
+        else:
+            return False
+
     def count(self):
         return len(self.__items)
 
     def create(self, **kwargs):
         """ Создать новый профиль и добавить его к списку """
+
+        self.__items.append(self.generate(**kwargs))
+
+    def generate(self, **kwargs):
+        """ Просто создать и вернуть новый профиль """
 
         if 'uid' not in kwargs:
             kwargs['uid'] = uuid.uuid4().hex
@@ -126,5 +140,4 @@ class Profiles(BaseModel):
         if 'is_robot' not in kwargs:
             kwargs['is_robot'] = False
 
-        self.__items.append(Player(**kwargs))
-        return self.__items[-1]
+        return Player(**kwargs)

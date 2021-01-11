@@ -212,7 +212,10 @@ class MainWnd(QMainWindow):
         try:
             # в форму передаем сам объект Profiles, сохраняем (или отменяем) изменения в каждом профиле прям там,
             # так что после закрытия диалога в профилях уже все изменения есть, остается только сохранить в файл
-            dlg.exec()
+            curr_changed = dlg.exec()
+            if curr_changed:
+                self.set_profile(self.params.user)
+
             self.save_params()
         finally:
             dlg.destroy()

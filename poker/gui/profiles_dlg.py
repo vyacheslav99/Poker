@@ -1,10 +1,13 @@
+import os
+import shutil
+import string
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from gui import const
 from gui.graphics import Face2
-from modules.core import const as eng_const
 from modules.params import Profiles
 
 
@@ -13,9 +16,11 @@ class ProfilesDialog(QDialog):
     def __init__(self, parent, profiles: Profiles, curr_profile):
         super().__init__(parent)
         self._profiles = profiles
+        self._curr_profile = curr_profile
+        self._curr_changed = False
 
         # элементы управления
-        self._select_profile = None
+        self._selected_profile = None
         self._uid_edit = None
         self._username = None
         self._login = None
@@ -28,8 +33,16 @@ class ProfilesDialog(QDialog):
         self.setWindowTitle('Профили пользователей')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.init_ui()
-        self._select_profile.setCurrentIndex(self._profiles.get_item(curr_profile)[0])
+        self._selected_profile.setCurrentIndex(self._profiles.get_item(curr_profile)[0])
         self._on_profile_change()
+
+    def close(self) -> bool:
+        if self._curr_changed:
+            self.accept()
+        else:
+            self.reject()
+        
+        super(ProfilesDialog, self).close()
 
     def init_ui(self):
         # Кнопки ОК, Отмена
@@ -37,7 +50,7 @@ class ProfilesDialog(QDialog):
         btn_close = QPushButton('Закрыть')
         # btn_close.setDefault(True)
         btn_close.setFixedWidth(140)
-        btn_close.clicked.connect(self.reject)
+        btn_close.clicked.connect(self.close)
         buttons_box = QHBoxLayout()
         buttons_box.setAlignment(Qt.AlignRight)
         buttons_box.addWidget(btn_close)
@@ -47,15 +60,15 @@ class ProfilesDialog(QDialog):
         l2.setAlignment(Qt.AlignLeft)
         l2.addWidget(QLabel('Профиль'))
         l2.addSpacing(45)
-        self._select_profile = QComboBox()
-        self._select_profile.setEditable(False)
-        self._select_profile.setFixedWidth(205)
+        self._selected_profile = QComboBox()
+        self._selected_profile.setEditable(False)
+        self._selected_profile.setFixedWidth(205)
 
         for p in self._profiles.profiles:
-            self._select_profile.addItem(p.name, QVariant(p.uid))
+            self._selected_profile.addItem(p.name, QVariant(p.uid))
 
-        self._select_profile.currentIndexChanged.connect(self._on_profile_change)
-        l2.addWidget(self._select_profile)
+        self._selected_profile.currentIndexChanged.connect(self._on_profile_change)
+        l2.addWidget(self._selected_profile)
 
         # Кнопка добавления профиля
         btn_add = QPushButton(QIcon(f'{const.RES_DIR}/plus.ico'), '')
@@ -95,6 +108,7 @@ class ProfilesDialog(QDialog):
         l2.addSpacing(20)
         self._username = QLineEdit()
         self._username.setFixedWidth(290)
+        self._username.editingFinished.connect(self._name_edited)
         l2.addWidget(self._username)
         layout.addLayout(l2, 2, 1, Qt.AlignLeft)
 
@@ -104,6 +118,7 @@ class ProfilesDialog(QDialog):
         l2.addSpacing(30)
         self._login = QLineEdit()
         self._login.setFixedWidth(290)
+        self._login.editingFinished.connect(self._validate)
         l2.addWidget(self._login)
         layout.addLayout(l2, 3, 1, Qt.AlignLeft)
 
@@ -115,30 +130,34 @@ class ProfilesDialog(QDialog):
         self._password.setFixedWidth(290)
         self._password.setEchoMode(QLineEdit.PasswordEchoOnEdit)
         # self._password.setEnabled(False)
+        self._password.editingFinished.connect(self._validate)
         l2.addWidget(self._password)
         layout.addLayout(l2, 4, 1, Qt.AlignLeft)
 
         # кнопка Сохранить
-        self._save_btn = QPushButton()
-        self._avatar_btn.setFixedSize(QSize(190, 190))
-        self._avatar_btn.setToolTip('Нажми, чтобы выбрать аватарку')
-        self._avatar_btn.setIconSize(QSize(180, 180))
-        self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
-        self._avatar_btn.clicked.connect(self._select_avatar)
-        self._avatar = QLabel()
-        l2.addWidget(self._avatar_btn)
-        # l2.addSpacing(5)
-        # l2.addWidget(self._avatar)
-        layout.addLayout(l2, 1, 2, 5, 1, Qt.AlignBaseline)
+        self._save_btn = QPushButton(QIcon(f'{const.RES_DIR}/save.ico'), '  Сохранить')
+        self._save_btn.setFixedWidth(140)
+        self._save_btn.setToolTip('Сохранить изменения в профиле')
+        self._save_btn.clicked.connect(self._save_profile)
+        layout.addWidget(self._save_btn, 5, 1, Qt.AlignBottom)
 
         # аватарка
+        menu = QMenu()
+        sel_av = QAction(QIcon(f'{const.RES_DIR}/edit.ico'), 'Изменить', self)
+        sel_av.triggered.connect(self._select_avatar)
+        menu.addAction(sel_av)
+        clear_av = QAction(QIcon(f'{const.RES_DIR}/cancel.png'), 'Очистить', self)
+        clear_av.triggered.connect(self._clear_avatar)
+        menu.addAction(clear_av)
         l2 = QVBoxLayout()
-        self._avatar_btn = QPushButton()
+        self._avatar_btn = QToolButton()
         self._avatar_btn.setFixedSize(QSize(190, 190))
-        self._avatar_btn.setToolTip('Нажми, чтобы выбрать аватарку')
+        self._avatar_btn.setToolTip('Нажми, чтобы изменить аватарку')
         self._avatar_btn.setIconSize(QSize(180, 180))
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
-        self._avatar_btn.clicked.connect(self._select_avatar)
+        self._avatar_btn.setPopupMode(QToolButton.InstantPopup)
+        # self._avatar_btn.clicked.connect(self._select_avatar)
+        self._avatar_btn.setMenu(menu)
         self._avatar = QLabel()
         l2.addWidget(self._avatar_btn)
         # l2.addSpacing(5)
@@ -151,7 +170,7 @@ class ProfilesDialog(QDialog):
         self.setLayout(main_layout)
 
     def _on_profile_change(self):
-        p = self._profiles.get(self._select_profile.currentData())
+        p = self._profiles.get(self._selected_profile.currentData())
 
         if p:
             self._uid_edit.setText(p.uid)
@@ -161,20 +180,118 @@ class ProfilesDialog(QDialog):
             self._avatar.setText(p.avatar)
             self._avatar_btn.setIcon(QIcon(Face2(p)))
         else:
-            self._uid_edit.setText('')
-            self._username.setText('')
-            self._login.setText('')
-            self._password.setText('')
-            self._avatar.setText('')
-            self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
+            self._clear()
+
+    def _name_edited(self):
+        self._selected_profile.setItemText(self._selected_profile.currentIndex(), self._username.text())
+        self._validate()
+
+    def _validate(self):
+        is_valid = False
+        errs = []
+
+        if not self._username.text():
+            errs.append('Имя пользователя пустое')
+
+        s = self._login.text()
+        if not s:
+            errs.append('Логин пустой')
+        elif not set(s).issubset(set(string.printable)):
+            errs.append('Логин содержит неверные символы. Вводи логин в английской раскладке')
+
+        s = self._password.text()
+        if s and not set(s).issubset(set(string.printable)):
+            errs.append('Пароль содержит неверные символы. Вводи пароль в английской раскладке')
+
+        if errs:
+            self._save_btn.setToolTip('<br>'.join(errs))
+        else:
+            is_valid = True
+            self._save_btn.setToolTip('')
+
+        self._save_btn.setEnabled(is_valid)
+        return is_valid
+
+    def _clear(self):
+        self._uid_edit.setText('')
+        self._username.setText('')
+        self._login.setText('')
+        self._password.setText('')
+        self._avatar.setText('')
+        self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
 
     def _add_profile(self):
-        p = self._profiles.create()
-        self._select_profile.addItem(p.name, QVariant(p.uid))
-        self._select_profile.setCurrentIndex(self._profiles.get_item(p.uid)[0])
+        user = self._profiles.generate()
+        self._selected_profile.addItem(user.name, QVariant(user.uid))
+        self._selected_profile.setCurrentIndex(self._selected_profile.count() - 1)
+        self._uid_edit.setText(user.uid)
+        self._username.setText(user.name)
+        self._login.setText(user.login)
+        self._password.setText(user.password)
+        self._avatar.setText(user.avatar)
+        self._avatar_btn.setIcon(QIcon(Face2(user)))
 
     def _del_profile(self):
-        pass
+        i = self._selected_profile.currentIndex()
+        uid = self._selected_profile.currentData()
+
+        if uid == self._curr_profile:
+            QMessageBox.warning(self, 'Ошибка', 'Невозможно удалить текущий профиль!\nСначала смените текущий профиль '
+                                                'в настройках программы.')
+            return
+
+        res = QMessageBox.question(self, 'Подтверждение',
+                                   f'Хотите удалить этот профиль?\nЭто действие будет невозможно отменить!',
+                                   QMessageBox.Yes | QMessageBox.No)
+
+        if res == QMessageBox.No:
+            return
+
+        self._profiles.delete(uid)
+        self._selected_profile.removeItem(i)
+
+        fldr = f'{const.PROFILES_DIR}/{uid}'
+        if os.path.isdir(fldr):
+            shutil.rmtree(fldr)
+
+    def _save_profile(self):
+        if not self._validate():
+            return
+
+        uid = self._selected_profile.currentData()
+        user = self._profiles.get(self._selected_profile.currentData())
+        avatar = self._avatar.text()
+
+        if not user:
+            user = self._profiles.generate(**{
+                'uid': uid,
+                'login': self._login.text(),
+                'password': self._password.text(),
+                'name': self._username.text(),
+                'avatar': os.path.split(avatar)[1]
+            })
+
+        self._profiles.set_profile(user)
+
+        if uid == self._curr_profile:
+            self._curr_changed = True
+
+        if avatar:
+            fldr = f'{const.PROFILES_DIR}/{uid}'
+            if not os.path.isdir(fldr):
+                os.makedirs(fldr)
+
+            with open(avatar, 'rb') as src:
+                with open(os.path.join(fldr, user.avatar), 'wb') as dst:
+                    dst.write(src.read())
 
     def _select_avatar(self):
-        pass
+        filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.png *.jpg *ico)')[0]
+
+        if filename:
+            self._avatar.setText(filename)
+            self._avatar_btn.setIcon(QIcon(QPixmap(filename)))
+
+    def _clear_avatar(self):
+        self._avatar.setText('')
+        self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
