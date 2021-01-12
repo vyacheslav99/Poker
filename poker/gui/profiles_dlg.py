@@ -49,7 +49,7 @@ class ProfilesDialog(QDialog):
         # Кнопки ОК, Отмена
         main_layout = QVBoxLayout()
         btn_close = QPushButton('Закрыть')
-        # btn_close.setDefault(True)
+        btn_close.setDefault(True)
         btn_close.setFixedWidth(140)
         btn_close.clicked.connect(self.close)
         buttons_box = QHBoxLayout()
