@@ -24,10 +24,11 @@ class ProfilesDialog(QDialog):
         self._uid_edit = None
         self._username = None
         self._login = None
-        self._password = None
+        # self._password = None
         self._avatar = None
         self._avatar_btn = None
         self._save_btn = None
+        self._info_lb = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/player.ico'))
         self.setWindowTitle('Профили пользователей')
@@ -123,18 +124,20 @@ class ProfilesDialog(QDialog):
         layout.addLayout(l2, 3, 1, Qt.AlignLeft)
 
         # Пароль
-        l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Пароль'))
-        l2.addSpacing(30)
-        self._password = QLineEdit()
-        self._password.setFixedWidth(290)
-        self._password.setEchoMode(QLineEdit.PasswordEchoOnEdit)
-        # self._password.setEnabled(False)
-        self._password.editingFinished.connect(self._validate)
-        l2.addWidget(self._password)
-        layout.addLayout(l2, 4, 1, Qt.AlignLeft)
+        # l2 = QHBoxLayout()
+        # l2.addWidget(QLabel('Пароль'))
+        # l2.addSpacing(30)
+        # self._password = QLineEdit()
+        # self._password.setFixedWidth(290)
+        # self._password.setEchoMode(QLineEdit.PasswordEchoOnEdit)
+        # # self._password.setEnabled(False)
+        # self._password.editingFinished.connect(self._validate)
+        # l2.addWidget(self._password)
+        # layout.addLayout(l2, 4, 1, Qt.AlignLeft)
 
         # кнопка Сохранить
+        self._info_lb = QLabel()
+        layout.addWidget(self._info_lb, 4, 1, Qt.AlignBottom)
         self._save_btn = QPushButton(QIcon(f'{const.RES_DIR}/save.ico'), '  Сохранить')
         self._save_btn.setFixedWidth(140)
         self._save_btn.setToolTip('Сохранить изменения в профиле')
@@ -171,12 +174,13 @@ class ProfilesDialog(QDialog):
 
     def _on_profile_change(self):
         p = self._profiles.get(self._selected_profile.currentData())
+        self._info_lb.setText('')
 
         if p:
             self._uid_edit.setText(p.uid)
             self._username.setText(p.name)
             self._login.setText(p.login)
-            self._password.setText(p.password)
+            # self._password.setText(p.password)
             self._avatar.setText(p.avatar)
             self._avatar_btn.setIcon(QIcon(Face2(p)))
         else:
@@ -198,10 +202,12 @@ class ProfilesDialog(QDialog):
             errs.append('Логин пустой')
         elif not set(s).issubset(set(string.printable)):
             errs.append('Логин содержит неверные символы. Вводи логин в английской раскладке')
+        elif [x for x in self._profiles.filter('login', s) if x.uid != self._uid_edit.text()]:
+            errs.append('Такой логин уже существует. Придумай другой')
 
-        s = self._password.text()
-        if s and not set(s).issubset(set(string.printable)):
-            errs.append('Пароль содержит неверные символы. Вводи пароль в английской раскладке')
+        # s = self._password.text()
+        # if s and not set(s).issubset(set(string.printable)):
+        #     errs.append('Пароль содержит неверные символы. Вводи пароль в английской раскладке')
 
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
@@ -216,7 +222,7 @@ class ProfilesDialog(QDialog):
         self._uid_edit.setText('')
         self._username.setText('')
         self._login.setText('')
-        self._password.setText('')
+        # self._password.setText('')
         self._avatar.setText('')
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
 
@@ -227,7 +233,7 @@ class ProfilesDialog(QDialog):
         self._uid_edit.setText(user.uid)
         self._username.setText(user.name)
         self._login.setText(user.login)
-        self._password.setText(user.password)
+        # self._password.setText(user.password)
         self._avatar.setText(user.avatar)
         self._avatar_btn.setIcon(QIcon(Face2(user)))
 
@@ -266,13 +272,13 @@ class ProfilesDialog(QDialog):
             user = self._profiles.generate(**{
                 'uid': uid,
                 'login': self._login.text(),
-                'password': self._password.text(),
+                # 'password': self._password.text(),
                 'name': self._username.text(),
                 'avatar': os.path.split(avatar)[1]
             })
         else:
             user.login = self._login.text()
-            user.password = self._password.text()
+            # user.password = self._password.text()
             user.name = self._username.text()
             user.avatar = os.path.split(avatar)[1]
 
@@ -288,6 +294,8 @@ class ProfilesDialog(QDialog):
 
             pixmap = self._load_image(avatar)
             pixmap.save(os.path.join(fldr, user.avatar), None, -1)
+
+        self._info_lb.setText('Изменения сохранены')
 
     def _select_avatar(self):
         filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.bmp *.jpg *.jpeg *.png *.ico)')[0]

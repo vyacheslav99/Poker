@@ -141,3 +141,12 @@ class Profiles(BaseModel):
             kwargs['is_robot'] = False
 
         return Player(**kwargs)
+
+    def filter(self, field, value):
+        """
+        Фильтрация по какому-то полю. Вернет список удовлетворяющих условию профилей.
+        Проверяет только на полное совпадение, чувствителен к регистру.
+        По мере надобности можно будет нарастить функционал, пока смысла нет.
+        """
+
+        return filter(lambda x: getattr(x, field) == value, self.__items)
