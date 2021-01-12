@@ -72,14 +72,16 @@ class ProfilesDialog(QDialog):
         l2.addWidget(self._selected_profile)
 
         # Кнопка добавления профиля
-        btn_add = QPushButton(QIcon(f'{const.RES_DIR}/plus.ico'), '')
+        btn_add = QToolButton()
+        btn_add.setIcon(QIcon(f'{const.RES_DIR}/plus.ico'))
         btn_add.setFixedWidth(35)
         btn_add.setToolTip('Добавить новый профиль')
         btn_add.clicked.connect(self._add_profile)
         l2.addWidget(btn_add)
 
         # Кнопка удаления профиля
-        btn_del = QPushButton(QIcon(f'{const.RES_DIR}/minus.ico'), '')
+        btn_del = QToolButton()
+        btn_del.setIcon(QIcon(f'{const.RES_DIR}/minus.ico'))
         btn_del.setFixedWidth(35)
         btn_del.setToolTip('Удалить выбранный профиль')
         btn_del.clicked.connect(self._del_profile)
