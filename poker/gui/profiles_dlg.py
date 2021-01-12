@@ -211,6 +211,8 @@ class ProfilesDialog(QDialog):
 
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
+            self._info_lb.setStyleSheet('QLabel {color: maroon}')
+            self._info_lb.setText(self._save_btn.toolTip())
         else:
             is_valid = True
             self._save_btn.setToolTip('')
@@ -295,6 +297,7 @@ class ProfilesDialog(QDialog):
             pixmap = self._load_image(avatar)
             pixmap.save(os.path.join(fldr, user.avatar), None, -1)
 
+        self._info_lb.setStyleSheet('QLabel {color: navy}')
         self._info_lb.setText('Изменения сохранены')
 
     def _select_avatar(self):
