@@ -286,28 +286,36 @@ class ProfilesDialog(QDialog):
             if not os.path.isdir(fldr):
                 os.makedirs(fldr)
 
-            pixmap = QPixmap(avatar)
-            sz = pixmap.size()
-            if sz.width() != const.USER_FACE_SIZE[0] or sz.height() != const.USER_FACE_SIZE[1]:
-                if sz.width() > sz.height():
-                    mode = Qt.KeepAspectRatio
-                elif sz.width() < sz.height():
-                    mode = Qt.KeepAspectRatioByExpanding
-                else:
-                    mode = Qt.IgnoreAspectRatio
-
-                pixmap = pixmap.scaled(QSize(*const.USER_FACE_SIZE), mode, Qt.FastTransformation)
-                pixmap = pixmap.copy(0, 0, const.USER_FACE_SIZE[0], const.USER_FACE_SIZE[1])
-
+            pixmap = self._load_image(avatar)
             pixmap.save(os.path.join(fldr, user.avatar), None, -1)
 
     def _select_avatar(self):
-        filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.png *.jpg *ico)')[0]
+        filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.bmp *.jpg *.jpeg *.png *.ico)')[0]
 
         if filename:
             self._avatar.setText(filename)
-            self._avatar_btn.setIcon(QIcon(QPixmap(filename)))
+            self._avatar_btn.setIcon(QIcon(self._load_image(filename)))
 
     def _clear_avatar(self):
         self._avatar.setText('')
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
+
+    def _load_image(self, filename) -> QPixmap:
+        pixmap = QPixmap(filename)
+        sz = pixmap.size()
+
+        if sz.width() != const.USER_FACE_SIZE[0] or sz.height() != const.USER_FACE_SIZE[1]:
+            x, y = 0, 0
+
+            if sz.width() > sz.height():
+                mode = Qt.KeepAspectRatio
+            elif sz.width() < sz.height():
+                mode = Qt.KeepAspectRatioByExpanding
+                y = 10
+            else:
+                mode = Qt.IgnoreAspectRatio
+
+            pixmap = pixmap.scaled(QSize(*const.USER_FACE_SIZE), mode, Qt.SmoothTransformation)
+            pixmap = pixmap.copy(x, y, const.USER_FACE_SIZE[0], const.USER_FACE_SIZE[1])
+
+        return pixmap

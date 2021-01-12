@@ -190,11 +190,15 @@ class MainWnd(QMainWindow):
                 self.set_profile(self.params.user)
 
             self.save_params()
+
+            if self.started():
+                self.restart_game()
         finally:
             dlg.destroy()
 
     def show_agreements(self):
         dlg = AgreementsDialog(self, self.game.options_as_dict() if self.started() else self.options.as_dict())
+
         try:
             if self.started():
                 dlg.deactivate()
@@ -210,15 +214,19 @@ class MainWnd(QMainWindow):
 
     def show_profiles(self):
         dlg = ProfilesDialog(self, self.profiles, self.params.user)
+
         try:
             # в форму передаем сам объект Profiles, сохраняем (или отменяем) изменения в каждом профиле прям там,
             # так что после закрытия диалога в профилях уже все изменения есть, остается только сохранить в файл
             curr_changed = dlg.exec()
+
             if curr_changed:
                 self.set_profile(self.params.user)
-                # todo: если игра запущена, надо перерисовать имя и картинку на игровом столе
 
             self.save_params()
+
+            if curr_changed and self.started():
+                self.restart_game()
         finally:
             dlg.destroy()
 
@@ -364,6 +372,13 @@ class MainWnd(QMainWindow):
             self.clear_save()
 
         self.refresh_menu_actions()
+
+    def restart_game(self):
+        """ Перезапуск игры. Нужно, например, чтобы применились изменения графических настроек или настроек профиля """
+
+        if self.started():
+            self.on_start_action()
+            self.on_start_action()
 
     def start_game(self):
         """ Старт игры - инициализация игры и показ игрового поля """
