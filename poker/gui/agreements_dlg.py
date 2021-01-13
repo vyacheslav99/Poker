@@ -113,15 +113,15 @@ class AgreementsDialog(QDialog):
         self._game_sum_by_diff = QComboBox()
         self._game_sum_by_diff.setEditable(False)
         self._game_sum_by_diff.setFixedWidth(230)
-        self._game_sum_by_diff.setToolTip('<ul><li>Взаиморасчеты: '
+        self._game_sum_by_diff.setToolTip('<ul><li>Каждый с каждым: '
                                           'Каждый игрок рассчитывается с каждым: тот, у кого меньше очков отдает разницу тому, '
                                           'у кого больше. После этого подводится общий итог по каждому игроку. '
                                           'В итоге несколько игроков может оказаться в плюсе.</li><li>'
-                                          'По старшим очкам: Каждый игрок рассчитывается только с набравшим больше всех очков - '
+                                          'Только с победителем: Каждый игрок рассчитывается только с набравшим больше всех очков - '
                                           'отдает ему разницу между своими и его очками. В итоге в плюсе остается только игрок, '
                                           'набравший больше всех очков.</li></ul>')
-        self._game_sum_by_diff.addItem('Взаиморасчеты')
-        self._game_sum_by_diff.addItem('По старшим очкам')
+        self._game_sum_by_diff.addItem('Каждый с каждым')
+        self._game_sum_by_diff.addItem('Только с победителем')
         layout.addWidget(self._game_sum_by_diff, 2, 1)
 
         layout.addWidget(QLabel('Как вычитать недоборы'), 1, 2)
