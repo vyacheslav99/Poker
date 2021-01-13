@@ -228,6 +228,41 @@ class Deal(object):
         self.cards = cards      # количество карт, раздаваемых одному игроку
 
 
+class StatisticItem(BaseModel):
+    """ Показатели статистики по одному игроку за игровую партию """
+
+    def __init__(self, filename=None, **kwargs):
+        # базовые счетчики, на основе котоорых вычисляются рассчетные
+        self.strength = None            # суммарная оценка розданных карт
+        self.orders = None              # всего взяток заказано
+        self.takes = None               # всего взяток взято
+        self.win_games = None           # всего конов выиграно
+        self.fail_games = None          # всего конов проиграно
+        self.overage_games = None       # кол-во конов с перебором
+        self.lack_games = None          # кол-во конов с недобором
+        self.jokers = None              # количество джокеров
+        self.joker_fail_games = None    # кол-во конов, проигранных с джокером на руках
+        self.risky_games = None         # кол-во рискованных конов
+        self.takes_on_mizer = None      # кол-во взяток на мизере
+        self.zero_mizer_games = None    # кол-во конов на мизере с 0 взяток
+        self.takes_on_gold = None       # кол-во взяток на золотых
+        self.zero_gold_games = None     # кол-во золотых конов с 0 взяток
+        self.dark_games = None          # кол-во конов в темную
+        self.dark_orders = None         # кол-во заказов в темную
+        self.dark_win_games = None      # кол-во выигранных конов в темную
+        self.dark_fail_games = None     # кол-во проигранных конов в темную
+        self.dark_overage_games = None  # кол-во конов с перебором на темных
+        self.dark_lack_games = None     # кол-во конов с недобором на темных
+        self.normal_dark_games = None   # кол-во конов в темную в обычных конах
+
+        super(StatisticItem, self).__init__(filename, **kwargs)
+
+    def win_vs_fail(self):
+        """ Общее соотношение выигранных к проигранным (когда не взял заказ) конов """
+
+    def order_vs_take(self):
+        """ Общее соотношение заказов к взятому """
+
 def flip_coin(probability, maximum=10):
     """
     Делает выбор ДА или НЕТ с заданной вероятностью в пользу ДА.
