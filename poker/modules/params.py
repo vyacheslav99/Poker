@@ -24,6 +24,8 @@ class Params(BaseModel):
         self.lear_order = (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS)
         # Варианты начала игры:
         self.start_type = const.GAME_START_TYPE_ALL
+        # Игровая статистика локальных компьютерных игроков. key - имя, value - экземпляр RobotStatItem
+        self.robots_stat = {}
 
         super(Params, self).__init__(filename, **kwargs)
 
@@ -150,3 +152,23 @@ class Profiles(BaseModel):
         """
 
         return filter(lambda x: getattr(x, field) == value, self.__items)
+
+
+class RobotStatItem(BaseModel):
+
+    def __init__(self, filename=None, **kwargs):
+        self.started = 0            # кол-во начатых игр (+1 в начале игры)
+        self.completed = 0          # кол-во сыгранных игр (+1 при завершении игры)
+        self.throw = 0              # кол-во брошенных партий (+1 когда бросаешь игру)
+        self.winned = 0             # кол-во выигранных партий (+1 при выигрыше (набрал больше всех))
+        self.lost = 0               # кол-во проигранных партий (+1 при проигрыше)
+        self.scores = 0             # общий суммарный выигрыш (сумма очков всех сыгранных партий)
+        self.money = 0.0            # общая сумма денег (сумма денег всех сыгранных партий)
+        self.last_scores = 0        # последний выигрыш (очки)
+        self.last_money = 0.0       # последний выигрыш (деньги)
+        self.best_scores = 0        # лучший выигрыш (очки)
+        self.best_money = 0.0       # лучший выигрыш (деньги)
+        self.worse_scores = 0       # худший результат (очки)
+        self.worse_money = 0.0      # худший результат (деньги)
+
+        super(RobotStatItem, self).__init__(filename, **kwargs)

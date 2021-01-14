@@ -59,7 +59,7 @@ class TableItem(object):
 class Player(BaseModel):
 
     __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'throw', 'winned', 'lost',
-                   'scores', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money']
+                   'scores', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores', 'worse_money']
 
     def __init__(self, filename=None, **kwargs):
         self.uid = None
@@ -71,7 +71,7 @@ class Player(BaseModel):
         self.risk_level = None
         # self.level = None
 
-        # статистика
+        # общая статистика
         self.started = 0            # кол-во начатых игр (+1 в начале игры)
         self.completed = 0          # кол-во сыгранных игр (+1 при завершении игры)
         self.throw = 0              # кол-во брошенных партий (+1 когда бросаешь игру)
@@ -83,6 +83,8 @@ class Player(BaseModel):
         self.last_money = 0.0       # последний выигрыш (деньги)
         self.best_scores = 0        # лучший выигрыш (очки)
         self.best_money = 0.0       # лучший выигрыш (деньги)
+        self.worse_scores = 0       # худший результат (очки)
+        self.worse_money = 0.0      # худший результат (деньги)
 
         # игровые переменные
         self.order = -1                 # заказ в текущем раунде

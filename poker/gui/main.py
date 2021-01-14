@@ -8,7 +8,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from modules.core import engine, helpers, const as core_const
-from modules.params import Params, Options, Profiles
+from modules.params import Params, Options, Profiles, RobotStatItem
 from gui import const, utils
 from gui.graphics import QCard, Face, Lear, Area
 from gui.game_table import GameTableDialog
@@ -368,7 +368,7 @@ class MainWnd(QMainWindow):
             return
 
         if self.started():
-            self.stop_game()
+            self.stop_game(throw=True)
             self.clear_save()
 
         self.refresh_menu_actions()
@@ -418,6 +418,9 @@ class MainWnd(QMainWindow):
         self.players.append(self.curr_profile)
         for p in players:
             self.players.append(p)
+            # подгрузим компьютерным игрокам их статистику
+            if p.is_robot and p.name in self.params.robots_stat:
+                p.from_dict(self.params.robots_stat[p.name].as_dict())
 
         self.options.players_cnt = len(self.players)
         self.game = engine.Engine(self.players, allow_no_human=False, **self.options.as_dict())
@@ -447,14 +450,18 @@ class MainWnd(QMainWindow):
         self.is_new_lap = mt['is_new_lap']
         self.is_new_round = mt['is_new_round']
 
-        # загруженного игрока надо подменить на текущего (по сути это он и есть, но объекты уже разные)
         self.players = self.game.players
         for i, p in enumerate(self.players):
+            # подгрузим компьютерным игрокам их статистику
+            if p.is_robot and p.name in self.params.robots_stat:
+                p.from_dict(self.params.robots_stat[p.name].as_dict())
+
+            # загруженного игрока человека надо подменить на текущего, чтобы актуализировать его данные
+            # (по сути это он и есть, но физически объекты уже разные)
             if p.uid == self.params.user:
                 user = self.profiles.get(self.params.user)
                 user.assign_game_variables(p)
                 self.players[i] = user
-                break
 
         self._started = True
 
@@ -482,14 +489,14 @@ class MainWnd(QMainWindow):
         fn = f'{self.get_profile_dir()}/save/auto.psg'
         self.write_save_file(fn, o)
 
-    def stop_game(self):
+    def stop_game(self, throw=False):
         """ Остановить игру, очистить игровое поле """
 
         if self.service_wnd:
             self.service_wnd.hide()
 
         if self.game and self.game.started():
-            self.game.stop()
+            self.game.stop(throw)
 
         self._started = False
         self.players = []
@@ -668,6 +675,11 @@ class MainWnd(QMainWindow):
 
         if not self.game.started():
             if self.can_show_results:
+                # сохраняем статистику компьютерных игроков
+                for p in self.players:
+                    if p.is_robot:
+                        self.params.robots_stat[p.name] = RobotStatItem(p.as_dict())
+
                 self.clear_save()
                 self.stop_game()
                 self.show_game_results()

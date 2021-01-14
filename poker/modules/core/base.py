@@ -392,32 +392,62 @@ class BaseEngine(object):
         self._init_deals()
         self._step = 0
         self._started = True
+
+        # общая статистика
+        for p in self._players:
+            p.started += 1
+
         self._deal_cards()
         self.next()
 
-    def stop(self):
+    def stop(self, throw=False):
         self._started = False
 
-        # взаиморасчеты: если считаем по разнице, то каждый игрок получает разницу между cвоими очками и каждого другого.
-        # Т.о. тут можно выити в плюс, даже если ты не выиграл;
-        # если считаем по старшему, то каждый, кроме выигравшего, отдает разницу между своими очками и выигравшим, выигравшему, но ничего ни с кого получает.
-        # Т.о. тут все в минусе и только выигравший в плюсе
-        ordered = sorted([(i, p.total_scores) for i, p in enumerate(self._players)], key=lambda x: x[1], reverse=True)
-
-        if self._game_sum_by_diff:
-            for i in range(len(ordered)):
-                for j in range(len(ordered)):
-                    self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[j][1]
+        if throw:
+            # общая статистика: +1 к брошенным играм
+            for p in self._players:
+                p.throw += 1
         else:
-            for i in range(len(ordered)):
-                if i == 0:
-                    self._players[ordered[i][0]].total_money += ordered[0][1]
-                else:
-                    self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[0][1]
+            # взаиморасчеты: если считаем по разнице, то каждый игрок получает разницу между cвоими очками и каждого другого.
+            # Т.о. тут можно выити в плюс, даже если ты не выиграл;
+            # если считаем по старшему, то каждый, кроме выигравшего, отдает разницу между своими очками и выигравшим, выигравшему, но ничего ни с кого получает.
+            # Т.о. тут все в минусе и только выигравший в плюсе
+            ordered = sorted([(i, p.total_scores) for i, p in enumerate(self._players)], key=lambda x: x[1], reverse=True)
 
-        # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
-        for p in self._players:
-            p.total_money = p.total_money * self._bet / 100.0
+            if self._game_sum_by_diff:
+                for i in range(len(ordered)):
+                    # общая статистика
+                    if i == 0:
+                        self._players[ordered[i][0]].winned += 1
+                    else:
+                        self._players[ordered[i][0]].lost += 1
+
+                    for j in range(len(ordered)):
+                        self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[j][1]
+            else:
+                for i in range(len(ordered)):
+                    if i == 0:
+                        self._players[ordered[i][0]].total_money += ordered[0][1]
+                        # общая статистика
+                        self._players[ordered[i][0]].winned += 1
+                    else:
+                        self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[0][1]
+                        # общая статистика
+                        self._players[ordered[i][0]].lost += 1
+
+            for p in self._players:
+                # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
+                p.total_money = p.total_money * self._bet / 100.0
+                # общая статистика
+                p.completed += 1
+                p.last_scores = p.total_scores
+                p.scores += p.total_scores
+                p.last_money = p.total_money
+                p.money += p.total_money
+                p.best_scores = max(p.best_scores, p.total_scores)
+                p.best_money = max(p.best_money, p.total_money)
+                p.worse_scores = min(p.worse_scores, p.total_scores)
+                p.worse_money = min(p.worse_money, p.total_money)
 
     def next(self):
         """ Центральный метод реализации игрового цикла """
