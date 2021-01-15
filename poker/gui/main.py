@@ -17,6 +17,7 @@ from gui.players_dlg import PlayersDialog
 from gui.agreements_dlg import AgreementsDialog
 from gui.settings_dlg import SettingsDialog
 from gui.profiles_dlg import ProfilesDialog
+from gui.statistics_dlg import StatisticsDialog
 
 
 class MainWnd(QMainWindow):
@@ -129,7 +130,8 @@ class MainWnd(QMainWindow):
         menu.addAction(actn)
 
         actn = QAction('Статистика', self)
-        actn.setShortcut('F8')
+        # actn.setShortcut('F8')
+        actn.setStatusTip('Статистика по игрокам')
         actn.triggered.connect(self.show_statistic)
         menu.addAction(actn)
 
@@ -231,7 +233,11 @@ class MainWnd(QMainWindow):
             dlg.destroy()
 
     def show_statistic(self):
-        print('Statistic action')
+        dlg = StatisticsDialog(self, self.profiles)
+        try:
+            dlg.exec()
+        finally:
+            dlg.destroy()
 
     def set_status_message(self, message):
         """
@@ -420,7 +426,7 @@ class MainWnd(QMainWindow):
             self.players.append(p)
             # подгрузим компьютерным игрокам их статистику
             if p.is_robot and p.name in self.params.robots_stat:
-                p.from_dict(self.params.robots_stat[p.name].as_dict())
+                p.from_dict(self.params.robots_stat[p.name])
 
         self.options.players_cnt = len(self.players)
         self.game = engine.Engine(self.players, allow_no_human=False, **self.options.as_dict())
@@ -454,7 +460,7 @@ class MainWnd(QMainWindow):
         for i, p in enumerate(self.players):
             # подгрузим компьютерным игрокам их статистику
             if p.is_robot and p.name in self.params.robots_stat:
-                p.from_dict(self.params.robots_stat[p.name].as_dict())
+                p.from_dict(self.params.robots_stat[p.name])
 
             # загруженного игрока человека надо подменить на текущего, чтобы актуализировать его данные
             # (по сути это он и есть, но физически объекты уже разные)
@@ -678,7 +684,7 @@ class MainWnd(QMainWindow):
                 # сохраняем статистику компьютерных игроков
                 for p in self.players:
                     if p.is_robot:
-                        self.params.robots_stat[p.name] = RobotStatItem(p.as_dict())
+                        self.params.robots_stat[p.name] = RobotStatItem(**p.as_dict()).as_dict()
 
                 self.clear_save()
                 self.stop_game()

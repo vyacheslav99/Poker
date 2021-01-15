@@ -46,7 +46,7 @@ class ProfilesDialog(QDialog):
         super(ProfilesDialog, self).close()
 
     def init_ui(self):
-        # Кнопки ОК, Отмена
+        # Кнопка Закрыть
         main_layout = QVBoxLayout()
         btn_close = QPushButton('Закрыть')
         btn_close.setDefault(True)
