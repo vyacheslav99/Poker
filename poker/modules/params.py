@@ -24,7 +24,7 @@ class Params(BaseModel):
         self.lear_order = (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS)
         # Варианты начала игры:
         self.start_type = const.GAME_START_TYPE_ALL
-        # Игровая статистика локальных компьютерных игроков. key - имя, value - экземпляр RobotStatItem
+        # Игровая статистика локальных компьютерных игроков. key - имя, value - dict, представление RobotStatItem
         self.robots_stat = {}
 
         super(Params, self).__init__(filename, **kwargs)

@@ -17,7 +17,7 @@ from gui.players_dlg import PlayersDialog
 from gui.agreements_dlg import AgreementsDialog
 from gui.settings_dlg import SettingsDialog
 from gui.profiles_dlg import ProfilesDialog
-from gui.statistics_dlg import StatisticsDialog
+from gui.statistics_dlg import StatisticsWindow
 
 
 class MainWnd(QMainWindow):
@@ -62,6 +62,8 @@ class MainWnd(QMainWindow):
         self.start_actn = None
         self.throw_actn = None
         self.svc_actn = None
+
+        self._stat_wnd = None
 
         self.init_profile()
         self.setWindowIcon(QIcon(const.MAIN_ICON))
@@ -130,7 +132,7 @@ class MainWnd(QMainWindow):
         menu.addAction(actn)
 
         actn = QAction('Статистика', self)
-        # actn.setShortcut('F8')
+        actn.setShortcut('F8')
         actn.setStatusTip('Статистика по игрокам')
         actn.triggered.connect(self.show_statistic)
         menu.addAction(actn)
@@ -233,11 +235,11 @@ class MainWnd(QMainWindow):
             dlg.destroy()
 
     def show_statistic(self):
-        dlg = StatisticsDialog(self, self.profiles)
-        try:
-            dlg.exec()
-        finally:
-            dlg.destroy()
+        if not self._stat_wnd:
+            self._stat_wnd = StatisticsWindow()
+
+        self._stat_wnd.set_data(self.profiles, self.params.robots_stat)
+        self._stat_wnd.showMaximized()
 
     def set_status_message(self, message):
         """
