@@ -131,6 +131,23 @@ class Face2(QPixmap):
         return self._image_path
 
 
+class Avatar(QPixmap):
+
+    def __init__(self, uid=None, name=None):
+        if uid and name and os.path.exists(f'{const.PROFILES_DIR}/{uid}/{name}'):
+            self._image_path = f'{const.PROFILES_DIR}/{uid}/{name}'
+        elif os.path.exists(f'{const.FACE_DIR}/{name}.bmp'):
+            self._image_path = f'{const.FACE_DIR}/{name}.bmp'
+        else:
+            self._image_path = f'{const.FACE_DIR}/noImage.png'
+
+        super(Avatar, self).__init__(self._image_path)
+
+    @property
+    def image_path(self):
+        return self._image_path
+
+
 class Lear(QGraphicsPixmapItem):
 
     def __init__(self, lear):

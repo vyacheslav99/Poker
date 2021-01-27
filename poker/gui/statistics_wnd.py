@@ -1,13 +1,9 @@
-import os
-import shutil
-import string
-
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from gui import const
-from gui.graphics import Face2
+from gui.graphics import Face2, Avatar
 from modules.params import Profiles
 
 
@@ -28,6 +24,7 @@ class StatisticsWindow(QWidget):
         super().__init__()
         self._profiles = None
         self._robots = None
+        self._curr_uid = None
 
         # элементы управления
         self._grid = None
@@ -58,6 +55,10 @@ class StatisticsWindow(QWidget):
         self._grid.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self._grid.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._grid.setSelectionMode(QAbstractItemView.NoSelection)
+        self._grid.setIconSize(QSize(64, 64))
+        vhead = self._grid.verticalHeader()
+        vhead.setSectionResizeMode(QHeaderView.Fixed)
+        vhead.setDefaultSectionSize(64)
 
         # шапка
         for i, value in enumerate(self._columns_):
@@ -71,7 +72,8 @@ class StatisticsWindow(QWidget):
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
 
-    def set_data(self, profiles: Profiles, robots):
+    def set_data(self, profiles: Profiles, robots, curr_uid=None):
+        self._curr_uid = curr_uid
         row = 0
         self._grid.setSortingEnabled(False)
         self._grid.setRowCount(0)
@@ -80,17 +82,19 @@ class StatisticsWindow(QWidget):
         for p in profiles.profiles:
             for col, value in enumerate(self._columns_):
                 if col == 0:
-                    self.set_text_item(row, col, getattr(p, value[0]))
+                    icon = QIcon(Face2(p))
+                    self.set_text_item(row, col, getattr(p, value[0]), icon, is_highlighted=curr_uid == p.uid)
                 elif col == 1:
                     self.set_bool_item(row, col, getattr(p, value[0]))
                 else:
-                    self.set_number_item(row, col, getattr(p, value[0]))
+                    self.set_number_item(row, col, getattr(p, value[0]), is_highlighted=curr_uid == p.uid)
             row += 1
 
         for k, p in robots.items():
             for col, value in enumerate(self._columns_):
                 if col == 0:
-                    self.set_text_item(row, col, k)
+                    icon = QIcon(Avatar(name=k))
+                    self.set_text_item(row, col, k, icon)
                 elif col == 1:
                     self.set_bool_item(row, col, True)
                 else:
@@ -100,7 +104,7 @@ class StatisticsWindow(QWidget):
         self._grid.setSortingEnabled(True)
         self._grid.sortByColumn(7, Qt.DescendingOrder)
 
-    def set_item(self, row, col, item):
+    def set_item(self, row, col, item, is_highlighted=False):
         if col == 1:
             align = Qt.AlignCenter
         elif col > 1:
@@ -108,20 +112,40 @@ class StatisticsWindow(QWidget):
         else:
             align = Qt.AlignLeft
 
+        if is_highlighted:
+            # item.setForeground(QColor(color))
+            # item.setBackground(QColor(bg_color))
+            f = item.font()
+            f.setBold(True)
+            item.setFont(f)
+
         item.setTextAlignment(align | Qt.AlignVCenter)
         self._grid.setItem(row, col, item)
 
-    def set_text_item(self, row, col, value, icon=None):
-        item = QTableWidgetItem(str(value))
-        self.set_item(row, col, item)
+    def set_text_item(self, row, col, value, icon=None, is_highlighted=False):
+        if icon:
+            item = QTableWidgetItem(icon, str(value))
+        else:
+            item = QTableWidgetItem(str(value))
 
-    def set_number_item(self, row, col, value):
-        item = QTableWidgetItem(str(value))
+        self.set_item(row, col, item, is_highlighted=is_highlighted)
+
+    def set_number_item(self, row, col, value, is_highlighted=False):
+        item = QTableWidgetItem()
         item.setData(Qt.EditRole, value)
-        self.set_item(row, col, item)
+        self.set_item(row, col, item, is_highlighted=is_highlighted)
 
     def set_bool_item(self, row, col, value):
-        item = QTableWidgetItem()
-        item.setFlags(Qt.ItemIsUserCheckable)
-        item.setCheckState(Qt.Checked if value else Qt.Unchecked)
-        self.set_item(row, col, item)
+        # item = QTableWidgetItem()
+        # item.setFlags(Qt.ItemIsUserCheckable)
+        # item.setCheckState(Qt.Checked if value else Qt.Unchecked)
+        # self.set_item(row, col, item)
+        cell_widget = QWidget()
+        chb = QCheckBox()
+        chb.setCheckState(Qt.Checked if value else Qt.Unchecked)
+        chb.setEnabled(False)
+        layout = QHBoxLayout(cell_widget)
+        layout.addWidget(chb)
+        layout.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+        cell_widget.setLayout(layout)
+        self._grid.setCellWidget(row, col, cell_widget)

@@ -17,7 +17,7 @@ from gui.players_dlg import PlayersDialog
 from gui.agreements_dlg import AgreementsDialog
 from gui.settings_dlg import SettingsDialog
 from gui.profiles_dlg import ProfilesDialog
-from gui.statistics_dlg import StatisticsWindow
+from gui.statistics_wnd import StatisticsWindow
 
 
 class MainWnd(QMainWindow):
@@ -238,7 +238,8 @@ class MainWnd(QMainWindow):
         if not self._stat_wnd:
             self._stat_wnd = StatisticsWindow()
 
-        self._stat_wnd.set_data(self.profiles, self.params.robots_stat)
+        self._stat_wnd.set_data(self.profiles, self.params.robots_stat,
+                                self.curr_profile.uid if self.curr_profile else None)
         self._stat_wnd.showMaximized()
 
     def set_status_message(self, message):
