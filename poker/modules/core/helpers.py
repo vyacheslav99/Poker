@@ -212,6 +212,23 @@ class Player(BaseModel):
         self.pass_counter = source.pass_counter
         self.success_counter = source.success_counter
 
+    def reset_statistics(self):
+        """ Сброс общей статистики """
+
+        self.started = 0
+        self.completed = 0
+        self.throw = 0
+        self.winned = 0
+        self.lost = 0
+        self.summary = 0
+        self.money = 0.0
+        self.last_scores = 0
+        self.last_money = 0.0
+        self.best_scores = 0
+        self.best_money = 0.0
+        self.worse_scores = 0
+        self.worse_money = 0.0
+
     def __str__(self):
         if self.is_robot:
             # s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'

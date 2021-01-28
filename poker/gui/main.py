@@ -65,6 +65,9 @@ class MainWnd(QMainWindow):
 
         self._stat_wnd = None
 
+        if '--reset_stat' in args:
+            self.reset_statistics()
+
         self.init_profile()
         self.setWindowIcon(QIcon(const.MAIN_ICON))
         self.setWindowTitle(const.MAIN_WINDOW_TITLE)
@@ -1489,3 +1492,9 @@ class MainWnd(QMainWindow):
                 os.makedirs(os.path.split(fn)[0])
 
             self.options.save(fn)
+
+    def reset_statistics(self):
+        self.params.robots_stat = {}
+
+        for p in self.profiles.profiles:
+            p.reset_statistics()
