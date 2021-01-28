@@ -59,7 +59,7 @@ class TableItem(object):
 class Player(BaseModel):
 
     __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'throw', 'winned', 'lost',
-                   'scores', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores', 'worse_money']
+                   'summary', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores', 'worse_money']
 
     def __init__(self, filename=None, **kwargs):
         self.uid = None
