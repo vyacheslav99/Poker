@@ -441,7 +441,7 @@ class BaseEngine(object):
                 # общая статистика
                 p.completed += 1
                 p.last_scores = p.total_scores
-                p.scores += p.total_scores
+                p.summary += p.total_scores
                 p.last_money = p.total_money
                 p.money += p.total_money
                 p.best_scores = max(p.best_scores, p.total_scores)

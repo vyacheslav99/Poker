@@ -175,3 +175,19 @@ class Area(QGraphicsRectItem):
         self.setBrush(brush)
         self.setPen(QPen(Qt.black))
         self.setZValue(-1)
+
+
+class GridMoneyItemDelegate(QItemDelegate):
+
+    def __init__(self, parent):
+        super(GridMoneyItemDelegate, self).__init__(parent)
+
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+        value = index.model().data(index, Qt.EditRole)
+
+        if value is not None and isinstance(value, (int, float)):
+            money = '{0:.2f}'.format(value)
+            rub, kop = money.split('.')
+            painter.drawText(option.rect, Qt.AlignRight | Qt.AlignVCenter, f' {rub}р {kop}к ')
+        else:
+            super(GridMoneyItemDelegate, self).paint(painter, option, index)
