@@ -436,7 +436,7 @@ class BaseEngine(object):
                         self._players[ordered[i][0]].lost += 1
 
             for p in self._players:
-                # очки умножаем на ставку в копейках и делим на 100, чтоб получить в рублях - это базовый выигрыш по твоим очкам
+                # очки умножаем на ставку в копейках и делим на 100 - получаем итог партии в деньгах
                 p.total_money = p.total_money * self._bet / 100.0
                 # общая статистика
                 p.completed += 1
@@ -446,7 +446,7 @@ class BaseEngine(object):
                 p.money += p.total_money
                 p.best_scores = max(p.best_scores, p.total_scores)
                 p.best_money = max(p.best_money, p.total_money)
-                p.worse_scores = min(p.worse_scores, p.total_scores)
+                p.worse_scores = min(p.worse_scores or p.total_scores, p.total_scores)
                 p.worse_money = min(p.worse_money, p.total_money)
 
     def next(self):
