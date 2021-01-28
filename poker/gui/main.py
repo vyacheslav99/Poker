@@ -62,6 +62,7 @@ class MainWnd(QMainWindow):
         self.start_actn = None
         self.throw_actn = None
         self.svc_actn = None
+        self.profiles_group = None
 
         self._stat_wnd = None
 
@@ -91,7 +92,7 @@ class MainWnd(QMainWindow):
         menubar = self.menuBar()
 
         # Меню Файл
-        menu = menubar.addMenu('Файл')
+        menu = menubar.addMenu('Игра')
         # toolbar = self.addToolBar('Выход')
         self.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
         self.start_actn.setShortcut('F2')
@@ -103,6 +104,13 @@ class MainWnd(QMainWindow):
         self.throw_actn.triggered.connect(self.on_throw_action)
         menu.addAction(self.throw_actn)
 
+        menu.addSeparator()
+        actn = QAction('Таблица результатов', self)
+        actn.setShortcut('F8')
+        actn.setStatusTip('Таблица результатов по игрокам')
+        actn.triggered.connect(self.show_statistic)
+        menu.addAction(actn)
+
         if self.__dev_mode:
             self.svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
             self.svc_actn.setShortcut('F9')
@@ -113,9 +121,9 @@ class MainWnd(QMainWindow):
         # Профиль (выбор текущего профиля)
         submenu = menu.addMenu('Профиль')
         submenu.setStatusTip('Сменить текущий профиль')
-        group = QActionGroup(self)
-        group.setExclusive(True)
-        group.triggered.connect(self.change_profile)
+        self.profiles_group = QActionGroup(self)
+        self.profiles_group.setExclusive(True)
+        self.profiles_group.triggered.connect(self.change_profile)
 
         for p in self.profiles.profiles:
             item = QAction(p.name, self)
@@ -123,7 +131,7 @@ class MainWnd(QMainWindow):
             item.setChecked(p.uid == self.curr_profile.uid if self.curr_profile else False)
             item.setData(p.uid)
             # item.triggered.connect(self.change_profile)
-            group.addAction(item)
+            self.profiles_group.addAction(item)
             submenu.addAction(item)
 
         menu.addSeparator()
@@ -134,7 +142,7 @@ class MainWnd(QMainWindow):
         menu.addAction(actn)
 
         # Меню Настройка
-        menu = menubar.addMenu('Настройка')
+        menu = menubar.addMenu('Настройки')
         actn = QAction(QIcon(f'{const.RES_DIR}/settings.ico'), 'Настройки', self)
         actn.setShortcut('F10')
         actn.triggered.connect(self.show_settings)
@@ -150,24 +158,21 @@ class MainWnd(QMainWindow):
         actn.triggered.connect(self.show_profiles)
         menu.addAction(actn)
 
-        actn = QAction('Статистика', self)
-        actn.setShortcut('F8')
-        actn.setStatusTip('Статистика по игрокам')
-        actn.triggered.connect(self.show_statistic)
-        menu.addAction(actn)
-
         self.refresh_menu_actions()
         # toolbar.addAction(exit_actn)
 
     def refresh_menu_actions(self):
         """ Акуализация состояния игрового меню """
 
+        self.profiles_group.setEnabled(not self.started())
+        self.throw_actn.setEnabled(self.started())
+
+        if self.svc_actn:
+            self.svc_actn.setEnabled(self.started())
+
         if self.started():
             self.start_actn.setText('Отложить партию')
             self.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
-            self.throw_actn.setEnabled(True)
-            if self.svc_actn:
-                self.svc_actn.setEnabled(True)
         else:
             if self.save_exists()[0]:
                 self.start_actn.setText('Продолжить партию')
@@ -175,9 +180,6 @@ class MainWnd(QMainWindow):
             else:
                 self.start_actn.setText('Новая партия')
                 self.start_actn.setStatusTip('Начать новую партию')
-            self.throw_actn.setEnabled(False)
-            if self.svc_actn:
-                self.svc_actn.setEnabled(False)
 
     def center(self):
         screen = QDesktopWidget().screenGeometry()
@@ -185,6 +187,9 @@ class MainWnd(QMainWindow):
         self.move((screen.width() - size.width()) / 2, 10)  # (screen.height() - size.height()) / 3)
 
     def closeEvent(self, event):
+        if self._stat_wnd:
+            self._stat_wnd.close()
+
         self.save_params()
         super(MainWnd, self).closeEvent(event)
 
@@ -386,7 +391,7 @@ class MainWnd(QMainWindow):
         """ Обработчик меню начала игры """
 
         if self.started():
-            self.stop_game()
+            self.stop_game(core_const.GAME_STOP_DEFER)
         else:
             self.start_game()
 
@@ -403,7 +408,7 @@ class MainWnd(QMainWindow):
             return
 
         if self.started():
-            self.stop_game(throw=True)
+            self.stop_game(core_const.GAME_STOP_THROW)
             self.clear_save()
 
         self.refresh_menu_actions()
@@ -421,7 +426,7 @@ class MainWnd(QMainWindow):
         if self.save_exists()[0]:
             return self.load_game()
 
-        self.stop_game()
+        self.stop_game(core_const.GAME_STOP_DEFER)
 
         # Настройка договоренностей игры, игроков и т.п.
         self.players = []
@@ -470,7 +475,7 @@ class MainWnd(QMainWindow):
     def load_game(self):
         """ Загрузка сохраненной игры """
 
-        self.stop_game()
+        self.stop_game(core_const.GAME_STOP_DEFER)
         self.can_show_results = False
         b, fn = self.save_exists()
 
@@ -524,14 +529,14 @@ class MainWnd(QMainWindow):
         fn = f'{self.get_profile_dir()}/save/auto.psg'
         self.write_save_file(fn, o)
 
-    def stop_game(self, throw=False):
+    def stop_game(self, flag=None):
         """ Остановить игру, очистить игровое поле """
 
         if self.service_wnd:
             self.service_wnd.hide()
 
         if self.game and self.game.started():
-            self.game.stop(throw)
+            self.game.stop(flag)
 
         self._started = False
         self.players = []

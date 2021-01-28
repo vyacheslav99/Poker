@@ -64,3 +64,7 @@ EXT_STATE_ROUND_PAUSE = 3       # подсчет итогов раунда, па
 TAKE_STATE_POOR = -1    # недобрал
 TAKE_STATE_OK = 0       # взял свое
 TAKE_STATE_OVERDO = 1   # перебрал
+
+# флаги остановки игры
+GAME_STOP_DEFER = 0
+GAME_STOP_THROW = 1

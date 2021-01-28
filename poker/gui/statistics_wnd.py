@@ -34,7 +34,7 @@ class StatisticsWindow(QWidget):
         self._grid = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/player.ico'))
-        self.setWindowTitle('Статистика игроков')
+        self.setWindowTitle('Таблица результатов')
         self.init_ui()
         # rect = QDesktopWidget().availableGeometry(QDesktopWidget().primaryScreen())
         # print(rect.width(), rect.height())
