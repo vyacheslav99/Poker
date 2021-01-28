@@ -110,6 +110,22 @@ class MainWnd(QMainWindow):
             self.svc_actn.triggered.connect(self.show_service_window)
             menu.addAction(self.svc_actn)
 
+        # Профиль (выбор текущего профиля)
+        submenu = menu.addMenu('Профиль')
+        submenu.setStatusTip('Сменить текущий профиль')
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        group.triggered.connect(self.change_profile)
+
+        for p in self.profiles.profiles:
+            item = QAction(p.name, self)
+            item.setCheckable(True)
+            item.setChecked(p.uid == self.curr_profile.uid if self.curr_profile else False)
+            item.setData(p.uid)
+            # item.triggered.connect(self.change_profile)
+            group.addAction(item)
+            submenu.addAction(item)
+
         menu.addSeparator()
         actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
         actn.setShortcut('Esc')
@@ -244,6 +260,13 @@ class MainWnd(QMainWindow):
         self._stat_wnd.set_data(self.profiles, self.params.robots_stat,
                                 self.curr_profile.uid if self.curr_profile else None)
         self._stat_wnd.showMaximized()
+
+    def change_profile(self, action):
+        new_uid = action.data()
+
+        if self.curr_profile is not None and self.curr_profile.uid != new_uid:
+            self.set_profile(new_uid)
+            self.save_params()
 
     def set_status_message(self, message):
         """
