@@ -21,6 +21,8 @@ class StatisticsWindow(QWidget):
                  ('worse_money', 'Худший\nпроигрыш\n(деньги)', 'Самый большой проигрыш за все игры в деньгах'))
 
     _money_cols_ = (8, 10, 12, 14)
+    _bg_colors_ = ('PaleTurquoise', 'PaleTurquoise', 'PaleGreen', 'PaleGreen', 'PaleGreen', 'PaleGreen', 'PaleGreen',
+                   'Gold', 'YellowGreen', 'Violet', 'Violet', 'SpringGreen', 'SpringGreen', 'Tomato', 'Tomato')
 
     def __init__(self):
         super().__init__()
@@ -51,7 +53,7 @@ class StatisticsWindow(QWidget):
 
         # Собсно Таблица игроков
 
-        self._grid = QTableWidget()
+        self._grid = QTableWidget(self)
         self._grid.setColumnCount(len(self._columns_))
         # self._grid.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self._grid.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -78,7 +80,7 @@ class StatisticsWindow(QWidget):
             self._grid.horizontalHeader().resizeSection(i, sz)
 
             if i in self._money_cols_:
-                self._grid.setItemDelegateForColumn(i, GridMoneyItemDelegate(self._grid))
+                self._grid.setItemDelegateForColumn(i, GridMoneyItemDelegate(self._grid, bg_color=self._bg_colors_[i]))
 
         main_layout.addWidget(self._grid)
         main_layout.addLayout(buttons_box)
@@ -96,11 +98,11 @@ class StatisticsWindow(QWidget):
             for col, value in enumerate(self._columns_):
                 if col == 0:
                     icon = QIcon(Face2(p))
-                    self.set_text_item(row, col, getattr(p, value[0]), icon, is_highlighted=curr_uid == p.uid)
+                    self.set_text_item(row, col, getattr(p, value[0]), icon, bold=curr_uid == p.uid, data=p.uid)
                 elif col == 1:
                     self.set_bool_item(row, col, getattr(p, value[0]))
                 else:
-                    self.set_number_item(row, col, getattr(p, value[0]), is_highlighted=curr_uid == p.uid)
+                    self.set_number_item(row, col, getattr(p, value[0]), bold=curr_uid == p.uid)
             row += 1
 
         for k, p in robots.items():
@@ -117,7 +119,7 @@ class StatisticsWindow(QWidget):
         self._grid.setSortingEnabled(True)
         self._grid.sortByColumn(7, Qt.DescendingOrder)
 
-    def set_item(self, row, col, item, is_highlighted=False):
+    def set_item(self, row, col, item, bold=False):
         if col == 1:
             align = Qt.AlignCenter
         elif col > 1:
@@ -125,28 +127,31 @@ class StatisticsWindow(QWidget):
         else:
             align = Qt.AlignLeft
 
-        if is_highlighted:
-            # item.setForeground(QColor(color))
-            # item.setBackground(QColor(bg_color))
+        if bold:
             f = item.font()
             f.setBold(True)
             item.setFont(f)
 
+        # item.setForeground(QColor(color))
+        item.setBackground(QColor(self._bg_colors_[col]))
         item.setTextAlignment(align | Qt.AlignVCenter)
         self._grid.setItem(row, col, item)
 
-    def set_text_item(self, row, col, value, icon=None, is_highlighted=False):
+    def set_text_item(self, row, col, value, icon=None, bold=False, data=None):
         if icon:
             item = QTableWidgetItem(icon, str(value))
         else:
             item = QTableWidgetItem(str(value))
 
-        self.set_item(row, col, item, is_highlighted=is_highlighted)
+        if data:
+            item.setData(Qt.WhatsThisRole, data)
 
-    def set_number_item(self, row, col, value, is_highlighted=False):
+        self.set_item(row, col, item, bold=bold)
+
+    def set_number_item(self, row, col, value, bold=False):
         item = QTableWidgetItem()
         item.setData(Qt.EditRole, value)
-        self.set_item(row, col, item, is_highlighted=is_highlighted)
+        self.set_item(row, col, item, bold=bold)
 
     def set_bool_item(self, row, col, value):
         # item = QTableWidgetItem()

@@ -179,15 +179,36 @@ class Area(QGraphicsRectItem):
 
 class GridMoneyItemDelegate(QItemDelegate):
 
-    def __init__(self, parent):
+    def __init__(self, parent, bg_color=None):
+        self._bg_color = bg_color
+
         super(GridMoneyItemDelegate, self).__init__(parent)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         value = index.model().data(index, Qt.EditRole)
 
         if value is not None and isinstance(value, (int, float)):
+            if self._bg_color:
+                painter.setBrush(QBrush(QColor(self._bg_color), Qt.SolidPattern))
+                painter.drawRect(option.rect.x() - 1, option.rect.y() - 1, option.rect.width() + 1, option.rect.height() + 1)
+
+            curr_uid = self.get_uid()
+            uid = index.siblingAtColumn(0).data(Qt.WhatsThisRole)
+            font = painter.font()
+            font.setBold(uid is not None and curr_uid is not None and uid == curr_uid)
+            painter.setFont(font)
+
             money = '{0:.2f}'.format(value)
             rub, kop = money.split('.')
             painter.drawText(option.rect, Qt.AlignRight | Qt.AlignVCenter, f' {rub}р {kop}к ')
         else:
             super(GridMoneyItemDelegate, self).paint(painter, option, index)
+
+    def get_uid(self):
+        grid = self.parent()
+        if grid:
+            form = grid.parent()
+            if form:
+                return form._curr_uid
+
+        return None
