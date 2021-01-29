@@ -650,7 +650,7 @@ class Engine(base.BaseEngine):
             if n > -1:
                 l = self._ai_select_joker_lear_to_shield(cards)
                 # есть что прикрыть - выбираем джокера, иначе ждем до более благоприятного момента
-                if l is not None:
+                if l is not None and self._joker_demand_peak:
                     card = player.cards[n]
                     card.joker_action = const.JOKER_TAKE_BY_MAX
                     card.joker_lear = l
@@ -715,7 +715,7 @@ class Engine(base.BaseEngine):
                     n = player.index_of_card(joker=True)
                     if n > -1:
                         card = player.cards[n]
-                        card.joker_action = const.JOKER_TAKE_BY_MAX
+                        card.joker_action = const.JOKER_TAKE_BY_MAX if self._joker_demand_peak else const.JOKER_TAKE
                         # выберем для джокера масть - подберем масть так, чтоб прикрыть какую-то из карт,
                         # которую есть необходимость и возможность прикрыть джокером
                         card.joker_lear = self._ai_select_joker_lear_to_shield(cards)
@@ -892,7 +892,7 @@ class Engine(base.BaseEngine):
         deal_type = self._deals[self._curr_deal].type_
         walk_lear = tbl_ordered[0][1].card.lear if not tbl_ordered[0][1].is_joker() else tbl_ordered[0][1].joker_lear()
 
-        if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
+        if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX and self._joker_demand_peak:
             # если требовали по старшей - придется вернуть старшую
             card = player.max_card(walk_lear)
             if card:

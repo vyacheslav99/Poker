@@ -672,6 +672,10 @@ class BaseEngine(object):
         return self._joker_give_at_par
 
     @property
+    def joker_demand_peak(self):
+        return self._joker_demand_peak
+
+    @property
     def players(self):
         return self._players
 
@@ -781,7 +785,7 @@ class BaseEngine(object):
         tbl_ordered = self._order_table()
         walk_lear = tbl_ordered[0][1].card.lear if not tbl_ordered[0][1].is_joker() else tbl_ordered[0][1].joker_lear()
 
-        if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX:
+        if tbl_ordered[0][1].is_joker() and tbl_ordered[0][1].joker_action() == const.JOKER_TAKE_BY_MAX and self._joker_demand_peak:
             card = player.max_card(walk_lear)
             if card:
                 return player.cards.index(card)

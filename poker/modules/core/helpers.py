@@ -30,6 +30,10 @@ class Card(object):
     def joker(self):
         return self._is_joker
 
+    def get_nominal_text(self):
+        """ Вернуть сам номинал карты в текстовом представлении """
+        return f'{const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]}'
+
     def __str__(self):
         if self.joker:
             return f'Джокер ({const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]})'

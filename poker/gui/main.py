@@ -1063,8 +1063,8 @@ class MainWnd(QMainWindow):
 
         self.table_label.setText('Ход джокером. Выбери действие')
 
-        if not self.game.table():
-            # если мой ход первый - показать еще вариант "по старшей"
+        if not self.game.table() and self.game.joker_demand_peak:
+            # если мой ход первый и разрешено требовать по старшей - показать еще вариант "по старшей"
             self.ja_take_by_btn.show()
 
         self.ja_take_btn.show()
@@ -1450,8 +1450,8 @@ class MainWnd(QMainWindow):
             elif card.joker_action == core_const.JOKER_TAKE_BY_MAX:
                 s, l = 'по старшим', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])
             elif card.joker_action == core_const.JOKER_GIVE:
-                s, l = 'самая младшая', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])\
-                    if not self.game.joker_give_at_par else f'{card}'
+                s, l = 'самая младшая', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear]) \
+                    if not self.game.joker_give_at_par else f'({card.get_nominal_text()})'
             else:
                 s, l = None, None
 
