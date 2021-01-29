@@ -197,12 +197,14 @@ class AgreementsDialog(QDialog):
         # Все, что касается Джокера
         group = QGroupBox('Джокер')
         layout = QGridLayout()
+        layout.setHorizontalSpacing(30)
         self._no_joker = QCheckBox('Игра без Джокера')
+        self._no_joker.stateChanged.connect(self.no_joker_check)
         layout.addWidget(self._no_joker, 1, 1)
         self._joker_give_at_par = QCheckBox('Сброс Джокера по номиналу (как 7 ♠) (или на выбор игрока)')
         layout.addWidget(self._joker_give_at_par, 2, 1)
         self._joker_demand_peak = QCheckBox('Джокер может требовать "по старшей карте"')
-        layout.addWidget(self._joker_demand_peak, 1, 2)
+        layout.addWidget(self._joker_demand_peak, 2, 2)
         group.setLayout(layout)
         main_layout.addWidget(group)
 
@@ -264,3 +266,7 @@ class AgreementsDialog(QDialog):
 
     def deactivate(self):
         self._btn_ok.setEnabled(False)
+
+    def no_joker_check(self, state):
+        self._joker_give_at_par.setEnabled(state == Qt.Unchecked)
+        self._joker_demand_peak.setEnabled(state == Qt.Unchecked)
