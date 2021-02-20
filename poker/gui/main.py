@@ -1162,22 +1162,26 @@ class MainWnd(QMainWindow):
             keys['player'] = player.name
 
             order = int(keys['order'].split('*')[0])
-            scores = int(keys['scores'].split(' ')[0])
+            # scores = int(keys['scores'].split(' ')[0])
             keys['order'] = keys['order'].replace('-1', '-')
 
-            if keys['take'] < order or d.type_ == core_const.DEAL_MIZER:
+            if keys['take'] < order or (d.type_ == core_const.DEAL_MIZER and keys['take'] > 0) or (
+                d.type_ == core_const.DEAL_GOLD and keys['take'] == 0):
                 keys['take_color'] = 'OrangeRed'
+                keys['scores_color'] = 'OrangeRed'
             elif keys['take'] > order and d.type_ != core_const.DEAL_GOLD:
                 keys['take_color'] = 'Fuchsia'
+                keys['scores_color'] = 'Fuchsia'
             else:
                 keys['take_color'] = 'Lime'
-
-            if scores < 0:
-                keys['scores_color'] = 'OrangeRed'
-            elif scores > 9:
                 keys['scores_color'] = 'Lime'
-            else:
-                keys['scores_color'] = 'Fuchsia'
+
+            # if scores < 0:
+            #     keys['scores_color'] = 'OrangeRed'
+            # elif scores > 9:
+            #     keys['scores_color'] = 'Lime'
+            # else:
+            #     keys['scores_color'] = 'Fuchsia'
 
             if keys['total'] < 0:
                 keys['total_color'] = 'OrangeRed'
