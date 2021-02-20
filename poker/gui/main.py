@@ -1113,25 +1113,29 @@ class MainWnd(QMainWindow):
         for p in self.players:
             colors.append('aqua')
             order = int(record[p.uid]['order'].split('*')[0])
-            scores = int(record[p.uid]['scores'].split(' ')[0])
+            # scores = int(record[p.uid]['scores'].split(' ')[0])
 
-            if record[p.uid]['take'] < order or deal.type_ == core_const.DEAL_MIZER:
+            if record[p.uid]['take'] < order or (deal.type_ == core_const.DEAL_MIZER and record[p.uid]['take'] > 0) or (
+                deal.type_ == core_const.DEAL_GOLD and record[p.uid]['take'] == 0):
                 colors.append('OrangeRed')
-            elif record[p.uid]['take'] > order and deal.type_ != core_const.DEAL_GOLD:
+                colors.append('OrangeRed')
+            elif record[p.uid]['take'] > order and deal.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
+                colors.append('Fuchsia')
                 colors.append('Fuchsia')
             else:
                 colors.append('Lime')
-
-            if scores < 0:
-                colors.append('OrangeRed')
-            elif scores > 9:
                 colors.append('Lime')
-            else:
-                colors.append('Fuchsia')
+
+            # if scores < 0:
+            #     colors.append('OrangeRed')
+            # elif scores > 9:
+            #     colors.append('Lime')
+            # else:
+            #     colors.append('Fuchsia')
 
             if record[p.uid]['total'] < 0:
                 colors.append('OrangeRed')
-            elif record[p.uid]['total'] >= max_scores :
+            elif record[p.uid]['total'] >= max_scores:
                 colors.append('Lime')
             else:
                 colors.append('aqua')
@@ -1169,7 +1173,7 @@ class MainWnd(QMainWindow):
                 d.type_ == core_const.DEAL_GOLD and keys['take'] == 0):
                 keys['take_color'] = 'OrangeRed'
                 keys['scores_color'] = 'OrangeRed'
-            elif keys['take'] > order and d.type_ != core_const.DEAL_GOLD:
+            elif keys['take'] > order and d.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
                 keys['take_color'] = 'Fuchsia'
                 keys['scores_color'] = 'Fuchsia'
             else:
