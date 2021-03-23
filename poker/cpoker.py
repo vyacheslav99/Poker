@@ -4,7 +4,7 @@
 
 import sys, random
 
-from game import const, helpers, engine
+from modules.core import const, helpers, engine
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'СиТриПиО', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'Птица Говорун', 'Маленький помошник Сатаны', 'Эндрю', 'Валли', 'Бамблби', 'Маленикий помошник Санты',
@@ -25,7 +25,6 @@ class Game:
         self.autogame = autogame
         self.options = {}
         self.players = []
-        self.bet = None
         self.game = None
 
     def set_default(self):
@@ -61,14 +60,14 @@ class Game:
         for i in range(player_cnt):
             if i == 0 and not self.autogame:
                 self.players.append(helpers.Player())
-                self.players[i].id = i
+                self.players[i].uid = i
                 self.players[i].is_robot = False
                 self.players[i].name = self.ask('Как звать-то тебя?') or f'{humans.pop(random.randrange(0, len(humans)))}'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:
                 self.players.append(helpers.Player())
-                self.players[i].id = i
+                self.players[i].uid = i
                 if auto:
                     self.players[i].is_robot = True
                     self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
@@ -88,8 +87,8 @@ class Game:
         self.skip_lines(1)
 
         # 2. Ставка
-        self.bet = int(self.ask('Ставка на игру (стоимость одного очка в копейках) (1):') or 1)
-        print(f'Ставка: {self.bet} коп')
+        self.options['bet'] = int(self.ask('Ставка на игру (стоимость одного очка в копейках) (1):') or 1)
+        print(f"Ставка: {self.options['bet']} коп")
 
         # 3. Раздачи
         self.options = {}
@@ -166,7 +165,7 @@ class Game:
     def print_options(self):
         print(f'Игроков в игре: {len(self.players)}')
         print('Включены раздачи: {0}'.format(', '.join([const.DEAL_NAMES[n] for n in self.options['deal_types']])))
-        print(f'Ставка: {self.bet} коп')
+        print(f"Ставка: {self.options['bet']} коп")
         print('Подсчет итогов: {0}'.format('Все расчитываются со всеми' if self.options['game_sum_by_diff'] else 'Все отдают тому, у кого больше всех'))
         print('Заказ в темную: {0}'.format('Разрешен' if self.options['dark_allowed'] else 'Запрещен'))
         print('Ограничение на 3 паса подряд: {0}'.format('Включено' if self.options['third_pass_limit'] else 'Не ограничено'))
@@ -263,7 +262,7 @@ class Game:
 
         for player in self.game.players:
             print(f'{player.name}')
-            print('    '.join([f'{rec[0][player.id][key]}: {rec[-1][player.id][key]}' for key in rec[0][player.id].keys()]))
+            print('    '.join([f'{rec[0][player.uid][key]}: {rec[-1][player.uid][key]}' for key in rec[0][player.uid].keys()]))
 
         print('-------------------------------------------------------------')
 
@@ -272,12 +271,12 @@ class Game:
         self.skip_lines(2)
         print('-= Итоги игры =-')
         for p in self.game.players:
-            money = '{0:.2f}'.format(p.last_money)
+            money = '{0:.2f}'.format(p.total_money)
             rub, kop = money.split('.')
             print(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп')
 
         self.skip_lines(1)
-        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.last_money)}')
+        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.total_money)}')
         print(random.choice(congratulations))
 
     def ask_joker_walk(self, card):
@@ -336,7 +335,7 @@ class Game:
 
             is_new_round = True  # первый круг после начала раунда
             after_bet = False
-            self.game = engine.Engine(self.players, self.bet, allow_no_human=self.autogame, **self.options)
+            self.game = engine.Engine(self.players, allow_no_human=self.autogame, **self.options)
             self.game.start()
 
             while self.game.started():

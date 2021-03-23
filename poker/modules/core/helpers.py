@@ -2,6 +2,7 @@
 
 import random
 from . import const
+from modules.base_model import BaseModel
 
 
 class GameException(Exception):
@@ -29,6 +30,10 @@ class Card(object):
     def joker(self):
         return self._is_joker
 
+    def get_nominal_text(self):
+        """ Вернуть сам номинал карты в текстовом представлении """
+        return f'{const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]}'
+
     def __str__(self):
         if self.joker:
             return f'Джокер ({const.CARD_NAMES[self._value]} {const.LEAR_SYMBOLS[self._lear]})'
@@ -55,59 +60,52 @@ class TableItem(object):
         return self.card.joker_lear
 
 
-class Player(object):
+class Player(BaseModel):
 
-    def __init__(self, params=None):
-        self.id = None
+    __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'throw', 'winned', 'lost',
+                   'summary', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores', 'worse_money']
+
+    def __init__(self, filename=None, **kwargs):
+        self.uid = None
         self.login = None
         self.password = None
         self.name = None
+        self.avatar = None
         self.is_robot = None
         self.risk_level = None
         # self.level = None
 
-        # статистика
-        self.total_money = 0            # сумма всех выигрышей
-        self.total_games = 0            # +1 в начале игры
-        self.completed_games = 0        # +1 при завершении игры (доведения игры до конца)
-        self.interrupted_games = 0      # +1 при прерывании игры
-        self.winned_games = 0           # +1 при выигрыше (набрал больше всех)
-        self.failed_games = 0           # +1 при проигрыше (если ушел в минус)
-        self.neutral_games = 0          # +1 если не выиграл и не проиграл (набрал не больше всех, но в плюсе)
-        self.last_money = 0             # сумма последнего выигрыша
+        # общая статистика
+        self.started = 0            # кол-во начатых игр (+1 в начале игры)
+        self.completed = 0          # кол-во сыгранных игр (+1 при завершении игры)
+        self.throw = 0              # кол-во брошенных партий (+1 когда бросаешь игру)
+        self.winned = 0             # кол-во выигранных партий (+1 при выигрыше (набрал больше всех))
+        self.lost = 0               # кол-во проигранных партий (+1 при проигрыше)
+        self.summary = 0            # общий суммарный выигрыш (сумма очков всех сыгранных партий)
+        self.money = 0.0            # общая сумма денег (сумма денег всех сыгранных партий)
+        self.last_scores = 0        # последний выигрыш (очки)
+        self.last_money = 0.0       # последний выигрыш (деньги)
+        self.best_scores = 0        # лучший выигрыш (очки)
+        self.best_money = 0.0       # лучший выигрыш (деньги)
+        self.worse_scores = 0       # худший результат (очки)
+        self.worse_money = 0.0      # худший результат (деньги)
 
         # игровые переменные
         self.order = -1                 # заказ в текущем раунде
         self.take = 0                   # взято в текущем раунде
         self.scores = 0                 # очки в текущем раунде
         self.total_scores = 0           # общий счет в текущей игре на текущий момент
+        self.total_money = 0.0          # выигрыш в текущей игре (деньги)
         self.cards = []                 # карты на руках
         self.order_cards = []           # карты, на которые сделан заказ (заполняется только у ИИ)
         self.order_is_dark = False      # текущий заказ был сделан в темную или нет
         self.pass_counter = 0           # счетчик пасов, заказанных подряд
         self.success_counter = 0        # счетчик успешно сыгранных подряд игр
 
-        if params:
-            self.from_dict(params)
-
-    def from_dict(self, params):
-        self.id = params['id']
-        self.login = params['login']
-        self.password = params['password']
-        self.name = params['name']
-        self.is_robot = params['is_robot']
-        self.risk_level = params['risk_level']
-        # self.level = params['level']
-        self.total_money = params['total_money']
-        self.total_games = params['total']
-        self.completed_games = params['completed']
-        self.interrupted_games = params['interrupted']
-        self.winned_games = params['winned']
-        self.failed_games = params['failed']
-        self.last_money = params['last_money']
+        super(Player, self).__init__(filename, **kwargs)
 
     def as_dict(self):
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
+        return {k: self.__dict__[k] for k in self.__dict__ if k in self.__dump_keys}
 
     def lear_exists(self, lear):
         """ Проверяет, есть ли у игрока карты заданной масти. Джокер не учитывается. Вернет True/False """
@@ -190,6 +188,51 @@ class Player(object):
         for c in cards:
             self.order_cards.append(c)
 
+    def reset_game_variables(self):
+        """ Сброс игровых переменных """
+
+        self.order = -1
+        self.take = 0
+        self.scores = 0
+        self.total_scores = 0
+        self.total_money = 0.0
+        self.cards = []
+        self.order_cards = []
+        self.order_is_dark = False
+        self.pass_counter = 0
+        self.success_counter = 0
+
+    def assign_game_variables(self, source):
+        """ Копирование игровых переменных из игрока-источника """
+
+        self.order = source.order
+        self.take = source.take
+        self.scores = source.scores
+        self.total_scores = source.total_scores
+        self.total_money = source.total_money
+        self.cards = source.cards
+        self.order_cards = source.order_cards
+        self.order_is_dark = source.order_is_dark
+        self.pass_counter = source.pass_counter
+        self.success_counter = source.success_counter
+
+    def reset_statistics(self):
+        """ Сброс общей статистики """
+
+        self.started = 0
+        self.completed = 0
+        self.throw = 0
+        self.winned = 0
+        self.lost = 0
+        self.summary = 0
+        self.money = 0.0
+        self.last_scores = 0
+        self.last_money = 0.0
+        self.best_scores = 0
+        self.best_money = 0.0
+        self.worse_scores = 0
+        self.worse_money = 0.0
+
     def __str__(self):
         if self.is_robot:
             # s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
@@ -207,6 +250,41 @@ class Deal(object):
         self.type_ = type_      # тип раздачи
         self.cards = cards      # количество карт, раздаваемых одному игроку
 
+
+class StatisticItem(BaseModel):
+    """ Показатели статистики по одному игроку за игровую партию """
+
+    def __init__(self, filename=None, **kwargs):
+        # базовые счетчики, на основе котоорых вычисляются рассчетные
+        self.strength = None            # суммарная оценка розданных карт
+        self.orders = None              # всего взяток заказано
+        self.takes = None               # всего взяток взято
+        self.win_games = None           # всего конов выиграно
+        self.fail_games = None          # всего конов проиграно
+        self.overage_games = None       # кол-во конов с перебором
+        self.lack_games = None          # кол-во конов с недобором
+        self.jokers = None              # количество джокеров
+        self.joker_fail_games = None    # кол-во конов, проигранных с джокером на руках
+        self.risky_games = None         # кол-во рискованных конов
+        self.takes_on_mizer = None      # кол-во взяток на мизере
+        self.zero_mizer_games = None    # кол-во конов на мизере с 0 взяток
+        self.takes_on_gold = None       # кол-во взяток на золотых
+        self.zero_gold_games = None     # кол-во золотых конов с 0 взяток
+        self.dark_games = None          # кол-во конов в темную
+        self.dark_orders = None         # кол-во заказов в темную
+        self.dark_win_games = None      # кол-во выигранных конов в темную
+        self.dark_fail_games = None     # кол-во проигранных конов в темную
+        self.dark_overage_games = None  # кол-во конов с перебором на темных
+        self.dark_lack_games = None     # кол-во конов с недобором на темных
+        self.normal_dark_games = None   # кол-во конов в темную в обычных конах
+
+        super(StatisticItem, self).__init__(filename, **kwargs)
+
+    def win_vs_fail(self):
+        """ Общее соотношение выигранных к проигранным (когда не взял заказ) конов """
+
+    def order_vs_take(self):
+        """ Общее соотношение заказов к взятому """
 
 def flip_coin(probability, maximum=10):
     """

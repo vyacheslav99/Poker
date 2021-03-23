@@ -1,143 +1,23 @@
 import os
 import random
+import pickle
+import json
 
+from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 
-from gui import utils, const
-from game import engine, helpers, const as eng_const
+from modules.core import engine, helpers, const as core_const
+from modules.params import Params, Options, Profiles, RobotStatItem
+from gui import const, utils
+from gui.graphics import QCard, Face, Lear, Area
 from gui.game_table import GameTableDialog
 from gui.service_info import ServiceInfoDialog
-
-# print(QStyleFactory.keys())
-
-
-class QCard(QGraphicsPixmapItem):
-
-    def __init__(self, app, card, player, deck, back, removable=True, tooltip=None, replace_tooltip=False):
-        super(QCard, self).__init__()
-
-        self.app = app
-        self.card = card
-        self.player = player
-        self.deck = deck
-        self.back = back
-        self.removable = removable
-        self._tooltip = tooltip
-        self.replace_tooltip = replace_tooltip
-        self.side = None
-
-        self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        # self.setFlag(QGraphicsItem.ItemIsMovable)
-        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
-        self.setZValue(const.CARD_BASE_Z_VALUE)
-        self.set_std_shadow()
-
-        self.back = QPixmap(f'{const.CARD_BACK_DIR}/{self.back}.bmp')
-        if card.joker:
-            self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/j.bmp')
-        else:
-            self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/{const.CARDS[self.card.value]}{const.LEARS[self.card.lear]}.bmp')
-
-    def turn_face_up(self):
-        self.side = const.CARD_SIDE_FACE
-        self.setPixmap(self.face)
-        self.set_tooltip()
-
-        if self.player:
-            self.setCursor(Qt.PointingHandCursor)
-
-    def turn_back_up(self):
-        self.side = const.CARD_SIDE_BACK
-        self.setPixmap(self.back)
-        self.setCursor(Qt.ArrowCursor)
-        self.setToolTip('')
-
-    def is_face_up(self):
-        return self.side == const.CARD_SIDE_FACE
-
-    def set_tooltip(self):
-        if self.replace_tooltip and self._tooltip:
-            val = self._tooltip
-        else:
-            c = 'red' if self.card.lear > 1 else 'navy'
-            val = f'{eng_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{eng_const.LEAR_SYMBOLS[self.card.lear]}</span>'
-            if self.card.joker:
-                val = f'Джокер ({val})'
-            if self._tooltip:
-                val = f'{self._tooltip} {val}'
-
-        self.setToolTip(val)
-
-    def set_color_shadow(self):
-        sh = QGraphicsDropShadowEffect()
-        sh.setBlurRadius(30)
-        sh.setOffset(5)
-        sh.setColor(Qt.green)
-        self.setGraphicsEffect(sh)
-
-    def set_std_shadow(self):
-        sh = QGraphicsDropShadowEffect()
-        sh.setBlurRadius(50)
-        self.setGraphicsEffect(sh)
-
-    def mousePressEvent(self, e):
-        if self.player and self.is_face_up():
-            self.app.card_click(self)
-
-        super(QCard, self).mousePressEvent(e)
-
-
-class Face(QGraphicsPixmapItem):
-
-    def __init__(self, player):
-        super(Face, self).__init__()
-        self.player = player
-        self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
-
-    @property
-    def player(self):
-        return self._player
-
-    @player.setter
-    def player(self, player):
-        self._player = player
-
-        if os.path.exists(f'{const.FACE_DIR}/{self._player.name}.bmp'):
-            self.setPixmap(QPixmap(f'{const.FACE_DIR}/{self._player.name}.bmp'))
-        else:
-            self.setPixmap(QPixmap(f'{const.FACE_DIR}/user.jpg'))
-
-
-class Lear(QGraphicsPixmapItem):
-
-    def __init__(self, lear):
-        super(Lear, self).__init__()
-        self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
-        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
-
-        if lear == eng_const.LEAR_NOTHING:
-            self.setPixmap(QPixmap(f'{const.SUITS_DIR}/n.png'))
-            self.setToolTip('Козырь: нет')
-        else:
-            self.setPixmap(QPixmap(f'{const.SUITS_DIR}/{const.LEARS[lear]}.png'))
-            self.setToolTip(f'Козырь: {eng_const.LEAR_NAMES[lear]}')
-
-
-class Area(QGraphicsRectItem):
-
-    def __init__(self, parent, size):
-        super(Area, self).__init__()
-        self.parent = parent
-        self.setRect(QRectF(0, 0, size[0], size[1]))
-        color = QColor(Qt.black)
-        color.setAlpha(50)
-        brush = QBrush(color)
-        self.setBrush(brush)
-        self.setPen(QPen(Qt.black))
-        self.setZValue(-1)
+from gui.players_dlg import PlayersDialog
+from gui.agreements_dlg import AgreementsDialog
+from gui.settings_dlg import SettingsDialog
+from gui.profiles_dlg import ProfilesDialog
+from gui.statistics_wnd import StatisticsWindow
 
 
 class MainWnd(QMainWindow):
@@ -145,16 +25,19 @@ class MainWnd(QMainWindow):
     def __init__(self, app, *args):
         super().__init__()
 
+        self.app = app
         self.__dev_mode = '--dev_mode' in args
-        self.options = {}
+        self.params = Params(filename=const.PARAMS_FILE if os.path.exists(const.PARAMS_FILE) else None)
+        self.profiles = Profiles(filename=const.PROFILES_FILE if os.path.exists(const.PROFILES_FILE) else None)
+        self.options = Options()
+        self.curr_profile = None
+
+        self._started = False
         self.players = []
         self.table = {}
-        self.bet = None
         self.game = None
         self.is_new_round = False
         self.is_new_lap = False
-        self.deck_type = None
-        self.back_type = None
         self.order_dark = None
         self.joker_walk_card = None
         self.can_show_results = False
@@ -174,8 +57,19 @@ class MainWnd(QMainWindow):
         self.ja_lear_buttons = []
         self.round_result_labels = []
         self.service_wnd = None
+        self.sb_label = None
 
-        self.app = app
+        self.start_actn = None
+        self.throw_actn = None
+        self.svc_actn = None
+        self.profiles_group = None
+
+        self._stat_wnd = None
+
+        if '--reset_stat' in args:
+            self.reset_statistics()
+
+        self.init_profile()
         self.setWindowIcon(QIcon(const.MAIN_ICON))
         self.setWindowTitle(const.MAIN_WINDOW_TITLE)
 
@@ -187,12 +81,6 @@ class MainWnd(QMainWindow):
         view.setScene(self.scene)
         self.init_menu_actions()
 
-        sb_scales = (1, 2, 0)
-        self.status_labels = []
-        for i in range(3):
-            self.status_labels.append(QLabel())
-            self.statusBar().addWidget(self.status_labels[i], sb_scales[i])
-
         # view.setFocusPolicy(Qt.StrongFocus)
         self.setCentralWidget(view)
         self.setFixedSize(*const.WINDOW_SIZE)
@@ -202,28 +90,96 @@ class MainWnd(QMainWindow):
 
     def init_menu_actions(self):
         menubar = self.menuBar()
-        file_menu = menubar.addMenu('Файл')
+
+        # Меню Файл
+        menu = menubar.addMenu('Игра')
         # toolbar = self.addToolBar('Выход')
-        start_actn = QAction(QIcon(const.MAIN_ICON), 'Играть', self)
-        start_actn.setShortcut('F2')
-        start_actn.setStatusTip('Начать новую игру')
-        start_actn.triggered.connect(self.start_game)
-        file_menu.addAction(start_actn)
+        self.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
+        self.start_actn.setShortcut('F2')
+        self.start_actn.triggered.connect(self.on_start_action)
+        menu.addAction(self.start_actn)
+
+        self.throw_actn = QAction('Бросить партию', self)
+        self.throw_actn.setStatusTip('Отказаться от текущей партии')
+        self.throw_actn.triggered.connect(self.on_throw_action)
+        menu.addAction(self.throw_actn)
+
+        menu.addSeparator()
+        actn = QAction('Таблица результатов', self)
+        actn.setShortcut('F8')
+        actn.setStatusTip('Таблица результатов по игрокам')
+        actn.triggered.connect(self.show_statistic)
+        menu.addAction(actn)
 
         if self.__dev_mode:
-            svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
-            svc_actn.setShortcut('F9')
-            svc_actn.setStatusTip('Показать окно со служебной информацией')
-            svc_actn.triggered.connect(self.show_service_window)
-            file_menu.addAction(svc_actn)
+            self.svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
+            self.svc_actn.setShortcut('F9')
+            self.svc_actn.setStatusTip('Показать окно со служебной информацией')
+            self.svc_actn.triggered.connect(self.show_service_window)
+            menu.addAction(self.svc_actn)
 
-        file_menu.addSeparator()
-        exit_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
-        exit_actn.setShortcut('Esc')
-        exit_actn.setStatusTip('Выход из игры')
-        exit_actn.triggered.connect(self.close)
-        file_menu.addAction(exit_actn)
+        # Профиль (выбор текущего профиля)
+        submenu = menu.addMenu('Профиль')
+        submenu.setStatusTip('Сменить текущий профиль')
+        self.profiles_group = QActionGroup(self)
+        self.profiles_group.setExclusive(True)
+        self.profiles_group.triggered.connect(self.change_profile)
+
+        for p in self.profiles.profiles:
+            item = QAction(p.name, self)
+            item.setCheckable(True)
+            item.setChecked(p.uid == self.curr_profile.uid if self.curr_profile else False)
+            item.setData(p.uid)
+            # item.triggered.connect(self.change_profile)
+            self.profiles_group.addAction(item)
+            submenu.addAction(item)
+
+        menu.addSeparator()
+        actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
+        actn.setShortcut('Esc')
+        actn.setStatusTip('Выход из игры')
+        actn.triggered.connect(self.close)
+        menu.addAction(actn)
+
+        # Меню Настройка
+        menu = menubar.addMenu('Настройки')
+        actn = QAction(QIcon(f'{const.RES_DIR}/settings.ico'), 'Настройки', self)
+        actn.setShortcut('F10')
+        actn.triggered.connect(self.show_settings)
+        menu.addAction(actn)
+
+        actn = QAction(QIcon(f'{const.RES_DIR}/list.png'), 'Договоренности', self)
+        actn.setShortcut('F5')
+        actn.triggered.connect(self.show_agreements)
+        menu.addAction(actn)
+
+        actn = QAction(QIcon(f'{const.RES_DIR}/player.ico'), 'Профили', self)
+        actn.setShortcut('F6')
+        actn.triggered.connect(self.show_profiles)
+        menu.addAction(actn)
+
+        self.refresh_menu_actions()
         # toolbar.addAction(exit_actn)
+
+    def refresh_menu_actions(self):
+        """ Акуализация состояния игрового меню """
+
+        self.profiles_group.setEnabled(not self.started())
+        self.throw_actn.setEnabled(self.started())
+
+        if self.svc_actn:
+            self.svc_actn.setEnabled(self.started())
+
+        if self.started():
+            self.start_actn.setText('Отложить партию')
+            self.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
+        else:
+            if self.save_exists()[0]:
+                self.start_actn.setText('Продолжить партию')
+                self.start_actn.setStatusTip('Вернуться к отложенной партии')
+            else:
+                self.start_actn.setText('Новая партия')
+                self.start_actn.setStatusTip('Начать новую партию')
 
     def center(self):
         screen = QDesktopWidget().screenGeometry()
@@ -231,6 +187,10 @@ class MainWnd(QMainWindow):
         self.move((screen.width() - size.width()) / 2, 10)  # (screen.height() - size.height()) / 3)
 
     def closeEvent(self, event):
+        if self._stat_wnd:
+            self._stat_wnd.close()
+
+        self.save_params()
         super(MainWnd, self).closeEvent(event)
 
     def show_service_window(self):
@@ -241,32 +201,90 @@ class MainWnd(QMainWindow):
             self.service_wnd.players = self.players
             self.service_wnd.show()
 
-    def set_status_messages(self, messages):
-        """
-        Записать сообщение в статусбар
+    def show_settings(self):
+        prv_user = self.params.user
+        dlg = SettingsDialog(self, self.params.as_dict(), self.profiles)
+        dlg.allow_profile_change(not self.started())
 
-        :param messages: list, tuple: массив сообщений. Сообщения распределяются по индексам:
-            0 - в первую панель статусбара (слева - направо), 1 - во вторую и т.д.
-            Длина списка сообщений не должна превышать кол-во панелей статусбара. Все, что больше, будет игнорироваться
-        """
+        try:
+            result = dlg.exec()
 
-        for i in range(len(messages)):
-            if i < len(self.status_labels):
-                self.status_labels[i].setText(messages[i])
+            if result == 0:
+                return
 
-    def set_status_message(self, message, index=0):
+            self.params.from_dict(dlg.get_params())
+
+            if self.params.user != prv_user:
+                self.set_profile(self.params.user)
+
+            self.save_params()
+
+            if self.started():
+                self.restart_game()
+        finally:
+            dlg.destroy()
+
+    def show_agreements(self):
+        dlg = AgreementsDialog(self, self.game.options_as_dict() if self.started() else self.options.as_dict())
+
+        try:
+            if self.started():
+                dlg.deactivate()
+            result = dlg.exec()
+
+            if result == 0 or self.started():
+                return
+
+            self.options.from_dict(dlg.get_agreements())
+            self.save_params()
+        finally:
+            dlg.destroy()
+
+    def show_profiles(self):
+        dlg = ProfilesDialog(self, self.profiles, self.params.user)
+
+        try:
+            # в форму передаем сам объект Profiles, сохраняем (или отменяем) изменения в каждом профиле прям там,
+            # так что после закрытия диалога в профилях уже все изменения есть, остается только сохранить в файл
+            curr_changed = dlg.exec()
+
+            if curr_changed:
+                self.set_profile(self.params.user)
+
+            self.save_params()
+
+            if curr_changed and self.started():
+                self.restart_game()
+        finally:
+            dlg.destroy()
+
+    def show_statistic(self):
+        if not self._stat_wnd:
+            self._stat_wnd = StatisticsWindow()
+
+        self._stat_wnd.set_data(self.profiles, self.params.robots_stat,
+                                self.curr_profile.uid if self.curr_profile else None)
+        self._stat_wnd.showMaximized()
+
+    def change_profile(self, action):
+        new_uid = action.data()
+
+        if self.curr_profile is not None and self.curr_profile.uid != new_uid:
+            self.set_profile(new_uid)
+            self.save_params()
+
+    def set_status_message(self, message):
         """
         Записать сообщение в статусбар
 
         :param message: str: Строка сообщения.
-        :param index: int: Индекс панели статусбара, где надо вывести сообщение
         """
 
-        if 0 < index < len(self.status_labels):
-            self.status_labels[index].setText(message)
+        if self.sb_label:
+            self.statusBar().removeWidget(self.sb_label)
 
-    def clear_status_messages(self):
-        self.set_status_messages(('', '', ''))
+        self.sb_label = QLabel(message)
+        self.statusBar().addPermanentWidget(self.sb_label, 1)
 
     def add_label(self, size, position, font_size, font_weight, color=None, text=None, tooltip=None):
         """
@@ -344,76 +362,183 @@ class MainWnd(QMainWindow):
             widget.deleteLater()
 
     def started(self):
-        return self.game and self.game.started()
+        return self._started
 
-    def set_default_options(self):
-        self.options['game_sum_by_diff'] = True
-        self.options['dark_allowed'] = False
-        self.options['third_pass_limit'] = False
-        self.options['fail_subtract_all'] = False
-        self.options['no_joker'] = False
-        self.options['joker_give_at_par'] = False
-        self.options['joker_demand_peak'] = True
-        self.options['pass_factor'] = 5
-        self.options['gold_mizer_factor'] = 15
-        self.options['dark_notrump_factor'] = 20
-        self.options['brow_factor'] = 50
-        self.options['dark_mult'] = 2
-        self.options['gold_mizer_on_null'] = True
-        self.options['on_all_order'] = True
-        self.options['take_block_bonus'] = True
+    def init_profile(self):
+        """ Инициализация текущего профиля """
+
+        if self.profiles.count() == 0:
+            self.profiles.create()
+
+        if not self.params.user or not self.profiles.get(self.params.user):
+            self.params.user = self.profiles.profiles[0].uid
+
+        self.set_profile(self.params.user)
+
+    def set_profile(self, uid):
+        """ Смена текущего профиля """
+
+        self.params.user = uid
+        self.curr_profile = self.profiles.get(uid)
+        self.set_status_message(self.curr_profile.name)
+
+        if os.path.exists(f'{self.get_profile_dir()}/options.json'):
+            self.options = Options(filename=f'{self.get_profile_dir()}/options.json')
+        else:
+            self.options = Options()
+
+    def on_start_action(self):
+        """ Обработчик меню начала игры """
+
+        if self.started():
+            self.stop_game(core_const.GAME_STOP_DEFER)
+        else:
+            self.start_game()
+
+        self.refresh_menu_actions()
+
+    def on_throw_action(self):
+        """ Обработчик меню Бросить партию """
+
+        res = QMessageBox.question(self, 'Подтверждение',
+                                   'Хотите бросить партию? Продолжить ее уже будет невозможно.\n',
+                                   QMessageBox.Yes | QMessageBox.No)
+
+        if res == QMessageBox.No:
+            return
+
+        if self.started():
+            self.stop_game(core_const.GAME_STOP_THROW)
+            self.clear_save()
+
+        self.refresh_menu_actions()
+
+    def restart_game(self):
+        """ Перезапуск игры. Нужно, например, чтобы применились изменения графических настроек или настроек профиля """
+
+        if self.started():
+            self.on_start_action()
+            self.on_start_action()
 
     def start_game(self):
         """ Старт игры - инициализация игры и показ игрового поля """
 
-        self.stop_game()
+        if self.save_exists()[0]:
+            return self.load_game()
+
+        self.stop_game(core_const.GAME_STOP_DEFER)
 
         # Настройка договоренностей игры, игроков и т.п.
-        # todo: Пока что накидываем все опции дефолтно, без возможности выбора. Потом сделаю форму
-        robots = [r for r in const.ROBOTS]
-        humans = [h for h in const.HUMANS]
         self.players = []
-        self.bet = 10
-        self.set_default_options()
-        self.deck_type = random.choice(const.DECK_TYPE)
-        self.back_type = random.randint(1, 9)
         self.order_dark = None
         self.joker_walk_card = None
         self.can_show_results = False
 
-        for i in range(random.choice([3, 4])):
-            if i == 0:
-                self.players.append(helpers.Player())
-                self.players[i].id = i
-                self.players[i].is_robot = False
-                self.players[i].name = f'{humans.pop(random.randrange(0, len(humans)))}'
-            else:
-                self.players.append(helpers.Player())
-                self.players[i].id = i
-                self.players[i].is_robot = True
-                self.players[i].name = f'{robots.pop(random.randrange(0, len(robots)))}'
-                self.players[i].risk_level = random.randint(0, 2)
+        # диалог настройки договоренностей
+        if self.params.start_type in (const.GAME_START_TYPE_AGREEMENTS, const.GAME_START_TYPE_ALL):
+            agreements_dlg = AgreementsDialog(self, self.options.as_dict())
+            result = agreements_dlg.exec()
+            if result == 0:
+                return
 
-        self.options['deal_types'] = [n for n in range(len(eng_const.DEAL_NAMES) - 1)]
+            self.options.from_dict(agreements_dlg.get_agreements())
+            agreements_dlg.destroy()
 
-        self.game = engine.Engine(self.players, self.bet, allow_no_human=False, **self.options)
+        # диалог настройки игроков (создаем всегда, но показываем только если включена опция)
+        players_dlg = PlayersDialog(self, players_cnt=self.options.players_cnt - 1)
+        if self.params.start_type in (const.GAME_START_TYPE_PLAYERS, const.GAME_START_TYPE_ALL):
+            result = players_dlg.exec()
+            if result == 0:
+                players_dlg.destroy()
+                return
+
+        # Накидываем игроков
+        players = players_dlg.get_players()
+        players_dlg.destroy()
+        self.players.append(self.curr_profile)
+        for p in players:
+            self.players.append(p)
+            # подгрузим компьютерным игрокам их статистику
+            if p.is_robot and p.name in self.params.robots_stat:
+                p.from_dict(self.params.robots_stat[p.name])
+
+        self.options.players_cnt = len(self.players)
+        self.game = engine.Engine(self.players, allow_no_human=False, **self.options.as_dict())
         self.game.start()
 
         # И поехала игра
-        if self.game.started():
-            self.is_new_round = True
-            self.init_game_table()
-            self.next()
+        self._started = True
+        self.is_new_round = True
+        self.init_game_table()
+        self.next()
 
-    def stop_game(self):
+    def load_game(self):
+        """ Загрузка сохраненной игры """
+
+        self.stop_game(core_const.GAME_STOP_DEFER)
+        self.can_show_results = False
+        b, fn = self.save_exists()
+
+        if not b:
+            return
+
+        mt, self.game = self.load_save_file(fn)
+
+        # устанавливаем игровые переменные модуля
+        self.order_dark = mt['order_dark']
+        self.joker_walk_card = mt['joker_walk_card']
+        self.is_new_lap = mt['is_new_lap']
+        self.is_new_round = mt['is_new_round']
+
+        self.players = self.game.players
+        for i, p in enumerate(self.players):
+            # подгрузим компьютерным игрокам их статистику
+            if p.is_robot and p.name in self.params.robots_stat:
+                p.from_dict(self.params.robots_stat[p.name])
+
+            # загруженного игрока человека надо подменить на текущего, чтобы актуализировать его данные
+            # (по сути это он и есть, но физически объекты уже разные)
+            if p.uid == self.params.user:
+                user = self.profiles.get(self.params.user)
+                user.assign_game_variables(p)
+                self.players[i] = user
+
+        self._started = True
+
+        # отрисуем игровой стол
+        self.init_game_table()
+        self.draw_info_area()
+        # заполняем таблицу игры
+        self.fill_game_table()
+        # продолжаем игру
+        self.next()
+
+    def save_game(self):
+        """ Сохранение игры """
+
+        if not self.started():
+            return
+
+        o = {
+            'order_dark': self.order_dark,
+            'joker_walk_card': self.joker_walk_card,
+            'is_new_lap': self.is_new_lap,
+            'is_new_round': self.is_new_round
+        }
+
+        fn = f'{self.get_profile_dir()}/save/auto.psg'
+        self.write_save_file(fn, o)
+
+    def stop_game(self, flag=None):
         """ Остановить игру, очистить игровое поле """
 
         if self.service_wnd:
             self.service_wnd.hide()
 
-        if self.started():
-            self.game.stop()
+        if self.game and self.game.started():
+            self.game.stop(flag)
 
+        self._started = False
         self.players = []
         self.clear()
 
@@ -460,6 +585,15 @@ class MainWnd(QMainWindow):
         self.round_result_labels = []
 
         self.scene.clear()
+        self.refresh_menu_actions()
+
+    def clear_save(self):
+        """ Удаляет ненужный файл автосохранения """
+
+        b, fn = self.save_exists()
+
+        if b:
+            os.unlink(fn)
 
     def init_game_table(self):
         """ Отрисовка основных эл-тов игрового поля в начале игры """
@@ -481,9 +615,9 @@ class MainWnd(QMainWindow):
         info_area.setPos(*ipos)
         self.scene.addItem(info_area)
 
-        fp = self._get_face_positions()
-        ap = self._get_area_positions()
-        lo = self._get_label_offsets()
+        fp = self.get_face_positions()
+        ap = self.get_area_positions()
+        lo = self.get_label_offsets()
         self.draw_table_area()
 
         self.deal_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 37),
@@ -515,7 +649,7 @@ class MainWnd(QMainWindow):
 
             if p.is_robot:
                 self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]), Qt.cyan, 18, 65)
-                self.set_text(eng_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
+                self.set_text(core_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
                               Qt.gray, 13, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]),
                                       'Aqua', 16, 70)
@@ -579,8 +713,14 @@ class MainWnd(QMainWindow):
     def next(self):
         """ Обработка игрового цикла """
 
-        if not self.started():
+        if not self.game.started():
             if self.can_show_results:
+                # сохраняем статистику компьютерных игроков
+                for p in self.players:
+                    if p.is_robot:
+                        self.params.robots_stat[p.name] = RobotStatItem(**p.as_dict()).as_dict()
+
+                self.clear_save()
                 self.stop_game()
                 self.show_game_results()
                 self.show_statistics_grid()
@@ -596,16 +736,16 @@ class MainWnd(QMainWindow):
             self.clear_cards(True)
             self.draw_info_area()
 
-        if self.game.status() == eng_const.EXT_STATE_WALKS:
+        if self.game.status() == core_const.EXT_STATE_WALKS:
             d = self.game.current_deal()
             self.draw_order()
 
             if self.game.is_bet():
-                if self.game.dark_allowed and d.type_ not in (eng_const.DEAL_DARK, eng_const.DEAL_BROW) and self.order_dark is None:
+                if self.game.dark_allowed and d.type_ not in (core_const.DEAL_DARK, core_const.DEAL_BROW) and self.order_dark is None:
                     self.show_dark_buttons()
                 else:
-                    self.draw_cards(self.order_dark or d.type_ in (eng_const.DEAL_DARK, eng_const.DEAL_BROW),
-                                    d.type_ != eng_const.DEAL_BROW)
+                    self.draw_cards(self.order_dark or d.type_ in (core_const.DEAL_DARK, core_const.DEAL_BROW),
+                                    d.type_ != core_const.DEAL_BROW)
                     self.show_order_buttons()
             else:
                 if self.is_new_lap:
@@ -615,18 +755,20 @@ class MainWnd(QMainWindow):
                 self.draw_cards()
                 self.draw_take()
                 self.draw_table()
-        elif self.game.status() == eng_const.EXT_STATE_LAP_PAUSE:
+        elif self.game.status() == core_const.EXT_STATE_LAP_PAUSE:
             self.is_new_lap = True
             self.draw_table(True)
             self.draw_cards()
             self.draw_take()
-        elif self.game.status() == eng_const.EXT_STATE_ROUND_PAUSE:
+        elif self.game.status() == core_const.EXT_STATE_ROUND_PAUSE:
             self.is_new_round = True
             self.clear_table()
             self.show_round_results()
 
         if self.service_wnd and self.service_wnd.isVisible():
             self.service_wnd.refresh()
+
+        self.save_game()
 
     def clear_cards(self, total=False):
         """
@@ -648,14 +790,16 @@ class MainWnd(QMainWindow):
         :param r_back_up: отобразить карты компьютерных игроков рубашкой вверх или вниз
         """
 
-        ap = self._get_area_positions()
+        ap = self.get_area_positions()
         self.clear_cards()
 
         for i, p in enumerate(self.players):
             if not p.is_robot:
                 start_x = const.PLAYER_AREA_SIZE[0]
-                for n, card in enumerate(p.cards):
-                    qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
+                cards = utils.sort_cards(p.cards, self.params.sort_order, self.params.lear_order)
+
+                for n, card in enumerate(cards):
+                    qc = QCard(self, card, p, self.params.deck_type, f'back{self.params.back_type}')
                     if h_back_up:
                         qc.turn_back_up()
                     else:
@@ -669,7 +813,7 @@ class MainWnd(QMainWindow):
                     start_x = ap[i][0] + const.FACE_SIZE[0] + 98 - len(p.cards) * const.CARD_OFFSET[0]
 
                 for n, card in enumerate(p.cards):
-                    qc = QCard(self, card, p, self.deck_type, f'back{self.back_type}')
+                    qc = QCard(self, card, p, self.params.deck_type, f'back{self.params.back_type}')
                     qc.setZValue(const.CARD_BASE_Z_VALUE + n)
                     if r_back_up:
                         qc.turn_back_up()
@@ -687,15 +831,15 @@ class MainWnd(QMainWindow):
             pos = (round(const.AREA_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2), 10)
 
         d = self.game.current_deal()
-        if d.type_ == eng_const.DEAL_NO_TRUMP:
+        if d.type_ == core_const.DEAL_NO_TRUMP:
             c = 'Lime'
-        elif d.type_ == eng_const.DEAL_DARK:
+        elif d.type_ == core_const.DEAL_DARK:
             c = 'Black'
-        elif d.type_ == eng_const.DEAL_GOLD:
+        elif d.type_ == core_const.DEAL_GOLD:
             c = 'Yellow'
-        elif d.type_ == eng_const.DEAL_MIZER:
+        elif d.type_ == core_const.DEAL_MIZER:
             c = 'OrangeRed'
-        elif d.type_ == eng_const.DEAL_BROW:
+        elif d.type_ == core_const.DEAL_BROW:
             c = 'Fuchsia'
         else:
             c = 'LightCyan'
@@ -709,19 +853,19 @@ class MainWnd(QMainWindow):
                 letter = ''
             text = 'Кон по {0} карт{1}'.format(d.cards, letter)
         else:
-            text = eng_const.DEAL_NAMES[d.type_]
+            text = core_const.DEAL_NAMES[d.type_]
         self.deal_label.setStyleSheet('QLabel {color: %s}' % c)
         self.deal_label.setText(text)
 
         tl, tc = self.game.trump()
         if tc:
             if tc.joker:
-                hint = 'нет'
+                hint = 'нет (Бескозырка)'
             else:
                 clr = 'red' if tc.lear > 1 else 'navy'
-                hint = f'<span style="color:{clr}">{eng_const.LEAR_SYMBOLS[tc.lear]}</span>'
+                hint = f'<span style="color:{clr}">{core_const.LEAR_SYMBOLS[tc.lear]}</span>'
 
-            qc = QCard(self, tc, None, self.deck_type, f'back{self.back_type}', removable=False,
+            qc = QCard(self, tc, None, self.params.deck_type, f'back{self.params.back_type}', removable=False,
                        tooltip=f'Козырь: {hint}', replace_tooltip=True)
             qc.turn_face_up()
             qc.setPos(pos[0] + const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 5, pos[1] + 5)
@@ -753,15 +897,15 @@ class MainWnd(QMainWindow):
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
-        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE), 'самая\nстаршая',
+        self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE), 'ЗАБРАТЬ',
                                            (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_btn.hide()
 
-        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_TAKE_BY_MAX),
-                                              'по старшим', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+        self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE_BY_MAX),
+                                              'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
         self.ja_take_by_btn.hide()
 
-        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(eng_const.JOKER_GIVE), 'самая\nмладшая',
+        self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_GIVE), 'СКИНУТЬ',
                                            (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
         self.ja_give_btn.hide()
 
@@ -771,12 +915,12 @@ class MainWnd(QMainWindow):
             btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy),
                                   bg_color='LightCyan')
             btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.png'))
-            btn.setToolTip(eng_const.LEAR_NAMES[i])
+            btn.setToolTip(core_const.LEAR_NAMES[i])
             btn.hide()
             self.ja_lear_buttons.append(btn)
 
-        pos = self._get_round_info_positions()
-        aligns = self._get_round_info_aligns()
+        pos = self.get_round_info_positions()
+        aligns = self.get_round_info_aligns()
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -795,19 +939,19 @@ class MainWnd(QMainWindow):
         """ Отрисовка игрового поля. Выполняем после каждого хода """
 
         pos = (round(const.AREA_SIZE[0] / 2) - 40, round(const.AREA_SIZE[1] / 2) - 10)
-        ofs = self._get_table_offsets()
+        ofs = self.get_table_offsets()
 
         for pi, ti in self.game.table().items():
             if pi not in self.table:
-                qc = QCard(self, ti.card, self.players[pi], self.deck_type, f'back{self.back_type}', removable=False,
-                           tooltip=f'{self.players[pi].name}:')
+                qc = QCard(self, ti.card, self.players[pi], self.params.deck_type, f'back{self.params.back_type}',
+                           removable=False, tooltip=f'{self.players[pi].name}:')
                 qc.turn_face_up()
                 qc.setPos(pos[0] + ofs[pi][0], pos[1] + ofs[pi][1])
                 self.table[pi] = qc
                 self.scene.addItem(qc)
 
                 if ti.card.joker:
-                    txt = f'Джокер: {self._get_joker_info(ti.card)}'
+                    txt = f'Джокер: {self.get_joker_info(ti.card)}'
                     self.table_label.setText(f'{self.players[pi].name}: {txt}')
                     qc.setToolTip(txt)
 
@@ -919,8 +1063,8 @@ class MainWnd(QMainWindow):
 
         self.table_label.setText('Ход джокером. Выбери действие')
 
-        if not self.game.table():
-            # если мой ход первый - показать еще вариант "по старшей"
+        if not self.game.table() and self.game.joker_demand_peak:
+            # если мой ход первый и разрешено требовать по старшей - показать еще вариант "по старшей"
             self.ja_take_by_btn.show()
 
         self.ja_take_btn.show()
@@ -929,59 +1073,78 @@ class MainWnd(QMainWindow):
     def show_ja_lear_buttons(self):
         """ Показ кнопок выбора масти джокера """
 
-        self.table_label.setText('Ход джокером. Выбери масть:')
+        self.table_label.setText('Ход джокером. Выбери масть')
 
         for btn in self.ja_lear_buttons:
             btn.show()
 
-    def add_table_row(self, record):
+    def fill_game_table(self):
+        """ Заливает таблицу хода игры """
+
+        recs = self.game.get_record()
+
+        for i, rec in enumerate(recs[1:]):
+            if rec == recs[-1]:
+                if self.game.status() != core_const.EXT_STATE_ROUND_PAUSE or (
+                    self.game.status() == core_const.EXT_STATE_ROUND_PAUSE and not self.is_new_round):
+                    self.add_table_row(rec, self.game.get_deals()[i])
+            else:
+                self.add_table_row(rec, self.game.get_deals()[i])
+
+    def add_table_row(self, record, deal=None):
         """
         Добавляет в конец строку к таблице хода игры
 
-        :param record: строка с результатами раунда,  которую надо добавить
+        :param record: строка с результатами раунда, которую надо добавить
+        :param deal: раздача, связанная с добавляемой строкой. Если нет - берет текущую раздачу игры
         """
 
         row = []
         colors = ['Purple']
         max_scores = max([p.total_scores for p in self.players])
-        d = self.game.current_deal()
+        if not deal:
+            deal = self.game.current_deal()
 
-        if d.type_ < 3:
-            row.append(f'по {d.cards}')
+        if deal.type_ < 3:
+            row.append(f'по {deal.cards}')
         else:
-            row.append(eng_const.DEAL_NAMES[d.type_][0])
+            row.append(core_const.DEAL_NAMES[deal.type_][0])
 
         for p in self.players:
             colors.append('aqua')
-            order = int(record[p.id]['order'].split('*')[0])
-            scores = int(record[p.id]['scores'].split(' ')[0])
+            order = int(record[p.uid]['order'].split('*')[0])
+            # scores = int(record[p.uid]['scores'].split(' ')[0])
 
-            if record[p.id]['take'] < order or d.type_ == eng_const.DEAL_MIZER:
+            if record[p.uid]['take'] < order or (deal.type_ == core_const.DEAL_MIZER and record[p.uid]['take'] > 0) or (
+                deal.type_ == core_const.DEAL_GOLD and record[p.uid]['take'] == 0):
                 colors.append('OrangeRed')
-            elif record[p.id]['take'] > order and d.type_ != eng_const.DEAL_GOLD:
+                colors.append('OrangeRed')
+            elif record[p.uid]['take'] > order and deal.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
+                colors.append('Fuchsia')
                 colors.append('Fuchsia')
             else:
                 colors.append('Lime')
-
-            if scores < 0:
-                colors.append('OrangeRed')
-            elif scores > 9:
                 colors.append('Lime')
-            else:
-                colors.append('Fuchsia')
 
-            if record[p.id]['total'] < 0:
+            # if scores < 0:
+            #     colors.append('OrangeRed')
+            # elif scores > 9:
+            #     colors.append('Lime')
+            # else:
+            #     colors.append('Fuchsia')
+
+            if record[p.uid]['total'] < 0:
                 colors.append('OrangeRed')
-            elif record[p.id]['total'] >= max_scores :
+            elif record[p.uid]['total'] >= max_scores:
                 colors.append('Lime')
             else:
                 colors.append('aqua')
 
-            for k in record[p.id]:
+            for k in record[p.uid]:
                 if k == 'order':
-                    row.append(record[p.id][k].replace('-1', '-'))
+                    row.append(record[p.uid][k].replace('-1', '-'))
                 else:
-                    row.append(record[p.id][k])
+                    row.append(record[p.uid][k])
 
         self.game_table.add_row(row, colors)
 
@@ -999,26 +1162,30 @@ class MainWnd(QMainWindow):
                             '<span style="color: {scores_color}">{scores}</span><br>',
                             '<span style="color: {total_color}"><b>{total}</b></span>'))
 
-            keys = {k: v for k, v in rec[-1][player.id].items()}
+            keys = {k: v for k, v in rec[-1][player.uid].items()}
             keys['player'] = player.name
 
             order = int(keys['order'].split('*')[0])
-            scores = int(keys['scores'].split(' ')[0])
+            # scores = int(keys['scores'].split(' ')[0])
             keys['order'] = keys['order'].replace('-1', '-')
 
-            if keys['take'] < order or d.type_ == eng_const.DEAL_MIZER:
+            if keys['take'] < order or (d.type_ == core_const.DEAL_MIZER and keys['take'] > 0) or (
+                d.type_ == core_const.DEAL_GOLD and keys['take'] == 0):
                 keys['take_color'] = 'OrangeRed'
-            elif keys['take'] > order and d.type_ != eng_const.DEAL_GOLD:
+                keys['scores_color'] = 'OrangeRed'
+            elif keys['take'] > order and d.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
                 keys['take_color'] = 'Fuchsia'
+                keys['scores_color'] = 'Fuchsia'
             else:
                 keys['take_color'] = 'Lime'
-
-            if scores < 0:
-                keys['scores_color'] = 'OrangeRed'
-            elif scores > 9:
                 keys['scores_color'] = 'Lime'
-            else:
-                keys['scores_color'] = 'Fuchsia'
+
+            # if scores < 0:
+            #     keys['scores_color'] = 'OrangeRed'
+            # elif scores > 9:
+            #     keys['scores_color'] = 'Lime'
+            # else:
+            #     keys['scores_color'] = 'Fuchsia'
 
             if keys['total'] < 0:
                 keys['total_color'] = 'OrangeRed'
@@ -1047,18 +1214,18 @@ class MainWnd(QMainWindow):
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
         self.set_text('-= Итоги игры =-', pos, Qt.cyan, 18, 65)
-        winner = max([p for p in self.game.players], key=lambda x: x.last_money)
+        winner = max([p for p in self.game.players], key=lambda o: o.total_money)
 
         x, y = pos[0], pos[1] + 20
 
         for i, p in enumerate(self.game.players, 1):
-            money = '{0:.2f}'.format(p.last_money)
+            money = '{0:.2f}'.format(p.total_money)
             rub, kop = money.split('.')
             self.set_text(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп', (x, y + i * 30),
                           Qt.green if p == winner else Qt.yellow, 18, 65)
 
         y = y + len(self.game.players) * 30 + 60
-        self.set_text(f'Победил {winner}', (x, y), Qt.green, 18, 65)
+        self.set_text(f'Победил {winner.name}', (x, y), Qt.green, 18, 65)
         self.set_text(random.choice(const.CONGRATULATIONS), (x, y + 60), Qt.magenta, 18, 65)
 
     def clear_buttons(self):
@@ -1112,7 +1279,7 @@ class MainWnd(QMainWindow):
         c = card.card
         p = card.player
 
-        if self.started() and p and not p.is_robot and self.game.status() == eng_const.EXT_STATE_WALKS and not self.game.is_bet():
+        if self.started() and p and not p.is_robot and self.game.status() == core_const.EXT_STATE_WALKS and not self.game.is_bet():
             try:
                 if c.joker and joker_handling:
                     self.joker_walk_card = card
@@ -1142,7 +1309,7 @@ class MainWnd(QMainWindow):
             # если мой ход первый: если скидываю и в настройках игры установлено, что Джокер играет по номиналу,
             # то масть будет мастью реальной карты - т.е. пика (джокер - это 7 пика);
             # в остальных случаях надо выбрать, с какой масти заходить
-            if action == eng_const.JOKER_GIVE and self.game.joker_give_at_par:
+            if action == core_const.JOKER_GIVE and self.game.joker_give_at_par:
                 l = card.lear
             else:
                 self.show_ja_lear_buttons()
@@ -1152,8 +1319,8 @@ class MainWnd(QMainWindow):
             # с которой зашли;
             # если скидываю - то или по номиналу или масть карты, с которой зашли
             ftbl = self.game.lap_players_order(by_table=True)[0]
-            if action == eng_const.JOKER_TAKE:
-                l = self.game.trump()[0] if self.game.trump()[0] != eng_const.LEAR_NOTHING else self.game.table()[ftbl[1]].card.lear
+            if action == core_const.JOKER_TAKE:
+                l = self.game.trump()[0] if self.game.trump()[0] != core_const.LEAR_NOTHING else self.game.table()[ftbl[1]].card.lear
             else:
                 l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
 
@@ -1184,7 +1351,7 @@ class MainWnd(QMainWindow):
         self.game_table.move(self.pos())
         self.game_table.show()
 
-    def _get_face_positions(self):
+    def get_face_positions(self):
         """ Позиции для отрисовки аватарок игроков """
 
         if len(self.players) == 4:
@@ -1201,7 +1368,7 @@ class MainWnd(QMainWindow):
                 (const.AREA_SIZE[0] - const.FACE_SIZE[0] + 30, 15)  # правый верхний угол
             )
 
-    def _get_area_positions(self):
+    def get_area_positions(self):
         """ Позиции расположения областей игроков """
 
         if len(self.players) == 4:
@@ -1218,7 +1385,7 @@ class MainWnd(QMainWindow):
                 (const.AREA_SIZE[0] - const.PLAYER_AREA_SIZE[0] + 35, 10)  # правый верхний угол
             )
 
-    def _get_label_offsets(self):
+    def get_label_offsets(self):
         """ Координаты смещения положения лабелов с информацией игроков """
 
         if len(self.players) == 4:
@@ -1235,7 +1402,7 @@ class MainWnd(QMainWindow):
                 (45, 40)  # правый верхний угол
             )
 
-    def _get_table_offsets(self):
+    def get_table_offsets(self):
         """ Координаты смещения положения карт в области ходов """
 
         if len(self.players) == 4:
@@ -1252,7 +1419,7 @@ class MainWnd(QMainWindow):
                 (const.CARD_SIZE[0] + 10, -const.CARD_SIZE[1] - 10)  # правый верхний угол
             )
 
-    def _get_round_info_positions(self):
+    def get_round_info_positions(self):
         """ Позиции расположения лебелов с результатами игры """
 
         x, y = round(const.AREA_SIZE[0] / 2) + 60, round(const.AREA_SIZE[1] / 2)
@@ -1271,31 +1438,99 @@ class MainWnd(QMainWindow):
                 (x - 20, y - round(const.TABLE_AREA_SIZE[0] / 2) + 150)  # правый верхний угол
             )
 
-    def _get_round_info_aligns(self):
+    def get_round_info_aligns(self):
         """ Выравнивание текста в лебелах с результатами игры """
 
         if len(self.players) == 4:
-            return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignHCenter, Qt.AlignRight)
+            return Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignHCenter, Qt.AlignRight
         else:
-            return (Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignRight)
+            return Qt.AlignHCenter, Qt.AlignLeft, Qt.AlignRight
 
-    def _get_joker_info(self, card):
+    def get_joker_info(self, card):
         """ Представление информации о действии джокером в читабельном виде """
 
         if card.joker:
             clr = 'red' if card.joker_lear > 1 else 'black'
             tmpl = '<span style="color:{0}">{1}</span>'.format(clr, '{0}')
 
-            if card.joker_action == eng_const.JOKER_TAKE:
-                s, l = 'самая старшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
-            elif card.joker_action == eng_const.JOKER_TAKE_BY_MAX:
-                s, l = 'по старшим', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])
-            elif card.joker_action == eng_const.JOKER_GIVE:
-                s, l = 'самая младшая', tmpl.format(eng_const.LEAR_SYMBOLS[card.joker_lear])\
-                    if not self.game.joker_give_at_par else f'{card}'
+            if card.joker_action == core_const.JOKER_TAKE:
+                s, l = 'самая старшая', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])
+            elif card.joker_action == core_const.JOKER_TAKE_BY_MAX:
+                s, l = 'по старшим', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear])
+            elif card.joker_action == core_const.JOKER_GIVE:
+                s, l = 'самая младшая', tmpl.format(core_const.LEAR_SYMBOLS[card.joker_lear]) \
+                    if not self.game.joker_give_at_par else f'({card.get_nominal_text()})'
             else:
                 s, l = None, None
 
             return '{0} {1}'.format(s, l)
         else:
             return ''
+
+    def get_profile_dir(self):
+        """ возвращает путь к папке активного профиля """
+
+        return f'{const.PROFILES_DIR}/{self.params.user}'
+
+    def load_save_file(self, filename):
+        """ Грузит файл сохранения, возвращает загруженные данные в виде 2-х блоков: состояние главного потока и дамп ядра """
+
+        with open(filename, mode='rb') as f:
+            raw = f.read()
+
+        t, e = raw.split(b'\0x4')
+        t = json.loads(t.decode('utf-8'))
+        e = pickle.loads(e, encoding='utf-8')
+
+        return t, e
+
+    def write_save_file(self, filename, opts):
+        """ Запись данных сохранения в файл """
+
+        t = json.dumps(opts).encode('utf-8')
+        e = pickle.dumps(self.game)
+
+        raw = b'\0x4'.join((t, e))
+
+        if not os.path.isdir(os.path.split(filename)[0]):
+            os.makedirs(os.path.split(filename)[0])
+
+        with open(filename, 'wb') as f:
+            f.write(raw)
+
+    def save_exists(self):
+        """ Проверяет, есть ли сохранение для активного профиля и возвращает путь к файлу сохранения """
+
+        fn = f'{self.get_profile_dir()}/save/auto.psg'
+
+        if os.path.exists(fn):
+            return True, fn
+        else:
+            return False, None
+
+    def save_params(self):
+        """ Сохранение параметров """
+
+        if not os.path.isdir(const.APP_DATA_DIR):
+            os.makedirs(const.APP_DATA_DIR)
+
+        self.params.save(const.PARAMS_FILE)
+        self.profiles.save(const.PROFILES_FILE)
+        self.save_profile_options()
+
+    def save_profile_options(self):
+        """ Сохранение параметров текущего профиля """
+
+        if self.params.user and self.curr_profile:
+            fn = f'{self.get_profile_dir()}/options.json'
+
+            if not os.path.isdir(os.path.split(fn)[0]):
+                os.makedirs(os.path.split(fn)[0])
+
+            self.options.save(fn)
+
+    def reset_statistics(self):
+        self.params.robots_stat = {}
+
+        for p in self.profiles.profiles:
+            p.reset_statistics()
