@@ -184,7 +184,7 @@ class MainWnd(QMainWindow):
     def center(self):
         screen = QDesktopWidget().screenGeometry()
         size = self.geometry()
-        self.move((screen.width() - size.width()) / 2, 10)  # (screen.height() - size.height()) / 3)
+        self.move(round((screen.width() - size.width()) / 2), 10)  # (screen.height() - size.height()) / 3)
 
     def closeEvent(self, event):
         if self._stat_wnd:
