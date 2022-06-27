@@ -1,8 +1,8 @@
 import logging
 import datetime
-import urllib
 import json
 
+from urllib import parse
 from . import utils
 
 
@@ -42,9 +42,9 @@ class Request(object):
             params = params.split('&')
             for param in params:
                 p, v = param.split('=', 1)
-                self._params[p] = urllib.parse.unquote(v)
+                self._params[p] = parse.unquote(v)
 
-        self._uri = urllib.parse.unquote(self._uri)
+        self._uri = parse.unquote(self._uri)
 
         data.pop(0)
         while True:
