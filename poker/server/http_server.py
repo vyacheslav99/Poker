@@ -47,7 +47,7 @@ class Worker(object):
 
     def init_thread(self):
         self._thread = threading.Thread(target=self._do_process)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
         logging.debug('[{0}] Initialized Thread: {1}'.format(self.id, self._thread.name))
 
@@ -61,7 +61,7 @@ class Worker(object):
         if self._handler:
             self._handler.stop()
 
-        if self._thread and self._thread.isAlive():
+        if self._thread and self._thread.is_alive():
             self._thread.join(3)
 
         for conn in self._queue:
@@ -105,7 +105,7 @@ class HTTPServer(object):
 
     def _start_wrk_service(self):
         self.wrk_svc_thread = threading.Thread(target=self._do_wrk_service)
-        self.wrk_svc_thread.setDaemon(True)
+        self.wrk_svc_thread.daemon = True
         self.wrk_svc_thread.start()
 
     def _init_workers(self):
@@ -212,7 +212,7 @@ class HTTPServer(object):
         if self.sock:
             self.sock.close()
 
-        if self.wrk_svc_thread and self.wrk_svc_thread.isAlive():
+        if self.wrk_svc_thread and self.wrk_svc_thread.is_alive():
             self.wrk_svc_thread.join(3)
 
         for wrk in self.wrk_pool:

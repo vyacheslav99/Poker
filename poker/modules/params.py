@@ -18,7 +18,7 @@ class Params(BaseModel):
         self.deck_type = random.choice(const.DECK_TYPE)
         # Вариант рубашки
         self.back_type = random.randint(1, 9)
-        # Сортировка карт пр показе у игрока: 0: По возрастанию, 1: По убыванию
+        # Сортировка карт при показе у игрока: 0: По возрастанию, 1: По убыванию
         self.sort_order = 0
         # Порядок расположения мастей
         self.lear_order = (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS)

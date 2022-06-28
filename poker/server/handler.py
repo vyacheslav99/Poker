@@ -78,7 +78,7 @@ class Handler(object):
             try:
                 data = self.sock.recv(1024)
             except socket.error as e:
-                if e.errno == errno.WSAEWOULDBLOCK:
+                if e.errno == errno.EWOULDBLOCK:
                     time.sleep(0.1)
                     continue
                 else:
