@@ -66,8 +66,7 @@ class Handler(object):
         except Exception as e:
             logging.exception('[{0}] Unhandled exception on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(500, 'Internal Server Error', 'internal_error',
-                                        traceback.format_exc() if config.DEBUG else f'{e}')
+            return self._error_response(500, 'Internal Server Error', 'internal_error', f'{e.__class__}: {e}')
 
     def _error_response(self, code, status, err_code, err_message=None):
         return Response(code, status, body=json.dumps({'code': err_code, 'message': err_message})

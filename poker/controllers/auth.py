@@ -1,18 +1,24 @@
+from marshmallow import Schema, fields
+
 from server.helpers import Response, HTTPException
+
+
+class AuthRequestBody(Schema):
+    login = fields.String()
+    password = fields.String()
 
 
 class Auth(object):
 
     @staticmethod
-    def auth(request, uid):
+    def auth(request):
         """
         :route: /api/v1/auth
-        :route: /api/*
-        :route: /api/v1/user/<uid>
-        :methods: post, get
+        :methods: post
         """
 
-        return Response(200, 'OK')
+        body = AuthRequestBody().load(request.json)
+        return body
 
     @staticmethod
     def logout(request):
@@ -21,7 +27,7 @@ class Auth(object):
         :methods: post
         """
 
-        return Response(200, 'OK')
+        return Response(200, 'OK', body='qwe')
 
 
 # def get_file(request):

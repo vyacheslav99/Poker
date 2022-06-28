@@ -3,3 +3,4 @@
 chardet
 pyqt5
 colour
+marshmallow

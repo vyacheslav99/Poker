@@ -108,12 +108,12 @@ class Response(object):
     @classmethod
     def default_headers(cls, headers=None):
         res = {
+            'Content-Type': '; '.join(('application/json', 'charset=utf-8')),
+            'Content-Length': 0,
             'Date': datetime.datetime.today().strftime("%a, %d %b %Y %H:%M %Z"),
             'Server': 'Poker_Svc/1.0.0',
-            'Content-Length': 0,
-            'Content-Type': 'application/json',
-            'Content-Encoding': 'utf-8',
-            'Connection': 'close'
+            # 'Content-Encoding': 'utf-8',
+            # 'Connection': 'close'
         }
 
         res.update(headers or {})
