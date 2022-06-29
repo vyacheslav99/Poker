@@ -5,8 +5,8 @@ import random
 
 from modules.base_model import BaseModel
 from gui import const, utils
-from modules.core import const as eng_const
-from modules.core.helpers import Player
+from core import const as eng_const
+from core.helpers import Player
 
 
 class Params(BaseModel):

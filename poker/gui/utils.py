@@ -1,7 +1,7 @@
 import secrets
 import string
 import random
-from modules.core import const
+from core import const
 
 
 def int_size():

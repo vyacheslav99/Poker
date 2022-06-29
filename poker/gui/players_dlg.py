@@ -3,7 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from modules.core import helpers, const as eng_const
+from core import helpers, const as eng_const
 from gui import const
 from gui.graphics import Face2
 

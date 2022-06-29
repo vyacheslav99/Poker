@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from gui import const
-from modules.core import const as core_const
+from core import const as core_const
 
 
 class QCard(QGraphicsPixmapItem):

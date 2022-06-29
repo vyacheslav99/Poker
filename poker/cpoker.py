@@ -4,7 +4,7 @@
 
 import sys, random
 
-from modules.core import const, helpers, engine
+from core import helpers, const, engine
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'СиТриПиО', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'Птица Говорун', 'Маленький помошник Сатаны', 'Эндрю', 'Валли', 'Бамблби', 'Маленикий помошник Санты',
