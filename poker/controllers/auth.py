@@ -17,8 +17,7 @@ class Auth(object):
         :methods: post
         """
 
-        body = AuthRequestBody().load(request.json)
-        return body
+        return AuthRequestBody().load(request.json)
 
     @staticmethod
     def logout(request):
@@ -27,7 +26,7 @@ class Auth(object):
         :methods: post
         """
 
-        return None
+        return True
 
 
 # def get_file(request):

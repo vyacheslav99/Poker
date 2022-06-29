@@ -99,8 +99,8 @@ class Request(object):
 
 class Response(object):
 
-    def __init__(self, status: int, code: str, protocol: str = None, headers: typing.Dict[str, typing.Any] = None,
-                 body: str = None):
+    def __init__(self, status: int, code: str, headers: typing.Dict[str, typing.Any] = None, body: typing.Any = None,
+                 protocol: str = None):
         self._protocol: str = protocol or 'HTTP/1.1'
         self._status: int = status
         self._code: str = code
@@ -115,7 +115,7 @@ class Response(object):
             'Date': datetime.datetime.today().strftime("%a, %d %b %Y %H:%M %Z"),
             'Server': 'Poker_Svc/1.0.0',
             # 'Content-Encoding': 'utf-8',
-            # 'Connection': 'close'
+            'Connection': 'close'
         }
 
         res.update(headers or {})
@@ -151,7 +151,10 @@ class Response(object):
         elif isinstance(self._body, bytes):
             return utils.decode(self._body)
         else:
-            return str(self._body)
+            try:
+                return json.dumps(self._body)
+            except Exception:
+                return str(self._body)
 
     @property
     def bytes(self) -> typing.ByteString:
@@ -162,7 +165,10 @@ class Response(object):
         elif isinstance(self._body, str):
             return self._body.encode()
         else:
-            return str(self._body).encode()
+            try:
+                return json.dumps(self._body).encode()
+            except Exception:
+                return str(self._body).encode()
 
     @protocol.setter
     def protocol(self, protocol: str):
@@ -184,7 +190,7 @@ class Response(object):
         self._headers[key] = value
 
     @body.setter
-    def body(self, body: typing.Union[str, typing.ByteString]):
+    def body(self, body: typing.Any):
         self._body = body
         self.set_header('Content-Length', len(self.bytes) if body else 0)
 

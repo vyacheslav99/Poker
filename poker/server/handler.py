@@ -1,7 +1,6 @@
 import logging
 import time
 import socket, errno
-import json
 import marshmallow
 import typing
 
@@ -55,17 +54,15 @@ class Handler(object):
                 if not isinstance(resp, Response):
                     if isinstance(resp, tuple):
                         if len(resp) == 3:
-                            resp = Response(resp[2], resp[1], body=json.dumps(resp[0]))
+                            status, code, resp = resp[2], resp[1], resp[0]
                         elif len(resp) == 2:
-                            resp = Response(resp[1], 'OK', body=json.dumps(resp[0]))
+                            status, code, resp = resp[1], 'OK', resp[0]
                         else:
-                            resp = Response(200, 'OK', body=json.dumps(resp))
-                    elif isinstance(resp, (dict, list)):
-                        resp = Response(200, 'OK', body=json.dumps(resp))
+                            status, code, resp = 200, 'OK', resp
                     else:
-                        resp = Response(200, 'OK',
-                            headers=Response.default_headers({'Content-Type': ('text/html', 'charset=utf-8')}),
-                            body=resp)
+                        status, code, resp = 200, 'OK', resp
+
+                    resp = Response(status, code, body=resp)
 
                 return resp
             else:
@@ -85,7 +82,7 @@ class Handler(object):
             return self._error_response(500, 'Internal Server Error', message=f'{e.__class__}: {e}')
 
     def _error_response(self, status: int, error: str, code: str = 'error', message: str = None) -> Response:
-        return Response(status, error, body=json.dumps({'code': code, 'message': message})
+        return Response(status, error, body={'code': code, 'message': message}
                         if self._get_request_method() != 'HEAD' and (code or message) else None)
 
     def _read_request(self):
