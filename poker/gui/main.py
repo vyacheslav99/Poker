@@ -8,7 +8,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from core import helpers, const as core_const, engine
-from modules.params import Params, Options, Profiles, RobotStatItem
+from models.params import Params, Options, Profiles, RobotStatItem
 from gui import const, utils
 from gui.graphics import QCard, Face, Lear, Area
 from gui.game_table import GameTableDialog

@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 
 from gui import const
 from gui.graphics import Face2, Avatar, GridMoneyItemDelegate
-from modules.params import Profiles
+from models.params import Profiles
 
 
 class StatisticsWindow(QWidget):

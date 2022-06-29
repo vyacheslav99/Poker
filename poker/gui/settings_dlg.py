@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 
 from gui import const
 from core import const as eng_const
-from modules.params import Profiles
+from models.params import Profiles
 
 
 class SettingsDialog(QDialog):

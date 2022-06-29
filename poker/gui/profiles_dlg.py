@@ -8,7 +8,7 @@ from PyQt5.QtCore import *
 
 from gui import const
 from gui.graphics import Face2
-from modules.params import Profiles
+from models.params import Profiles
 
 
 class ProfilesDialog(QDialog):

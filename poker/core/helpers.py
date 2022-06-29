@@ -2,7 +2,7 @@
 
 import random
 from . import const
-from modules.base_model import BaseModel
+from models.base_model import BaseModel
 
 
 class GameException(Exception):
