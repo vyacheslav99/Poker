@@ -1,9 +1,12 @@
 import logging
+import typing
+
 import controllers
 
 
 class Router(object):
 
+    _instance = None
     __methods = ('get', 'post', 'put', 'delete', 'head', 'options', 'patch', 'copy', 'link', 'unlink', 'purge', 'lock',
                  'unlock', 'propfind', 'view')
     __reg_error = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}'
@@ -11,7 +14,7 @@ class Router(object):
     __found_endpoint = 'Found endpoint :: {0} {1} : {2}.{3}'
 
     def __new__(cls):
-        if not hasattr(cls, '_instance'):
+        if not cls._instance:
             cls._instance = super(Router, cls).__new__(cls)
             cls._instance._build_roadmap()
 
@@ -45,7 +48,7 @@ class Router(object):
 
                                 self.register(routes, methods, func, cls, attr)
 
-    def _add(self, path, method, func, class_name, attr_name):
+    def _add(self, path: str, method: str, func: typing.Callable, class_name: str, attr_name: str):
         if not path or not path.startswith('/'):
             raise Exception(self.__reg_error.format(method.upper(), path, 'Bad url address!', class_name, attr_name))
 
@@ -69,14 +72,14 @@ class Router(object):
         logging.debug(self.__found_endpoint.format(method.upper(), path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
 
-    def _raise_if_exists(self, method, path, class_name, attr_name):
+    def _raise_if_exists(self, method: str, path: str, class_name: str, attr_name: str):
         key, obj = self._get(method, path)
 
         if obj and obj[0] != 'S' and (obj[3] != class_name or obj[4] != attr_name):
             raise Exception(self.__reg_conflict.format(
                 method.upper(), path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
 
-    def _find_var(self, method, path):
+    def _find_var(self, method: str, path: str) -> typing.Optional[str]:
         for tmpl in self._roadmap[method]:
             if self._roadmap[method][tmpl][0] == 'V':
                 if self._match(tmpl, path):
@@ -84,7 +87,7 @@ class Router(object):
 
         return None
 
-    def _find_starts(self, method, path):
+    def _find_starts(self, method: str, path: str) -> typing.Optional[str]:
         for tmpl in self._roadmap[method]:
             if self._roadmap[method][tmpl][0] == 'S':
                 if path.startswith(tmpl.replace('*', '')):
@@ -92,7 +95,7 @@ class Router(object):
 
         return None
 
-    def _get(self, method, path):
+    def _get(self, method: str, path: str) -> typing.Tuple[str, tuple]:
         path = path.lower()
         method = method.lower()
         key = path
@@ -114,7 +117,7 @@ class Router(object):
 
         return key, obj
 
-    def _match(self, template, path):
+    def _match(self, template: str, path: str) -> bool:
         tmpl_parts = template.split('/')
         path_parts = path.split('/')
 
@@ -127,7 +130,8 @@ class Router(object):
 
         return True
 
-    def register(self, routes, methods, func, class_name, attr_name):
+    def register(self, routes: typing.List[str], methods: typing.List[str], func: typing.Callable, class_name: str,
+                 attr_name: str):
         for path in routes:
             if not methods:
                 methods = [s for s in self.__methods]
@@ -135,7 +139,7 @@ class Router(object):
             for method in methods:
                 self._add(path, method, func, class_name, attr_name)
 
-    def get(self, method, path):
+    def get(self, method: str, path: str) -> typing.Tuple[typing.Optional[typing.Callable], typing.Optional[typing.List[str]]]:
         params = []
         key, obj = self._get(method, path)
 

@@ -1,10 +1,10 @@
 import logging
-import traceback
 import time
 import socket, errno
 import json
+import marshmallow
+import typing
 
-from configs import config
 from . import utils
 from .helpers import Request, Response, HTTPException
 from .router import Router
@@ -14,22 +14,23 @@ class Handler(object):
 
     __log_format_str = '[{thread_id}] - {client_ip}:{client_port} "{method} {uri} {protocol}" {code} {len_response}'
 
-    def __init__(self, worker_id, sock, client_ip, client_port):
-        self.id = worker_id
+    def __init__(self, worker_id: int, sock: socket.socket, client_ip: str, client_port: int):
+        self.id: int = worker_id
         self.__can_stop = False
-        self.sock = sock
-        self.client_ip = client_ip
-        self.client_port = client_port
-        self.raw_request = b''
-        self.raw_response = b''
-        self.request = None
-        self.response = None
-        self.roadmap = Router()  # get singleton obect
+        self.sock: socket.socket = sock
+        self.client_ip: str = client_ip
+        self.client_port: int = client_port
+        self.raw_request: typing.ByteString = b''
+        self.raw_response: typing.ByteString = b''
+        self.request: typing.Optional[Request] = None
+        self.response: typing.Optional[Response] = None
+        self.roadmap: Router = Router()  # get singleton obect
 
-    def _route(self, addr, method):
+    def _route(self, addr: str, method: str) -> \
+            typing.Tuple[typing.Optional[typing.Callable], typing.Optional[typing.List[str]]]:
         return self.roadmap.get(method, addr)
 
-    def _get_request_method(self):
+    def _get_request_method(self) -> str:
         # вытягивает метод из исходной строки запроса, если запрос не удалось распарсить, иначе из запроса
 
         if self.request:
@@ -37,12 +38,12 @@ class Handler(object):
         else:
             return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or 'GET'
 
-    def _create_response(self):
+    def _create_response(self) -> typing.Optional[Response]:
         if self.__can_stop:
             return None
 
         if not self.raw_request:
-            return self._error_response(400, 'Bad request', 'bad_request', 'Request is empty')
+            return self._error_response(400, 'Bad request', message='Request is empty')
 
         try:
             self.request = Request(self.raw_request)
@@ -50,27 +51,42 @@ class Handler(object):
 
             if callable(handler_):
                 resp = handler_(self.request, *params)
+
                 if not isinstance(resp, Response):
-                    if isinstance(resp, (dict, list, tuple)):
+                    if isinstance(resp, tuple):
+                        if len(resp) == 3:
+                            resp = Response(resp[2], resp[1], body=json.dumps(resp[0]))
+                        elif len(resp) == 2:
+                            resp = Response(resp[1], 'OK', body=json.dumps(resp[0]))
+                        else:
+                            resp = Response(200, 'OK', body=json.dumps(resp))
+                    elif isinstance(resp, (dict, list)):
                         resp = Response(200, 'OK', body=json.dumps(resp))
                     else:
-                        resp = Response(200, 'OK', headers=Response.default_headers({'Content-Type': 'text/html'}), body=resp)
+                        resp = Response(200, 'OK',
+                            headers=Response.default_headers({'Content-Type': ('text/html', 'charset=utf-8')}),
+                            body=resp)
+
                 return resp
             else:
-                return self._error_response(405, 'Method Not Allowed', 'bad_request',
-                                            f'Handler for route <{self.request.method} {self.request.uri}> not registered')
+                return self._error_response(405, 'Method Not Allowed',
+                    message=f'Handler for route <{self.request.method} {self.request.uri}> not registered')
         except HTTPException as e:
             logging.exception('[{0}] Error on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(e.http_code, e.http_status, e.code, e.message)
+            return self._error_response(e.http_status, e.http_error, code=e.code, message=e.message)
+        except marshmallow.exceptions.MarshmallowError as e:
+            logging.exception('[{0}] Error request params or body validation to {1}:{2}'.format(
+                self.id, self.client_ip, self.client_port))
+            return self._error_response(400, 'Bad request', message=f'{e.__class__}: {e}')
         except Exception as e:
             logging.exception('[{0}] Unhandled exception on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(500, 'Internal Server Error', 'internal_error', f'{e.__class__}: {e}')
+            return self._error_response(500, 'Internal Server Error', message=f'{e.__class__}: {e}')
 
-    def _error_response(self, code, status, err_code, err_message=None):
-        return Response(code, status, body=json.dumps({'code': err_code, 'message': err_message})
-                        if self._get_request_method() != 'HEAD' else None)
+    def _error_response(self, status: int, error: str, code: str = 'error', message: str = None) -> Response:
+        return Response(status, error, body=json.dumps({'code': code, 'message': message})
+                        if self._get_request_method() != 'HEAD' and (code or message) else None)
 
     def _read_request(self):
         while not self.__can_stop:

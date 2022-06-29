@@ -1,6 +1,7 @@
 import logging
 import datetime
 import json
+import typing
 
 from urllib import parse
 from . import utils
@@ -8,24 +9,24 @@ from . import utils
 
 class HTTPException(Exception):
 
-    def __init__(self, http_code, http_status, code, message):
-        self.http_status = http_status
-        self.http_code = http_code
+    def __init__(self, http_status: int, http_error: str, code: str = None, message: str = None):
+        self.http_status: int = http_status
+        self.http_error: str = http_error
         self.code = code
         self.message = message
 
 
 class Request(object):
 
-    def __init__(self, request_str):
-        self._raw_request = request_str
-        self._method = None
-        self._uri = None
-        self._protocol = None
-        self._params = {}
-        self._headers = {}
-        self._body = None
-        self._json = None
+    def __init__(self, request_str: typing.ByteString):
+        self._raw_request: typing.ByteString = request_str
+        self._method: typing.Optional[str] = None
+        self._uri: typing.Optional[str] = None
+        self._protocol: typing.Optional[str] = None
+        self._params: typing.Dict[str, typing.Any] = {}
+        self._headers: typing.Dict[str, typing.Any] = {}
+        self._body: typing.Optional[str] = None
+        self._json: typing.Any = None
         self._parse_request_str()
 
     def _parse_request_str(self):
@@ -61,54 +62,55 @@ class Request(object):
             self._json = json.loads(self._body)
 
     def is_json(self):
-        return self._headers.get('Content-Type', '').lower() == 'application/json'
+        return self._headers.get('Content-Type', '').lower() == utils.CONTENT_TYPE_JSON
 
     @property
-    def method(self):
+    def method(self) -> typing.Optional[str]:
         return self._method
 
     @property
-    def uri(self):
+    def uri(self) -> typing.Optional[str]:
         return self._uri
 
     @property
-    def protocol(self):
+    def protocol(self) -> typing.Optional[str]:
         return self._protocol
 
     @property
-    def host(self):
+    def host(self) -> typing.Optional[str]:
         return self._headers.get('Host', None)
 
     @property
-    def params(self):
+    def params(self) -> typing.Dict[str, typing.Any]:
         return self._params
 
     @property
-    def headers(self):
+    def headers(self) -> typing.Dict[str, typing.Any]:
         return self._headers
 
     @property
-    def body(self):
+    def body(self) -> typing.Optional[str]:
         return self._body
 
     @property
-    def json(self):
+    def json(self) -> typing.Any:
         return self._json
 
 
 class Response(object):
 
-    def __init__(self, code, status, protocol=None, headers=None, body=None):
-        self._protocol = protocol or 'HTTP/1.1'
-        self._code = code
-        self._status = status
-        self._headers = headers or self.default_headers()
-        self.body = body or ''
+    def __init__(self, status: int, code: str, protocol: str = None, headers: typing.Dict[str, typing.Any] = None,
+                 body: str = None):
+        self._protocol: str = protocol or 'HTTP/1.1'
+        self._status: int = status
+        self._code: str = code
+        self._headers: typing.Dict[str, typing.Any] = headers or self.default_headers()
+        self.body: str = body or ''
 
     @classmethod
-    def default_headers(cls, headers=None):
+    def default_headers(cls, headers: typing.Dict[str, typing.Any] = None) -> typing.Dict[str, typing.Any]:
         res = {
-            'Content-Type': '; '.join(('application/json', 'charset=utf-8')),
+            'Content-Type': ('application/json', 'charset=utf-8'),
             'Content-Length': 0,
             'Date': datetime.datetime.today().strftime("%a, %d %b %Y %H:%M %Z"),
             'Server': 'Poker_Svc/1.0.0',
@@ -117,27 +119,32 @@ class Response(object):
         }
 
         res.update(headers or {})
+
+        for h in res:
+            if isinstance(res[h], tuple):
+                res[h] = '; '.join(res[h])
+
         return res
 
     @property
-    def protocol(self):
+    def protocol(self) -> str:
         return self._protocol
 
     @property
-    def code(self):
-        return self._code
-
-    @property
-    def status(self):
+    def status(self) -> int:
         return self._status
 
     @property
-    def headers(self):
+    def code(self) -> str:
+        return self._code
+
+    @property
+    def headers(self) -> typing.Dict[str, typing.Any]:
         return self._headers
 
     @property
-    def body(self):
-        # return str representation
+    def body(self) -> str:
+        # return body str representation
 
         if isinstance(self._body, str):
             return self._body
@@ -147,8 +154,8 @@ class Response(object):
             return str(self._body)
 
     @property
-    def bytes(self):
-        # return bytes representation
+    def bytes(self) -> typing.ByteString:
+        # return body bytes representation
 
         if isinstance(self._body, bytes):
             return self._body
@@ -158,31 +165,31 @@ class Response(object):
             return str(self._body).encode()
 
     @protocol.setter
-    def protocol(self, protocol):
+    def protocol(self, protocol: str):
         self._protocol = protocol
 
-    @code.setter
-    def code(self, code):
-        self._code = code
-
     @status.setter
-    def status(self, status):
+    def status(self, status: int):
         self._status = status
 
+    @code.setter
+    def code(self, code: str):
+        self._code = code
+
     @headers.setter
-    def headers(self, headers):
+    def headers(self, headers: typing.Union[typing.Dict[str, typing.Any], typing.Iterable[typing.Mapping[str, typing.Any]]]):
         self._headers = dict(headers)
 
-    def set_header(self, key, value):
+    def set_header(self, key: str, value: typing.Any):
         self._headers[key] = value
 
     @body.setter
-    def body(self, body):
+    def body(self, body: typing.Union[str, typing.ByteString]):
         self._body = body
         self.set_header('Content-Length', len(self.bytes) if body else 0)
 
     def __str__(self):
-        data = ['{0} {1} {2}'.format(self._protocol, self._code, self._status)]
+        data = ['{0} {1} {2}'.format(self._protocol, self._status, self._code)]
         data.extend('{0}: {1}'.format(*head) for head in self._headers.items())
         data.append('')
         if self._body is not None:
@@ -191,7 +198,7 @@ class Response(object):
         return '\r\n'.join(data)
 
     def __bytes__(self):
-        data = [('{0} {1} {2}'.format(self._protocol, self._code, self._status)).encode()]
+        data = [('{0} {1} {2}'.format(self._protocol, self._status, self._code)).encode()]
         data.extend(('{0}: {1}'.format(*head)).encode() for head in self._headers.items())
         data.append(b'')
         if self._body is not None:

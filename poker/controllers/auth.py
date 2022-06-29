@@ -27,7 +27,7 @@ class Auth(object):
         :methods: post
         """
 
-        return Response(200, 'OK', body='qwe')
+        return None
 
 
 # def get_file(request):
