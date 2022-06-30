@@ -2,8 +2,8 @@
 
 import random
 
-from . import const, base
-from .helpers import flip_coin
+from core import const, base
+from core.helpers import flip_coin
 
 
 class Engine(base.BaseEngine):

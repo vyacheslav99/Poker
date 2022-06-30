@@ -2,11 +2,12 @@ import logging
 import time
 import socket, errno
 import marshmallow
-import typing
 
-from . import utils
-from .helpers import Request, Response, HTTPException
-from .router import Router
+from typing import Optional, Tuple, List, Callable, ByteString
+
+from server import utils
+from server.helpers import Request, Response, HTTPException
+from server.router import Router
 
 
 class Handler(object):
@@ -19,14 +20,13 @@ class Handler(object):
         self.sock: socket.socket = sock
         self.client_ip: str = client_ip
         self.client_port: int = client_port
-        self.raw_request: typing.ByteString = b''
-        self.raw_response: typing.ByteString = b''
-        self.request: typing.Optional[Request] = None
-        self.response: typing.Optional[Response] = None
+        self.raw_request: ByteString = b''
+        self.raw_response: ByteString = b''
+        self.request: Optional[Request] = None
+        self.response: Optional[Response] = None
         self.roadmap: Router = Router()  # get singleton obect
 
-    def _route(self, addr: str, method: str) -> \
-            typing.Tuple[typing.Optional[typing.Callable], typing.Optional[typing.List[str]]]:
+    def _route(self, addr: str, method: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
         return self.roadmap.get(method, addr)
 
     def _get_request_method(self) -> str:
@@ -37,7 +37,7 @@ class Handler(object):
         else:
             return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or 'GET'
 
-    def _create_response(self) -> typing.Optional[Response]:
+    def _create_response(self) -> Optional[Response]:
         if self.__can_stop:
             return None
 

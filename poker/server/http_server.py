@@ -3,21 +3,22 @@ import logging
 import threading
 import datetime, time
 import random
-import typing
+
+from typing import Optional, Tuple, List
 
 from configs import config
-from .handler import Handler
-from .router import Router
+from server.handler import Handler
+from server.router import Router
 
 
 class Worker(object):
 
     def __init__(self, index: int):
         self.id = index
-        self._queue: typing.List[typing.Tuple[str, int, socket.socket]] = []
-        self._thread: typing.Optional[threading.Thread] = None
+        self._queue: List[Tuple[str, int, socket.socket]] = []
+        self._thread: Optional[threading.Thread] = None
         self._break = False
-        self._handler: typing.Optional[Handler] = None
+        self._handler: Optional[Handler] = None
         self._done = True
         self._locked = False
         self.last_used = datetime.datetime.now()
@@ -88,13 +89,13 @@ class HTTPServer(object):
 
     def __init__(self, host: str, port: int, init_handlers: int = 0, max_handlers: int = 0):
         self.active = False
-        self.sock: typing.Optional[socket.socket] = None
+        self.sock: Optional[socket.socket] = None
         self.host: str = host
         self.port: int = port
         self.init_handlers: int = init_handlers
         self.max_handlers: int = max_handlers
-        self.wrk_pool: typing.List[Worker] = []
-        self.wrk_svc_thread: typing.Optional[threading.Thread] = None
+        self.wrk_pool: List[Worker] = []
+        self.wrk_svc_thread: Optional[threading.Thread] = None
 
     def _init_socket(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -113,7 +114,7 @@ class HTTPServer(object):
         for i in range(self.init_handlers):
             self.wrk_pool.append(Worker(i))
 
-    def _get_worker(self) -> typing.Optional[Worker]:
+    def _get_worker(self) -> Optional[Worker]:
         for wrk in self.wrk_pool:
             if wrk.is_free() and not wrk.locked():
                 wrk.last_used = datetime.datetime.now()

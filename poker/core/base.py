@@ -2,8 +2,8 @@
 
 import random
 
-from . import const
-from .helpers import GameException, Player, Deal, Card, TableItem
+from core import const
+from core.helpers import GameException, Player, Deal, Card, TableItem
 
 
 class BaseEngine(object):

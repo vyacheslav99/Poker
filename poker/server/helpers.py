@@ -1,10 +1,11 @@
 import logging
 import datetime
 import json
-import typing
 
+from typing import Optional, Union, Any, Iterable, Mapping, Dict, ByteString
 from urllib import parse
-from . import utils
+
+from server import utils
 
 
 class HTTPException(Exception):
@@ -18,15 +19,15 @@ class HTTPException(Exception):
 
 class Request(object):
 
-    def __init__(self, request_str: typing.ByteString):
-        self._raw_request: typing.ByteString = request_str
-        self._method: typing.Optional[str] = None
-        self._uri: typing.Optional[str] = None
-        self._protocol: typing.Optional[str] = None
-        self._params: typing.Dict[str, typing.Any] = {}
-        self._headers: typing.Dict[str, typing.Any] = {}
-        self._body: typing.Optional[str] = None
-        self._json: typing.Any = None
+    def __init__(self, request_str: ByteString):
+        self._raw_request: ByteString = request_str
+        self._method: Optional[str] = None
+        self._uri: Optional[str] = None
+        self._protocol: Optional[str] = None
+        self._params: Dict[str, Any] = {}
+        self._headers: Dict[str, Any] = {}
+        self._body: Optional[str] = None
+        self._json: Any = None
         self._parse_request_str()
 
     def _parse_request_str(self):
@@ -65,50 +66,49 @@ class Request(object):
         return self._headers.get('Content-Type', '').lower() == utils.CONTENT_TYPE_JSON
 
     @property
-    def method(self) -> typing.Optional[str]:
+    def method(self) -> Optional[str]:
         return self._method
 
     @property
-    def uri(self) -> typing.Optional[str]:
+    def uri(self) -> Optional[str]:
         return self._uri
 
     @property
-    def protocol(self) -> typing.Optional[str]:
+    def protocol(self) -> Optional[str]:
         return self._protocol
 
     @property
-    def host(self) -> typing.Optional[str]:
+    def host(self) -> Optional[str]:
         return self._headers.get('Host', None)
 
     @property
-    def params(self) -> typing.Dict[str, typing.Any]:
+    def params(self) -> Dict[str, Any]:
         return self._params
 
     @property
-    def headers(self) -> typing.Dict[str, typing.Any]:
+    def headers(self) -> Dict[str, Any]:
         return self._headers
 
     @property
-    def body(self) -> typing.Optional[str]:
+    def body(self) -> Optional[str]:
         return self._body
 
     @property
-    def json(self) -> typing.Any:
+    def json(self) -> Any:
         return self._json
 
 
 class Response(object):
 
-    def __init__(self, status: int, code: str, headers: typing.Dict[str, typing.Any] = None, body: typing.Any = None,
-                 protocol: str = None):
+    def __init__(self, status: int, code: str, headers: Dict[str, Any] = None, body: Any = None, protocol: str = None):
         self._protocol: str = protocol or 'HTTP/1.1'
         self._status: int = status
         self._code: str = code
-        self._headers: typing.Dict[str, typing.Any] = headers or self.default_headers()
+        self._headers: Dict[str, Any] = headers or self.default_headers()
         self.body: str = body or ''
 
     @classmethod
-    def default_headers(cls, headers: typing.Dict[str, typing.Any] = None) -> typing.Dict[str, typing.Any]:
+    def default_headers(cls, headers: Dict[str, Any] = None) -> Dict[str, Any]:
         res = {
             'Content-Type': ('application/json', 'charset=utf-8'),
             'Content-Length': 0,
@@ -139,7 +139,7 @@ class Response(object):
         return self._code
 
     @property
-    def headers(self) -> typing.Dict[str, typing.Any]:
+    def headers(self) -> Dict[str, Any]:
         return self._headers
 
     @property
@@ -157,7 +157,7 @@ class Response(object):
                 return str(self._body)
 
     @property
-    def bytes(self) -> typing.ByteString:
+    def bytes(self) -> ByteString:
         # return body bytes representation
 
         if isinstance(self._body, bytes):
@@ -183,14 +183,14 @@ class Response(object):
         self._code = code
 
     @headers.setter
-    def headers(self, headers: typing.Union[typing.Dict[str, typing.Any], typing.Iterable[typing.Mapping[str, typing.Any]]]):
+    def headers(self, headers: Union[Dict[str, Any], Iterable[Mapping[str, Any]]]):
         self._headers = dict(headers)
 
-    def set_header(self, key: str, value: typing.Any):
+    def set_header(self, key: str, value: Any):
         self._headers[key] = value
 
     @body.setter
-    def body(self, body: typing.Any):
+    def body(self, body: Any):
         self._body = body
         self.set_header('Content-Length', len(self.bytes) if body else 0)
 

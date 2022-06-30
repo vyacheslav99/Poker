@@ -1,7 +1,7 @@
 """ Вспомогательные классы, инкапсулирующие атрибуты логических единиц """
 
 import random
-from . import const
+from core import const
 from models.base_model import BaseModel
 
 
