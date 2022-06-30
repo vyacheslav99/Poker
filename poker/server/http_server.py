@@ -65,7 +65,7 @@ class Worker(object):
             self._handler.stop()
 
         if self._thread and self._thread.is_alive():
-            self._thread.join(3)
+            self._thread.join(0.5)
 
         for conn in self._queue:
             conn[2].close()
@@ -97,6 +97,7 @@ class HTTPServer(object):
         self.max_handlers: int = max_handlers
         self.wrk_pool: List[Worker] = []
         self.wrk_svc_thread: Optional[threading.Thread] = None
+        self.dispatcher: Optional[Dispatcher] = None
 
     def _init_socket(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -195,7 +196,7 @@ class HTTPServer(object):
     def start(self):
         try:
             Router()  # init singleton object
-            Dispatcher()
+            self.dispatcher = Dispatcher()
             self.active = True
             self._init_workers()
             self._start_wrk_service()
@@ -218,7 +219,10 @@ class HTTPServer(object):
             self.sock.close()
 
         if self.wrk_svc_thread and self.wrk_svc_thread.is_alive():
-            self.wrk_svc_thread.join(3)
+            self.wrk_svc_thread.join(0.5)
 
         for wrk in self.wrk_pool:
             wrk.stop()
+
+        logging.info('Dumping games...')
+        self.dispatcher.on_close()
