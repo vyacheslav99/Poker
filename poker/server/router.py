@@ -2,13 +2,13 @@ import logging
 import controllers
 
 from typing import Optional, Tuple, List, Callable
+from models.request import HttpMethods
 
 
 class Router(object):
 
     _instance = None
-    __methods = ('get', 'post', 'put', 'delete', 'head', 'options', 'patch', 'copy', 'link', 'unlink', 'purge', 'lock',
-                 'unlock', 'propfind', 'view')
+    __methods = tuple(v for v in HttpMethods)
     __reg_error = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}'
     __reg_conflict = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}\nRegistered: {5}.{6}'
     __found_endpoint = 'Found endpoint :: {0} {1} : {2}.{3}'
@@ -50,15 +50,15 @@ class Router(object):
 
     def _add(self, path: str, method: str, func: Callable, class_name: str, attr_name: str):
         if not path or not path.startswith('/'):
-            raise Exception(self.__reg_error.format(method.upper(), path, 'Bad url address!', class_name, attr_name))
+            raise Exception(self.__reg_error.format(method, path, 'Bad url address!', class_name, attr_name))
 
         type_ = 'A'
         params = []
         path = path.lower().strip()
-        method = method.lower().strip()
+        method = method.upper().strip()
 
         if method not in self.__methods:
-            raise Exception(self.__reg_error.format(method.upper(), path, 'Method not allowed!', class_name, attr_name))
+            raise Exception(self.__reg_error.format(method, path, 'Method not allowed!', class_name, attr_name))
 
         if path.find('<') > -1:
             type_ = 'V'
@@ -69,7 +69,7 @@ class Router(object):
             type_ = 'S'
 
         self._raise_if_exists(method, path, class_name, attr_name)
-        logging.debug(self.__found_endpoint.format(method.upper(), path, class_name, attr_name))
+        logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
 
     def _raise_if_exists(self, method: str, path: str, class_name: str, attr_name: str):
@@ -77,7 +77,7 @@ class Router(object):
 
         if obj and obj[0] != 'S' and (obj[3] != class_name or obj[4] != attr_name):
             raise Exception(self.__reg_conflict.format(
-                method.upper(), path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
+                method, path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
 
     def _find_var(self, method: str, path: str) -> Optional[str]:
         for tmpl in self._roadmap[method]:
@@ -97,7 +97,7 @@ class Router(object):
 
     def _get(self, method: str, path: str) -> Tuple[str, tuple]:
         path = path.lower()
-        method = method.lower()
+        method = method.upper()
         key = path
 
         # абсолютное совпадение
@@ -130,8 +130,7 @@ class Router(object):
 
         return True
 
-    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str,
-                 attr_name: str):
+    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str, attr_name: str):
         for path in routes:
             if not methods:
                 methods = [s for s in self.__methods]

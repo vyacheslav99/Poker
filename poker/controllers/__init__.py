@@ -1,1 +1,2 @@
-from .auth import Auth
+from controllers.common import CommonController
+from controllers.auth import AuthController

@@ -2,7 +2,7 @@ import logging
 import datetime
 import json
 
-from typing import Optional, Union, Any, Iterable, Mapping, Dict, ByteString
+from typing import Optional, Union, Any, Iterable, Mapping, Dict
 from urllib import parse
 
 from server import utils
@@ -19,8 +19,8 @@ class HTTPException(Exception):
 
 class Request(object):
 
-    def __init__(self, request_str: ByteString):
-        self._raw_request: ByteString = request_str
+    def __init__(self, request_str: bytes):
+        self._raw_request: bytes = request_str
         self._method: Optional[str] = None
         self._uri: Optional[str] = None
         self._protocol: Optional[str] = None
@@ -157,7 +157,7 @@ class Response(object):
                 return str(self._body)
 
     @property
-    def bytes(self) -> ByteString:
+    def bytes(self) -> bytes:
         # return body bytes representation
 
         if isinstance(self._body, bytes):

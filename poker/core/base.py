@@ -680,7 +680,7 @@ class BaseEngine(object):
         return self._players
 
     @players.setter
-    def players(self, players:list):
+    def players(self, players: list):
         if len(players) < 3:
             raise GameException('Недостаточно игроков для начала игры! Количество игроков не может быть меньше 3-х')
 

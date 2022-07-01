@@ -3,11 +3,12 @@ import time
 import socket, errno
 import marshmallow
 
-from typing import Optional, Tuple, List, Callable, ByteString
+from typing import Optional, Tuple, List, Callable
 
 from server import utils
 from server.helpers import Request, Response, HTTPException
 from server.router import Router
+from models.request import HttpMethods
 
 
 class Handler(object):
@@ -20,8 +21,8 @@ class Handler(object):
         self.sock: socket.socket = sock
         self.client_ip: str = client_ip
         self.client_port: int = client_port
-        self.raw_request: ByteString = b''
-        self.raw_response: ByteString = b''
+        self.raw_request: bytes = b''
+        self.raw_response: bytes = b''
         self.request: Optional[Request] = None
         self.response: Optional[Response] = None
         self.roadmap: Router = Router()  # get singleton obect
@@ -35,7 +36,7 @@ class Handler(object):
         if self.request:
             return self.request.method
         else:
-            return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or 'GET'
+            return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or HttpMethods.GET
 
     def _create_response(self) -> Optional[Response]:
         if self.__can_stop:
@@ -82,8 +83,16 @@ class Handler(object):
             return self._error_response(500, 'Internal Server Error', message=f'{e.__class__}: {e}')
 
     def _error_response(self, status: int, error: str, code: str = 'error', message: str = None) -> Response:
-        return Response(status, error, body={'code': code, 'message': message}
-                        if self._get_request_method() != 'HEAD' and (code or message) else None)
+        body = None
+
+        if self._get_request_method() != HttpMethods.HEAD and (code or message):
+            body = {}
+            if code:
+                body['code'] = code
+            if message:
+                body['message'] = message
+
+        return Response(status, error, body=body)
 
     def _read_request(self):
         while not self.__can_stop:
