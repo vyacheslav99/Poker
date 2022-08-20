@@ -1,35 +1,66 @@
 """ Адаптеры для работы с БД """
 
-import sqlite3
+from psycopg2.pool import ThreadedConnectionPool
+from psycopg2.extras import RealDictCursor
+from psycopg2 import DatabaseError, ProgrammingError
 
 
-def dict_factory(cursor, row):
-    return {col[0]: row[i] for i, col in enumerate(cursor.description)}
+class postgresql_connection:
 
+    def __init__(self, dbparams):
+        dbparams['cursor_factory'] = RealDictCursor
+        dbparams['maxconn'] = dbparams.get('maxconn', 10)
+        self.__pool = ThreadedConnectionPool(minconn=1, **dbparams)
 
-class sqlite_connection(object):
+    def __get_conn__(self, key=None):
+        con = self.__pool.getconn(key=key)
+        if con.closed:
+            self.__put_conn__(con, key=key)
+            return self.__get_conn__(key=key)
+        return con
 
-    def __init__(self, database, **kwargs):
-        self._db_con = sqlite3.connect(database, **kwargs)
-        self._db_con.row_factory = dict_factory
+    def __put_conn__(self, conn, key=None, close=False):
+        self.__pool.putconn(conn, key=key, close=close)
+
+    def __close_all(self):
+        self.__pool.closeall()
+
+    def close_connect(self, con, commit=True):
+        if commit:
+            con.commit()
+        else:
+            con.rollback()
+        self.__put_conn__(con)
 
     def get_connect(self):
-        return self._db_con
+        return self.__get_conn__()
 
-    def cursor(self):
-        return self._db_con.cursor()
+    def execute(self, query, params=None, commit=False, con=None, con_keep_open=False):
+        """
+        con: коннект, полученный методом get_connect для выполнения в пределах одной транзакции
+        con_keep_open: True - оставлять коннект открытым (в этом случае параметр commit будет проигнорирован)
+        для выполнения в одной транзакции нескольких запросов и ручной фиксации/отката транзакции.
+        Если коннект не передан в метод извне, параметр игнорируется, а коннект будет закрыт
+        """
 
-    def execute(self, sql, params, commit=False):
-        cur = self._db_con.cursor()
-        cur.execute(sql, params)
+        if not con:
+            con_keep_open = False
+            con = self.__get_conn__()
 
-        if commit:
-            self._db_con.commit()
+        cur = con.cursor()
+        try:
+            cur.execute(query, vars=params)
+        except DatabaseError:
+            self.close_connect(con, commit=False)
+            raise
 
-        return cur
+        try:
+            res = cur.fetchall()
+        except ProgrammingError:
+            res = []
+        cur.close()
 
-    def commit(self):
-        self._db_con.commit()
+        if not con_keep_open:
+            self.close_connect(con, commit)
 
-    def rollback(self):
-        self._db_con.rollback()
+        return res
