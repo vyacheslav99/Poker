@@ -5,10 +5,10 @@ import marshmallow
 
 from typing import Optional, Tuple, List, Callable
 
-from modules import utils
+from api.modules import utils
 from server.helpers import Request, Response, HTTPException
 from server.router import Router
-from models.request import HttpMethods
+from domain.models.request import HttpMethods
 
 
 class Handler(object):

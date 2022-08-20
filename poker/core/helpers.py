@@ -1,9 +1,10 @@
 """ Вспомогательные классы, инкапсулирующие атрибуты логических единиц """
 
 import random
+
 from core import const
-from models.base_model import BaseModel
-from models.player import Player
+from domain.models.base_model import BaseModel
+from domain.models.player import Player
 
 
 class GameException(Exception):

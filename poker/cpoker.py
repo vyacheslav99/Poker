@@ -4,7 +4,7 @@
 
 import sys, random
 
-import models.player
+from domain.models.player import Player
 from core import helpers, const, engine
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'СиТриПиО', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
@@ -60,14 +60,14 @@ class Game:
 
         for i in range(player_cnt):
             if i == 0 and not self.autogame:
-                self.players.append(models.player.Player())
+                self.players.append(Player())
                 self.players[i].uid = i
                 self.players[i].is_robot = False
                 self.players[i].name = self.ask('Как звать-то тебя?') or f'{humans.pop(random.randrange(0, len(humans)))}'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:
-                self.players.append(models.player.Player())
+                self.players.append(Player())
                 self.players[i].uid = i
                 if auto:
                     self.players[i].is_robot = True

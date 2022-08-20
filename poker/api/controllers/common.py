@@ -1,9 +1,9 @@
 import os
 
 from configs import config
-from models.request import HttpMethods
+from domain.models import HttpMethods
 from server.helpers import Response, HTTPException
-from modules import utils
+from api.modules import utils
 
 
 class CommonController:

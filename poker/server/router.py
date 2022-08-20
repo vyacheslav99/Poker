@@ -1,8 +1,9 @@
 import logging
-import controllers
 
 from typing import Optional, Tuple, List, Callable
-from models.request import HttpMethods
+
+from api import controllers
+from domain.models.request import HttpMethods
 
 
 class Router(object):

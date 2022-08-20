@@ -1,5 +1,5 @@
-from models.base_model import BaseModel
-from modules.utils import encrypt
+from domain.models.base_model import BaseModel
+from api.modules.utils import encrypt
 
 
 class AuthRequest(BaseModel):

@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 from configs import config
-from modules.db import postgresql_connection
+from api.modules.db import postgresql_connection
 from server.dispatcher import Dispatcher
 
 

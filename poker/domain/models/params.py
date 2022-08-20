@@ -3,10 +3,10 @@ import json
 import uuid
 import random
 
-from models.base_model import BaseModel
+from domain.models.base_model import BaseModel
+from domain.models.player import Player
 from gui import const, utils
 from core import const as eng_const
-from models.player import Player
 
 
 class Params(BaseModel):

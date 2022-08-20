@@ -5,7 +5,7 @@ import json
 from typing import Optional, Union, Any, Iterable, Mapping, Dict
 from urllib import parse
 
-from modules import utils
+from api.modules import utils
 
 
 class HTTPException(Exception):

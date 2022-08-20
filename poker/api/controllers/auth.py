@@ -1,9 +1,8 @@
-from server.helpers import HTTPException
-from models.auth import AuthRequest, RegisterRequest
-from modules.auth import Auth
+from domain.models.auth import AuthRequest, RegisterRequest
+from api.modules.auth import Auth
 
 
-class AuthController(object):
+class AuthController:
 
     @staticmethod
     def login(request):

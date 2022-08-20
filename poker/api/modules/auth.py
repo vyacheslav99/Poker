@@ -1,8 +1,6 @@
-from typing import Optional
-
 from server.helpers import HTTPException
-from modules.repositories.auth import AuthRepo
-from models.auth import AuthRequest, RegisterRequest
+from api.repositories.auth import AuthRepo
+from domain.models.auth import AuthRequest, RegisterRequest
 
 
 class Auth:
