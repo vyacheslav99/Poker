@@ -4,6 +4,7 @@ import argparse
 
 from configs import config
 from server.http_server import HTTPServer
+from server.application import app
 
 
 def main():
@@ -30,9 +31,13 @@ def main():
                         config.INIT_HANDLERS, config.MAX_HANDLERS)
 
     logging.debug('Enabled DEDUG mode logging level!')
+    app.create_app()
+
     logging.info('Starting server...')
     server.start()
     logging.info('Server stopped')
+
+    app.close_app()
 
 
 if __name__ == '__main__':

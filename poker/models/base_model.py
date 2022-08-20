@@ -1,7 +1,7 @@
 import json
 
 
-class BaseModel(object):
+class BaseModel:
 
     def __init__(self, filename=None, **kwargs):
         if filename:

@@ -9,7 +9,6 @@ from typing import Optional, Tuple, List
 from configs import config
 from server.handler import Handler
 from server.router import Router
-from server.dispatcher import Dispatcher
 
 
 class Worker(object):
@@ -97,7 +96,6 @@ class HTTPServer(object):
         self.max_handlers: int = max_handlers
         self.wrk_pool: List[Worker] = []
         self.wrk_svc_thread: Optional[threading.Thread] = None
-        self.dispatcher: Optional[Dispatcher] = None
 
     def _init_socket(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -196,7 +194,6 @@ class HTTPServer(object):
     def start(self):
         try:
             Router()  # init singleton object
-            self.dispatcher = Dispatcher()
             self.active = True
             self._init_workers()
             self._start_wrk_service()
@@ -223,6 +220,3 @@ class HTTPServer(object):
 
         for wrk in self.wrk_pool:
             wrk.stop()
-
-        logging.info('Dumping games...')
-        self.dispatcher.on_close()
