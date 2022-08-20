@@ -414,7 +414,7 @@ class BaseEngine(object):
 
         if flag == const.GAME_STOP_THROW:
             for p in self._players:
-                p.throw += 1
+                p.thrown += 1
         elif flag == const.GAME_STOP_DEFER:
             return
         else:
@@ -453,7 +453,7 @@ class BaseEngine(object):
                 p.last_scores = p.total_scores
                 p.summary += p.total_scores
                 p.last_money = p.total_money
-                p.money += p.total_money
+                p.total_money += p.total_money
                 p.best_scores = max(p.best_scores, p.total_scores)
                 p.best_money = max(p.best_money, p.total_money)
                 p.worse_scores = min(p.worse_scores or p.total_scores, p.total_scores)

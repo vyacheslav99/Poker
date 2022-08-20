@@ -62,8 +62,9 @@ class TableItem(object):
 
 class Player(BaseModel):
 
-    __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'throw', 'winned', 'lost',
-                   'summary', 'money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores', 'worse_money']
+    __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'thrown', 'winned', 'lost',
+                   'summary', 'total_money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores',
+                   'worse_money']
 
     def __init__(self, filename=None, **kwargs):
         self.uid = None
@@ -78,11 +79,11 @@ class Player(BaseModel):
         # общая статистика
         self.started = 0            # кол-во начатых игр (+1 в начале игры)
         self.completed = 0          # кол-во сыгранных игр (+1 при завершении игры)
-        self.throw = 0              # кол-во брошенных партий (+1 когда бросаешь игру)
+        self.thrown = 0             # кол-во брошенных партий (+1 когда бросаешь игру)
         self.winned = 0             # кол-во выигранных партий (+1 при выигрыше (набрал больше всех))
         self.lost = 0               # кол-во проигранных партий (+1 при проигрыше)
         self.summary = 0            # общий суммарный выигрыш (сумма очков всех сыгранных партий)
-        self.money = 0.0            # общая сумма денег (сумма денег всех сыгранных партий)
+        self.total_money = 0.0      # общая сумма денег (сумма денег всех сыгранных партий)
         self.last_scores = 0        # последний выигрыш (очки)
         self.last_money = 0.0       # последний выигрыш (деньги)
         self.best_scores = 0        # лучший выигрыш (очки)
@@ -221,11 +222,11 @@ class Player(BaseModel):
 
         self.started = 0
         self.completed = 0
-        self.throw = 0
+        self.thrown = 0
         self.winned = 0
         self.lost = 0
         self.summary = 0
-        self.money = 0.0
+        self.total_money = 0.0
         self.last_scores = 0
         self.last_money = 0.0
         self.best_scores = 0
