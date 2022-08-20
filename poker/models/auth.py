@@ -20,3 +20,11 @@ class AuthRequest(BaseModel):
             self._password = encrypt(value)
         else:
             self._password = value
+
+
+class RegisterRequest(AuthRequest):
+
+    def __init__(self, filename=None, **kwargs):
+        self.name = None
+
+        super().__init__(filename=filename, **kwargs)

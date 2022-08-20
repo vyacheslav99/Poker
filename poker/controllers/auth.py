@@ -1,5 +1,5 @@
 from server.helpers import HTTPException
-from models.auth import AuthRequest
+from models.auth import AuthRequest, RegisterRequest
 from modules.auth import Auth
 
 
@@ -12,8 +12,16 @@ class AuthController(object):
         :methods: post
         """
 
-        uid = Auth().login(AuthRequest(**request.json))
-        return {'user_id': uid}
+        return {'user_uid': Auth().login(AuthRequest(**request.json))}
+
+    @staticmethod
+    def register(request):
+        """
+        :route: /api/v1/register
+        :methods: post
+        """
+
+        return {'user_uid': Auth().register(RegisterRequest(**request.json))}
 
     @staticmethod
     def logout(request):
