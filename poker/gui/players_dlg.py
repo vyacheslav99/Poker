@@ -3,7 +3,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from core import helpers, const as eng_const
+from core import const as eng_const
+from models.player import Player
 from gui import const
 from gui.graphics import Face2
 
@@ -19,7 +20,7 @@ class PlayersDialog(QDialog):
 
         robots = sorted([r for r in const.ROBOTS])
         for i, rob in enumerate(robots):
-            self._cb_items.append(helpers.Player())
+            self._cb_items.append(Player())
             self._cb_items[i].uid = i
             self._cb_items[i].is_robot = True
             self._cb_items[i].name = rob

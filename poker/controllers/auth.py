@@ -22,7 +22,4 @@ class AuthController(object):
         :methods: post
         """
 
-        if 'user_id' not in request.headers:
-            raise HTTPException(401, 'Unauthorized', message='Да ты в общем-то и не авторизован')
-
         return 'success'

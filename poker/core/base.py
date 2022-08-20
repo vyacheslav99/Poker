@@ -3,7 +3,8 @@
 import random
 
 from core import const
-from core.helpers import GameException, Player, Deal, Card, TableItem
+from core.helpers import GameException, Deal, Card, TableItem
+from models.player import Player
 
 
 class BaseEngine(object):

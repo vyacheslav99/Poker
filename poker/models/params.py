@@ -6,7 +6,7 @@ import random
 from models.base_model import BaseModel
 from gui import const, utils
 from core import const as eng_const
-from core.helpers import Player
+from models.player import Player
 
 
 class Params(BaseModel):

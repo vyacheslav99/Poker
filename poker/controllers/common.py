@@ -3,7 +3,7 @@ import os
 from configs import config
 from models.request import HttpMethods
 from server.helpers import Response, HTTPException
-from server import utils
+from modules import utils
 
 
 class CommonController:

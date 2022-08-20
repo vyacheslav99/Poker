@@ -5,7 +5,7 @@ import marshmallow
 
 from typing import Optional, Tuple, List, Callable
 
-from server import utils
+from modules import utils
 from server.helpers import Request, Response, HTTPException
 from server.router import Router
 from models.request import HttpMethods

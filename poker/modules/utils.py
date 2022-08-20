@@ -1,5 +1,7 @@
 import chardet
 import mimetypes
+import hashlib
+
 
 CONTENT_TYPE_JSON = 'application/json'
 CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'
@@ -14,3 +16,7 @@ def get_content_type(file_name: str) -> str:
 def decode(byte_str: bytes) -> str:
     enc = chardet.detect(byte_str)
     return byte_str.decode(enc['encoding'] or 'utf-8')
+
+
+def encrypt(value: str) -> str:
+    return hashlib.sha224(value.encode()).hexdigest()

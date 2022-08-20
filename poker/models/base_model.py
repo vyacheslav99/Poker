@@ -55,7 +55,7 @@ class BaseModel:
         :return: dict
         """
 
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
+        return {k: getattr(self, k) for k in dir(self) if not k.startswith('_') and not callable(getattr(self, k))}
 
     def save(self, filename):
         """

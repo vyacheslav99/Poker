@@ -1,7 +1,7 @@
 from typing import Optional
 
 from server.application import app
-from core.helpers import Player
+from models.player import Player
 from models.auth import AuthRequest
 
 
