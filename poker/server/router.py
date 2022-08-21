@@ -19,25 +19,23 @@ class Router:
     def __new__(cls):
         if not cls._instance:
             cls._instance = super(Router, cls).__new__(cls)
+            cls._instance._roadmap = {k: {} for k in cls.__methods}
 
         return cls._instance
 
-    def build_roadmap(self, module):
+    def collect(self, module):
         # {'/url/for/route': (type:str, function:callable, params:[], class, method, query_schema: Schema | None,
         #   body_schema: Schema | None, response_schema: Schema | None)}
         # types: A: absolute, V: variable, S: starting with
 
-        self._roadmap = {k: {} for k in self.__methods}
-
-        eval(f'import {module.__name__}')
         for cls in dir(module):
             if not cls.startswith('_'):
-                obj = eval(f'{module.__name__}.{cls}')
+                obj = getattr(module, cls)
 
                 if str(type(obj)).startswith('<class'):
                     for attr in dir(obj):
                         if not attr.startswith('_') and type(obj.__dict__[attr]) == staticmethod:
-                            func = eval(f'{module.__name__}.{cls}.{attr}')
+                            func = getattr(obj, attr)
                             doc = func.__doc__
 
                             if doc:

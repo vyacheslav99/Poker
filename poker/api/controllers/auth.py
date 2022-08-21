@@ -1,4 +1,5 @@
 from domain.models.auth import AuthRequest, RegisterRequest
+from domain.schemas.auth import AuthRequestBody
 from api.modules.auth import Auth
 
 

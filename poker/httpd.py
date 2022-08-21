@@ -34,7 +34,7 @@ def main():
 
     logging.debug('Enabled DEDUG mode logging level!')
     app.initialize()
-    Router().build_roadmap(controllers)
+    Router().collect(controllers)
 
     logging.info('Starting server...')
     try:
