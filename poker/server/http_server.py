@@ -204,12 +204,12 @@ class HTTPServer(object):
         except Exception as e:
             logging.exception("Unexpected error: %s" % e)
         finally:
-            self._close()
+            self._finalize()
 
     def stop(self):
         self.active = False
 
-    def _close(self):
+    def _finalize(self):
         logging.info('Stop listen on {0}:{1}'.format(self.host, self.port))
 
         if self.sock:

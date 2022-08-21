@@ -3,8 +3,8 @@ import uuid
 from typing import Optional
 
 from server.application import app
-from domain.models import Player
-from domain.models import AuthRequest, RegisterRequest
+from domain.models.player import Player
+from domain.models.auth import AuthRequest, RegisterRequest
 
 
 class AuthRepo:

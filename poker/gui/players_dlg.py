@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from core import const as eng_const
-from domain.models import Player
+from domain.models.player import Player
 from gui import const
 from gui.graphics import Face2
 

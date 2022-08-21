@@ -1,7 +1,7 @@
 import os
 
 from configs import config
-from domain.models import HttpMethods
+from domain.models.request import HttpMethods
 from server.helpers import Response, HTTPException
 from api.modules import utils
 

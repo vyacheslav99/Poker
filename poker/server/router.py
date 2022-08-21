@@ -153,3 +153,29 @@ class Router(object):
             params = [path.replace(key.replace('*', ''), '')]
 
         return obj[1], params
+
+
+# def require_role(roles, api_call=True):
+#     """Декоратор, проверяет, что текущая роль пользователя в списке переданных ролей
+#
+#     :roles: список кодов ролей, которые надо проверить
+#     :return:
+#     """
+#
+#     def wrapper(f):
+#         @wraps(f)
+#         def wrapped(*args, **kwargs):
+#             if roles:
+#                 roles_ = roles
+#                 if not isinstance(roles_, (list, tuple)):
+#                     roles_ = [roles_]
+#                 if get_current_role_code() in roles_:
+#                     return f(*args, **kwargs)
+#             if api_call:
+#                 return jsonify(code='forbidden', error='Permission denied'), 403
+#             else:
+#                 abort(403)
+#
+#         return wrapped
+#
+#     return wrapper

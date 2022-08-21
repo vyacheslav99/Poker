@@ -21,12 +21,12 @@ class Application:
         self._dispatcher: Optional[Dispatcher] = None
         self._db: Optional[postgresql_connection] = None
 
-    def create_app(self):
+    def initialize(self):
         self._dispatcher = Dispatcher()
         logging.info('Connecting to database...')
         self._db = postgresql_connection(config.DATABASE)
 
-    def close_app(self):
+    def finalize(self):
         if self._dispatcher:
             logging.info('Dumping games...')
             self._dispatcher.on_close()

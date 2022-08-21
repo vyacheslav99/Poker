@@ -31,13 +31,14 @@ def main():
                         config.INIT_HANDLERS, config.MAX_HANDLERS)
 
     logging.debug('Enabled DEDUG mode logging level!')
-    app.create_app()
+    app.initialize()
 
     logging.info('Starting server...')
-    server.start()
-    logging.info('Server stopped')
-
-    app.close_app()
+    try:
+        server.start()
+    finally:
+        logging.info('Server stopped')
+        app.finalize()
 
 
 if __name__ == '__main__':

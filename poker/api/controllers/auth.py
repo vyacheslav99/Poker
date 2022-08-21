@@ -11,7 +11,7 @@ class AuthController:
         :methods: post
         """
 
-        return {'user_uid': Auth().login(AuthRequest(**request.json))}
+        return {'logined': Auth().login(AuthRequest(**request.json))}
 
     @staticmethod
     def register(request):
