@@ -4,6 +4,7 @@ import json
 
 from typing import Optional, Union, Any, Iterable, Mapping, Dict
 from urllib import parse
+from marshmallow import Schema
 
 from api.modules import utils
 
@@ -17,7 +18,7 @@ class HTTPException(Exception):
         self.message = message
 
 
-class Request(object):
+class Request:
 
     def __init__(self, request_str: bytes):
         self._raw_request: bytes = request_str
@@ -98,7 +99,7 @@ class Request(object):
         return self._json
 
 
-class Response(object):
+class Response:
 
     def __init__(self, status: int, code: str, headers: Dict[str, Any] = None, body: Any = None, protocol: str = None):
         self._protocol: str = protocol or 'HTTP/1.1'

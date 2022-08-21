@@ -9,7 +9,7 @@ class Auth:
         res = AuthRepo.get_user_by_login_and_pwd(auth_params)
 
         if not res:
-            raise HTTPException(401, 'Unauthorized')
+            raise HTTPException(401, 'Unauthorized', message='Неверные имя пользователя или пароль')
 
         return res.uid
 

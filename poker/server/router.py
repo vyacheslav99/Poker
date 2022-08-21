@@ -1,14 +1,16 @@
 import logging
 
+# from functools import wraps
 from typing import Optional, Tuple, List, Callable
+from marshmallow import Schema
 
-from api import controllers
 from domain.models.request import HttpMethods
 
 
-class Router(object):
+class Router:
 
     _instance = None
+    _roadmap = {}
     __methods = tuple(v for v in HttpMethods)
     __reg_error = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}'
     __reg_conflict = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}\nRegistered: {5}.{6}'
@@ -17,39 +19,51 @@ class Router(object):
     def __new__(cls):
         if not cls._instance:
             cls._instance = super(Router, cls).__new__(cls)
-            cls._instance._build_roadmap()
 
         return cls._instance
 
-    def _build_roadmap(self):
-        # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
+    def build_roadmap(self, module):
+        # {'/url/for/route': (type:str, function:callable, params:[], class, method, query_schema: Schema | None,
+        #   body_schema: Schema | None, response_schema: Schema | None)}
         # types: A: absolute, V: variable, S: starting with
 
         self._roadmap = {k: {} for k in self.__methods}
 
-        for cls in dir(controllers):
+        eval(f'import {module.__name__}')
+        for cls in dir(module):
             if not cls.startswith('_'):
-                obj = eval(f'controllers.{cls}')
+                obj = eval(f'{module.__name__}.{cls}')
 
                 if str(type(obj)).startswith('<class'):
-                    for attr in obj.__dict__:
+                    for attr in dir(obj):
                         if not attr.startswith('_') and type(obj.__dict__[attr]) == staticmethod:
-                            func = eval(f'controllers.{cls}.{attr}')
+                            func = eval(f'{module.__name__}.{cls}.{attr}')
                             doc = func.__doc__
 
                             if doc:
                                 routes = []
                                 methods = []
+                                query_schema_cls = None
+                                body_schema_cls = None
+                                response_schema_cls = None
 
                                 for line in doc.split('\n'):
                                     if ':route:' in line:
                                         routes.append(line.split(':route:')[1].strip())
                                     if ':methods:' in line:
                                         methods.extend(line.split(':methods:')[1].strip().split(','))
+                                    if ':query_schema:' in line:
+                                        query_schema_cls = eval(line.split(':query_schema:')[1].strip())
+                                    if ':body_schema:' in line:
+                                        body_schema_cls = eval(line.split(':body_schema:')[1].strip())
+                                    if ':response_schema:' in line:
+                                        response_schema_cls = eval(line.split(':response_schema_cls:')[1].strip())
 
-                                self.register(routes, methods, func, cls, attr)
+                                self.register(routes, methods, func, cls, attr, query_schema=query_schema_cls,
+                                              body_schema=body_schema_cls, response_schema=response_schema_cls)
 
-    def _add(self, path: str, method: str, func: Callable, class_name: str, attr_name: str):
+    def _add(self, path: str, method: str, func: Callable, class_name: str | None, attr_name: str,
+             query_schema: Schema | None = None, body_schema: Schema | None = None, response_schema: Schema | None = None):
         if not path or not path.startswith('/'):
             raise Exception(self.__reg_error.format(method, path, 'Bad url address!', class_name, attr_name))
 
@@ -71,7 +85,7 @@ class Router(object):
 
         self._raise_if_exists(method, path, class_name, attr_name)
         logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
-        self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
+        self._roadmap[method][path] = (type_, func, params, class_name, attr_name, query_schema, body_schema, response_schema)
 
     def _raise_if_exists(self, method: str, path: str, class_name: str, attr_name: str):
         key, obj = self._get(method, path)
@@ -131,20 +145,24 @@ class Router(object):
 
         return True
 
-    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str, attr_name: str):
+    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str | None, attr_name: str,
+                 query_schema: Schema | None = None, body_schema: Schema | None = None, response_schema: Schema | None = None):
         for path in routes:
             if not methods:
                 methods = [s for s in self.__methods]
 
             for method in methods:
-                self._add(path, method, func, class_name, attr_name)
+                try:
+                    self._add(path, method, func, class_name, attr_name, query_schema, body_schema, response_schema)
+                except Exception as e:
+                    logging.exception('Route registration error', exc_info=e)
 
-    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
+    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]], Optional[Tuple]]:
         params = []
         key, obj = self._get(method, path)
 
         if not obj:
-            return None, None
+            return None, None, None
 
         if obj[0] == 'V':
             parts = path.split('/')
@@ -152,30 +170,24 @@ class Router(object):
         elif obj[0] == 'S':
             params = [path.replace(key.replace('*', ''), '')]
 
-        return obj[1], params
+        return obj[1], params, tuple(obj[5:])
 
 
-# def require_role(roles, api_call=True):
-#     """Декоратор, проверяет, что текущая роль пользователя в списке переданных ролей
-#
-#     :roles: список кодов ролей, которые надо проверить
-#     :return:
-#     """
-#
-#     def wrapper(f):
-#         @wraps(f)
+# def route(path: str, methods: List[str] | str, query_schema: Schema | None = None,
+#           body_schema: Schema | None = None, response_schema: Schema | None = None):
+#     def wrapper(func):
+#         @wraps(func)
 #         def wrapped(*args, **kwargs):
-#             if roles:
-#                 roles_ = roles
-#                 if not isinstance(roles_, (list, tuple)):
-#                     roles_ = [roles_]
-#                 if get_current_role_code() in roles_:
-#                     return f(*args, **kwargs)
-#             if api_call:
-#                 return jsonify(code='forbidden', error='Permission denied'), 403
-#             else:
-#                 abort(403)
-#
+#             Router().register(
+#                 routes=[path],
+#                 methods=methods if isinstance(methods, (list, tuple)) else methods.split(','),
+#                 func=func,
+#                 class_name=None,
+#                 attr_name=str(func),
+#                 query_schema=query_schema,
+#                 body_schema=body_schema,
+#                 response_schema=response_schema
+#             )
 #         return wrapped
 #
 #     return wrapper

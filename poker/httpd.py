@@ -5,6 +5,8 @@ import argparse
 from configs import config
 from server.http_server import HTTPServer
 from server.application import app
+from server.router import Router
+from api import controllers
 
 
 def main():
@@ -32,6 +34,7 @@ def main():
 
     logging.debug('Enabled DEDUG mode logging level!')
     app.initialize()
+    Router().build_roadmap(controllers)
 
     logging.info('Starting server...')
     try:
