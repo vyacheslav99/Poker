@@ -7,6 +7,7 @@ from server.http_server import HTTPServer
 from server.application import app
 from server.router import Router
 from api import controllers
+from api.controllers import test
 
 
 def main():
@@ -34,7 +35,9 @@ def main():
 
     logging.debug('Enabled DEDUG mode logging level!')
     app.initialize()
-    Router().collect(controllers)
+    router = Router()
+    router.collect(controllers)
+    # router.collect(test)
 
     logging.info('Starting server...')
     try:

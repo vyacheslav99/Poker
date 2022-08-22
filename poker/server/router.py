@@ -1,6 +1,6 @@
 import logging
 
-# from functools import wraps
+from functools import wraps
 from typing import Optional, Tuple, List, Callable
 from marshmallow import Schema
 
@@ -34,7 +34,7 @@ class Router:
 
                 if str(type(obj)).startswith('<class'):
                     for attr in dir(obj):
-                        if not attr.startswith('_') and type(obj.__dict__[attr]) == staticmethod:
+                        if not attr.startswith('_') and type(obj.__dict__.get(attr)) == staticmethod:
                             func = getattr(obj, attr)
                             doc = func.__doc__
 
@@ -50,15 +50,11 @@ class Router:
                                         routes.append(line.split(':route:')[1].strip())
                                     if ':methods:' in line:
                                         methods.extend(line.split(':methods:')[1].strip().split(','))
-                                    if ':query_schema:' in line:
-                                        query_schema_cls = eval(line.split(':query_schema:')[1].strip())
-                                    if ':body_schema:' in line:
-                                        body_schema_cls = eval(line.split(':body_schema:')[1].strip())
-                                    if ':response_schema:' in line:
-                                        response_schema_cls = eval(line.split(':response_schema_cls:')[1].strip())
 
                                 self.register(routes, methods, func, cls, attr, query_schema=query_schema_cls,
                                               body_schema=body_schema_cls, response_schema=response_schema_cls)
+                elif callable(obj) and type(obj):
+                    obj()
 
     def _add(self, path: str, method: str, func: Callable, class_name: str | None, attr_name: str,
              query_schema: Schema | None = None, body_schema: Schema | None = None, response_schema: Schema | None = None):
@@ -81,16 +77,17 @@ class Router:
         elif path.endswith('*'):
             type_ = 'S'
 
-        self._raise_if_exists(method, path, class_name, attr_name)
+        self._raise_if_exists(type_, method, path, class_name, attr_name)
         logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name, query_schema, body_schema, response_schema)
 
-    def _raise_if_exists(self, method: str, path: str, class_name: str, attr_name: str):
+    def _raise_if_exists(self, type_, method: str, path: str, class_name: str, attr_name: str):
         key, obj = self._get(method, path)
 
-        if obj and obj[0] != 'S' and (obj[3] != class_name or obj[4] != attr_name):
-            raise Exception(self.__reg_conflict.format(
-                method, path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
+        if key:
+            if (obj[0] in ['S', 'A'] and key == path) or (obj[0] == 'V' and type_ == 'V'):
+                raise Exception(self.__reg_conflict.format(
+                    method, path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
 
     def _find_var(self, method: str, path: str) -> Optional[str]:
         for tmpl in self._roadmap[method]:
@@ -171,21 +168,21 @@ class Router:
         return obj[1], params, tuple(obj[5:])
 
 
-# def route(path: str, methods: List[str] | str, query_schema: Schema | None = None,
-#           body_schema: Schema | None = None, response_schema: Schema | None = None):
-#     def wrapper(func):
-#         @wraps(func)
-#         def wrapped(*args, **kwargs):
-#             Router().register(
-#                 routes=[path],
-#                 methods=methods if isinstance(methods, (list, tuple)) else methods.split(','),
-#                 func=func,
-#                 class_name=None,
-#                 attr_name=str(func),
-#                 query_schema=query_schema,
-#                 body_schema=body_schema,
-#                 response_schema=response_schema
-#             )
-#         return wrapped
-#
-#     return wrapper
+def handler(path: str, methods: List[str] | str, query_schema: Schema | None = None,
+            body_schema: Schema | None = None, response_schema: Schema | None = None):
+    def wrapper(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            Router().register(
+                routes=[path],
+                methods=methods if isinstance(methods, (list, tuple)) else methods.split(','),
+                func=func,
+                class_name=None,
+                attr_name=str(func),
+                query_schema=query_schema,
+                body_schema=body_schema,
+                response_schema=response_schema
+            )
+        return wrapped
+
+    return wrapper
