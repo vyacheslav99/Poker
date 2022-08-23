@@ -23,7 +23,7 @@ class Application:
 
     def initialize(self):
         self._dispatcher = Dispatcher()
-        logging.info('Connecting to database...')
+        logging.debug('Connecting to database...')
         self._db = postgresql_connection(config.DATABASE)
 
     def finalize(self):

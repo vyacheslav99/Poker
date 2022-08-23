@@ -31,7 +31,7 @@ class Router:
             if not cls.startswith('_'):
                 obj = getattr(package, cls)
 
-                if str(type(obj)).startswith('<class'):
+                if str(type(obj)).startswith('<class') and str(type(obj)) != "<class 'module'>":
                     for attr in dir(obj):
                         if not attr.startswith('_') and type(obj.__dict__.get(attr)) == staticmethod:
                             func = getattr(obj, attr)
