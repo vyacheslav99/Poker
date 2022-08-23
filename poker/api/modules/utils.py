@@ -2,6 +2,9 @@ import chardet
 import mimetypes
 import hashlib
 
+from functools import wraps
+
+from server.helpers import Request, Response
 
 CONTENT_TYPE_JSON = 'application/json'
 CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'
@@ -22,32 +25,31 @@ def encrypt(value: str) -> str:
     return hashlib.sha224(value.encode()).hexdigest()
 
 
-# def handler(path: str, methods: List[str] | str, query_schema: Schema | None = None,
-#             body_schema: Schema | None = None, response_schema: Schema | None = None):
-#     def wrapper(func):
-#         @wraps(func)
-#         def wrapped(*args, **kwargs):
-#             Router().register(
-#                 routes=[path],
-#                 methods=methods if isinstance(methods, (list, tuple)) else methods.split(','),
-#                 func=func,
-#                 class_name=None,
-#                 attr_name=str(func),
-#                 query_schema=query_schema,
-#                 body_schema=body_schema,
-#                 response_schema=response_schema
-#             )
-#         return wrapped
-#
-#     return wrapper
+def schemas_definition(query_schema=None, body_schema=None, response_schema=None):
+    def wrapper(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            request: Request = args[0]
 
-    # def _validate_request(self, query_schema: marshmallow.Schema | None = None, body_schema: marshmallow.Schema | None = None):
-    #     if query_schema:
-    #         self.request._params = query_schema().load(self.request.params)
-    #     if body_schema:
-    #         self.request._json = body_schema().load(self.request.json)
-    #
-    # def _validate_response(self, response, schema: marshmallow.Schema | None = None):
-    #     if schema:
-    #         response.body = schema().dump(response.body)
+            if query_schema:
+                request._params = query_schema().load(request.params)
+            if body_schema:
+                request._json = body_schema().load(request.json)
 
+            response = func(*args, **kwargs)
+
+            if response_schema:
+                if isinstance(response, Response):
+                    if response.status < 400:
+                        response.body = response_schema().dump(response.body)
+                elif isinstance(response, tuple):
+                    if response[-1] < 400:
+                        response = (response_schema().dump(response[0]), *response[1:])
+                else:
+                    response = response_schema().dump(response)
+
+            return response
+
+        return wrapped
+
+    return wrapper

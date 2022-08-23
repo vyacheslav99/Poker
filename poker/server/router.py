@@ -25,8 +25,6 @@ class Router:
         # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
         # types: A: absolute, V: variable, S: starting with
 
-        logging.info(dir(package))
-
         for cls in dir(package):
             if not cls.startswith('_'):
                 obj = getattr(package, cls)
