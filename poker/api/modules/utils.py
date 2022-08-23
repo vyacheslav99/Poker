@@ -5,6 +5,7 @@ import hashlib
 from functools import wraps
 
 from server.helpers import Request, Response
+from domain.models.base_model import BaseModel
 
 CONTENT_TYPE_JSON = 'application/json'
 CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'
@@ -26,6 +27,12 @@ def encrypt(value: str) -> str:
 
 
 def schemas_definition(query_schema=None, body_schema=None, response_schema=None):
+    def prepare_body(body):
+        if isinstance(body, BaseModel):
+            body = body.as_dict()
+
+        return dict(success=True, result=response_schema().dump(body))
+
     def wrapper(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
@@ -41,12 +48,12 @@ def schemas_definition(query_schema=None, body_schema=None, response_schema=None
             if response_schema:
                 if isinstance(response, Response):
                     if response.status < 400:
-                        response.body = response_schema().dump(response.body)
+                        response.body = prepare_body(response.body)
                 elif isinstance(response, tuple):
                     if response[-1] < 400:
-                        response = (response_schema().dump(response[0]), *response[1:])
+                        response = (prepare_body(response[0]), *response[1:])
                 else:
-                    response = response_schema().dump(response)
+                    response = prepare_body(response)
 
             return response
 

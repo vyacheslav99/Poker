@@ -76,7 +76,7 @@ class Handler:
         except marshmallow.exceptions.MarshmallowError as e:
             logging.exception('[{0}] Error request params or body validation to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(400, 'Bad request', message=f'{e.__class__}: {e}')
+            return self._error_response(400, 'Bad request', code=f'{e.__class__}', message=f'{e.__class__}: {e}')
         except Exception as e:
             logging.exception('[{0}] Unhandled exception on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
@@ -92,7 +92,7 @@ class Handler:
             if message:
                 body['message'] = message
 
-        return Response(status, error, body=body)
+        return Response(status, error, body=dict(success=False, error=body))
 
     def _read_request(self):
         while not self.__can_stop:

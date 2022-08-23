@@ -1,10 +1,12 @@
 import uuid
 
 from typing import Optional
+from psycopg2 import errors
 
 from server.application import app
 from domain.models.player import Player
 from domain.models.auth import AuthRequest, RegisterRequest
+from domain.exceptions.profile import LoginAlreadyExists
 
 
 class AuthRepo:
@@ -23,5 +25,9 @@ class AuthRepo:
             returning *
         '''
 
-        res = app.db.execute(sql, params=dict(uid=uuid.uuid4().hex, **player.as_dict()))
+        try:
+            res = app.db.execute(sql, params=dict(uid=uuid.uuid4().hex, **player.as_dict()))
+        except errors.UniqueViolation:
+            raise LoginAlreadyExists()
+
         return Player(**res) if res else None
