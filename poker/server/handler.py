@@ -27,7 +27,7 @@ class Handler:
         self.response: Optional[Response] = None
         self.roadmap: Router = Router()  # get singleton obect
 
-    def _route(self, addr: str, method: str) -> Tuple[Optional[Callable], Optional[List[str]], Optional[Tuple]]:
+    def _route(self, addr: str, method: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
         return self.roadmap.get(method, addr)
 
     def _get_request_method(self) -> str:
@@ -38,16 +38,6 @@ class Handler:
         else:
             return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or HttpMethods.GET
 
-    def _validate_request(self, query_schema: marshmallow.Schema | None = None, body_schema: marshmallow.Schema | None = None):
-        if query_schema:
-            self.request._params = query_schema().load(self.request.params)
-        if body_schema:
-            self.request._json = body_schema().load(self.request.json)
-
-    def _validate_response(self, response, schema: marshmallow.Schema | None = None):
-        if schema:
-            response.body = schema().dump(response.body)
-
     def _create_response(self) -> Optional[Response]:
         if self.__can_stop:
             return None
@@ -57,10 +47,9 @@ class Handler:
 
         try:
             self.request = Request(self.raw_request)
-            handler_, params, schemas = self._route(self.request.uri, self.request.method)
+            handler_, params = self._route(self.request.uri, self.request.method)
 
             if callable(handler_):
-                self._validate_request(schemas[0], schemas[1])
                 resp = handler_(self.request, *params)
 
                 if not isinstance(resp, Response):
@@ -76,7 +65,6 @@ class Handler:
 
                     resp = Response(status, code, body=resp)
 
-                self._validate_response(resp, schemas[2])
                 return resp
             else:
                 return self._error_response(405, 'Method Not Allowed',

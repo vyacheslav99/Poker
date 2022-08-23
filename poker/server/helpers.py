@@ -4,7 +4,6 @@ import json
 
 from typing import Optional, Union, Any, Iterable, Mapping, Dict
 from urllib import parse
-from marshmallow import Schema
 
 from api.modules import utils
 

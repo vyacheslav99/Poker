@@ -1,8 +1,6 @@
 import logging
 
-from functools import wraps
 from typing import Optional, Tuple, List, Callable
-from marshmallow import Schema
 
 from domain.models.request import HttpMethods
 
@@ -23,14 +21,15 @@ class Router:
 
         return cls._instance
 
-    def collect(self, module):
-        # {'/url/for/route': (type:str, function:callable, params:[], class, method, query_schema: Schema | None,
-        #   body_schema: Schema | None, response_schema: Schema | None)}
+    def collect(self, package):
+        # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
         # types: A: absolute, V: variable, S: starting with
 
-        for cls in dir(module):
+        logging.info(dir(package))
+
+        for cls in dir(package):
             if not cls.startswith('_'):
-                obj = getattr(module, cls)
+                obj = getattr(package, cls)
 
                 if str(type(obj)).startswith('<class'):
                     for attr in dir(obj):
@@ -41,9 +40,6 @@ class Router:
                             if doc:
                                 routes = []
                                 methods = []
-                                query_schema_cls = None
-                                body_schema_cls = None
-                                response_schema_cls = None
 
                                 for line in doc.split('\n'):
                                     if ':route:' in line:
@@ -51,13 +47,9 @@ class Router:
                                     if ':methods:' in line:
                                         methods.extend(line.split(':methods:')[1].strip().split(','))
 
-                                self.register(routes, methods, func, cls, attr, query_schema=query_schema_cls,
-                                              body_schema=body_schema_cls, response_schema=response_schema_cls)
-                elif callable(obj) and type(obj):
-                    obj()
+                                self.register(routes, methods, func, cls, attr)
 
-    def _add(self, path: str, method: str, func: Callable, class_name: str | None, attr_name: str,
-             query_schema: Schema | None = None, body_schema: Schema | None = None, response_schema: Schema | None = None):
+    def _add(self, path: str, method: str, func: Callable, class_name: str, attr_name: str):
         if not path or not path.startswith('/'):
             raise Exception(self.__reg_error.format(method, path, 'Bad url address!', class_name, attr_name))
 
@@ -79,7 +71,7 @@ class Router:
 
         self._raise_if_exists(type_, method, path, class_name, attr_name)
         logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
-        self._roadmap[method][path] = (type_, func, params, class_name, attr_name, query_schema, body_schema, response_schema)
+        self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
 
     def _raise_if_exists(self, type_, method: str, path: str, class_name: str, attr_name: str):
         key, obj = self._get(method, path)
@@ -140,24 +132,23 @@ class Router:
 
         return True
 
-    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str | None, attr_name: str,
-                 query_schema: Schema | None = None, body_schema: Schema | None = None, response_schema: Schema | None = None):
+    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str | None, attr_name: str):
         for path in routes:
             if not methods:
                 methods = [s for s in self.__methods]
 
             for method in methods:
                 try:
-                    self._add(path, method, func, class_name, attr_name, query_schema, body_schema, response_schema)
+                    self._add(path, method, func, class_name, attr_name)
                 except Exception as e:
                     logging.exception('Route registration error', exc_info=e)
 
-    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]], Optional[Tuple]]:
+    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
         params = []
         key, obj = self._get(method, path)
 
         if not obj:
-            return None, None, None
+            return None, None
 
         if obj[0] == 'V':
             parts = path.split('/')
@@ -165,24 +156,4 @@ class Router:
         elif obj[0] == 'S':
             params = [path.replace(key.replace('*', ''), '')]
 
-        return obj[1], params, tuple(obj[5:])
-
-
-def handler(path: str, methods: List[str] | str, query_schema: Schema | None = None,
-            body_schema: Schema | None = None, response_schema: Schema | None = None):
-    def wrapper(func):
-        @wraps(func)
-        def wrapped(*args, **kwargs):
-            Router().register(
-                routes=[path],
-                methods=methods if isinstance(methods, (list, tuple)) else methods.split(','),
-                func=func,
-                class_name=None,
-                attr_name=str(func),
-                query_schema=query_schema,
-                body_schema=body_schema,
-                response_schema=response_schema
-            )
-        return wrapped
-
-    return wrapper
+        return obj[1], params
