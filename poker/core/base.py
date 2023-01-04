@@ -434,31 +434,31 @@ class BaseEngine(object):
                         self._players[ordered[i][0]].lost += 1
 
                     for j in range(len(ordered)):
-                        self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[j][1]
+                        self._players[ordered[i][0]].money += ordered[i][1] - ordered[j][1]
             else:
                 for i in range(len(ordered)):
                     if i == 0:
-                        self._players[ordered[i][0]].total_money += ordered[0][1]
+                        self._players[ordered[i][0]].money += ordered[0][1]
                         # общая статистика
                         self._players[ordered[i][0]].winned += 1
                     else:
-                        self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[0][1]
+                        self._players[ordered[i][0]].money += ordered[i][1] - ordered[0][1]
                         # общая статистика
                         self._players[ordered[i][0]].lost += 1
 
             for p in self._players:
                 # очки умножаем на ставку в копейках и делим на 100 - получаем итог партии в деньгах
-                p.total_money = p.total_money * self._bet / 100.0
+                p.money = p.money * self._bet / 100.0
                 # общая статистика
                 p.completed += 1
                 p.last_scores = p.total_scores
                 p.summary += p.total_scores
-                p.last_money = p.total_money
-                p.total_money += p.total_money
+                p.last_money = p.money
+                p.total_money += p.money
                 p.best_scores = max(p.best_scores, p.total_scores)
-                p.best_money = max(p.best_money, p.total_money)
+                p.best_money = max(p.best_money, p.money)
                 p.worse_scores = min(p.worse_scores or p.total_scores, p.total_scores)
-                p.worse_money = min(p.worse_money, p.total_money)
+                p.worse_money = min(p.worse_money, p.money)
 
     def next(self):
         """ Центральный метод реализации игрового цикла """

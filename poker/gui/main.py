@@ -1214,12 +1214,12 @@ class MainWnd(QMainWindow):
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
         self.set_text('-= Итоги игры =-', pos, Qt.cyan, 18, 65)
-        winner = max([p for p in self.game.players], key=lambda o: o.total_money)
+        winner = max([p for p in self.game.players], key=lambda o: o.money)
 
         x, y = pos[0], pos[1] + 20
 
         for i, p in enumerate(self.game.players, 1):
-            money = '{0:.2f}'.format(p.total_money)
+            money = '{0:.2f}'.format(p.money)
             rub, kop = money.split('.')
             self.set_text(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп', (x, y + i * 30),
                           Qt.green if p == winner else Qt.yellow, 18, 65)

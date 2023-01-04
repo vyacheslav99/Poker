@@ -40,7 +40,7 @@ class Player(BaseModel):
         self.take = 0                   # взято в текущем раунде
         self.scores = 0                 # очки в текущем раунде
         self.total_scores = 0           # общий счет в текущей игре на текущий момент
-        self.total_money = 0.0          # выигрыш в текущей игре (деньги)
+        self.money = 0.0                # выигрыш в текущей игре (деньги)
         self.cards = []                 # карты на руках
         self.order_cards = []           # карты, на которые сделан заказ (заполняется только у ИИ)
         self.order_is_dark = False      # текущий заказ был сделан в темную или нет
@@ -140,7 +140,7 @@ class Player(BaseModel):
         self.take = 0
         self.scores = 0
         self.total_scores = 0
-        self.total_money = 0.0
+        self.money = 0.0
         self.cards = []
         self.order_cards = []
         self.order_is_dark = False
@@ -154,7 +154,7 @@ class Player(BaseModel):
         self.take = source.take
         self.scores = source.scores
         self.total_scores = source.total_scores
-        self.total_money = source.total_money
+        self.money = source.money
         self.cards = source.cards
         self.order_cards = source.order_cards
         self.order_is_dark = source.order_is_dark
