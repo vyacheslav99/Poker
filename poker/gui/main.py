@@ -40,6 +40,7 @@ class MainWnd(QMainWindow):
         self.is_new_lap = False
         self.order_dark = None
         self.joker_walk_card = None
+        self.joker_selection = False
         self.can_show_results = False
 
         self.buttons = []
@@ -1279,10 +1280,12 @@ class MainWnd(QMainWindow):
         c = card.card
         p = card.player
 
-        if self.started() and p and not p.is_robot and self.game.status() == core_const.EXT_STATE_WALKS and not self.game.is_bet():
+        if (self.started() and p and not p.is_robot and self.game.status() == core_const.EXT_STATE_WALKS
+            and not self.game.is_bet() and not self.joker_selection):
             try:
                 if c.joker and joker_handling:
                     self.joker_walk_card = card
+                    self.joker_selection = True
                     self.show_joker_action_buttons()
                     return
                 else:
@@ -1325,6 +1328,7 @@ class MainWnd(QMainWindow):
                 l = card.lear if self.game.joker_give_at_par else self.game.table()[ftbl[1]].card.lear
 
         card.joker_lear = l
+        self.joker_selection = False
         self.card_click(self.joker_walk_card, False)
 
     def ja_select_lear_btn_click(self, lear):
@@ -1334,6 +1338,7 @@ class MainWnd(QMainWindow):
             btn.hide()
 
         self.joker_walk_card.card.joker_lear = lear
+        self.joker_selection = False
         self.card_click(self.joker_walk_card, False)
 
     def next_button_click(self):
