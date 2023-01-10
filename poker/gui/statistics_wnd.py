@@ -32,6 +32,7 @@ class StatisticsWindow(QWidget):
 
         # элементы управления
         self._grid = None
+        self.btn_reset = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/player.ico'))
         self.setWindowTitle('Таблица результатов')
@@ -43,12 +44,19 @@ class StatisticsWindow(QWidget):
     def init_ui(self):
         # Кнопка Закрыть
         main_layout = QVBoxLayout()
+        buttons_box = QHBoxLayout()
+        buttons_box.setAlignment(Qt.AlignRight)
+        ib_box = QHBoxLayout()
+        ib_box.setAlignment(Qt.AlignLeft)
+
+        self.btn_reset = QPushButton('Сбросить статистику')
+        ib_box.addWidget(self.btn_reset)
+        buttons_box.addLayout(ib_box, 1)
+
         btn_close = QPushButton('Закрыть')
         btn_close.setDefault(True)
         btn_close.setFixedWidth(140)
         btn_close.clicked.connect(self.close)
-        buttons_box = QHBoxLayout()
-        buttons_box.setAlignment(Qt.AlignRight)
         buttons_box.addWidget(btn_close)
 
         # Собсно Таблица игроков

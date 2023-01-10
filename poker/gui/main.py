@@ -67,9 +67,6 @@ class MainWnd(QMainWindow):
 
         self._stat_wnd = None
 
-        if '--reset_stat' in args:
-            self.reset_statistics()
-
         self.init_profile()
         self.setWindowIcon(QIcon(const.MAIN_ICON))
         self.setWindowTitle(const.MAIN_WINDOW_TITLE)
@@ -262,6 +259,7 @@ class MainWnd(QMainWindow):
     def show_statistic(self):
         if not self._stat_wnd:
             self._stat_wnd = StatisticsWindow()
+            self._stat_wnd.btn_reset.clicked.connect(self.on_reset_stat_click)
 
         self._stat_wnd.set_data(self.profiles, self.params.robots_stat,
                                 self.curr_profile.uid if self.curr_profile else None)
@@ -1539,3 +1537,16 @@ class MainWnd(QMainWindow):
 
         for p in self.profiles.profiles:
             p.reset_statistics()
+
+    def on_reset_stat_click(self):
+        res = QMessageBox.question(self._stat_wnd, 'Подтверждение', 'Действительно сбросить все результаты???\n',
+                                   QMessageBox.Yes | QMessageBox.No)
+
+        if res == QMessageBox.No:
+            return
+
+        self.reset_statistics()
+        self._stat_wnd.set_data(self.profiles, self.params.robots_stat,
+                                self.curr_profile.uid if self.curr_profile else None)
+
+        QMessageBox.information(self._stat_wnd, 'Сообщение', 'Поздравляю! Все похерено успешно', QMessageBox.Ok)
