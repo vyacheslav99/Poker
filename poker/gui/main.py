@@ -74,7 +74,7 @@ class MainWnd(QMainWindow):
         view = QGraphicsView()
         self.scene = QGraphicsScene()
         self.scene.setSceneRect(QRectF(0, 0, *const.AREA_SIZE))
-        felt = QBrush(QPixmap(f'{const.BG_DIR}/default.bmp'))
+        felt = QBrush(QPixmap(f'{const.BG_DIR}/cards_cloth.jpg'))
         self.scene.setBackgroundBrush(felt)
         view.setScene(self.scene)
         self.init_menu_actions()
