@@ -70,7 +70,7 @@ class SettingsDialog(QDialog):
         self._color_theme.setEditable(False)
         self._color_theme.setFixedWidth(100)
 
-        for theme in const.COLOR_THEMES:
+        for theme in const.COLOR_THEMES.keys():
             self._color_theme.addItem(theme)
 
         l2.addWidget(self._color_theme)

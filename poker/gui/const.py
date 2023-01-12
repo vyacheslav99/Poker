@@ -56,4 +56,68 @@ GAME_START_TYPES = (
     ('Все диалоги', 'Будут показаны оба диалога:<br>настройки договоренностей и выбора игроков.')
 )
 
-COLOR_THEMES = ('green',)
+# ключи параметров темы оформления
+# FONT_FAMILY = 'font_family'               # шрифт - только это пока под вопросом
+# фон, цвет фона
+BG_TEXTURE = 'bg_texture'                   # фоновый рисунок
+BG_COLOR = 'bg_color'                       # основной цвет
+BG_COLOR_2 = 'bg_color_2'                   # дополнительный цвет
+BG_DISABLED = 'bg_disabled'                 # цевет неактивного элемента
+BG_DARK_BTN = 'bg_dark_btn'                 # цвет кнопки "в темную"
+BG_JOKER_LEAR_BTN = 'bg_joker_lear_btn'     # цвет кнопок выбора масти джокера
+# цвета текста
+COLOR_MAIN = 'color_main'                   # основной цвет (заказ, счет, имя пользователя и пр.)
+COLOR_EXTRA = 'color_extra'                 # дополнительный (подсказка на столе, шапка таблицы и пр.)
+COLOR_DISABLED = 'color_disabled'           # цевет неактивного элемента
+COLOR_GOOD = 'color_good'                   # цвет позитивных сообщений
+COLOR_BAD = 'color_bad'                     # цвет негативных сообщений
+COLOR_NEUTRAL = 'color_neutral'             # цвет нейтральных сообщений
+COLOR_DARK_BTN = 'color_dark_btn'           # цвет кнопки "в темную"
+# цвета надписей раздач
+COLOR_DEAL_NORMAL = 'color_deal_normal'     # обычная
+COLOR_DEAL_NOTRUMP = 'color_deal_notrump'   # бескозырка
+COLOR_DEAL_DARK = 'color_deal_dark'         # темная
+COLOR_DEAL_GOLD = 'color_deal_gold'         # золотая
+COLOR_DEAL_MIZER = 'color_deal_mizer'       # мизер
+COLOR_DEAL_BROW = 'color_deal_brow'         # лобовая
+# цвета игроков в таблице хода игры
+BG_PLAYER_1 = 'bg_player_1'
+COLOR_PLAYER_1 = 'color_player_1'
+BG_PLAYER_2 = 'bg_player_2'
+COLOR_PLAYER_2 = 'color_player_2'
+BG_PLAYER_3 = 'bg_player_3'
+COLOR_PLAYER_3 = 'color_player_3'
+BG_PLAYER_4 = 'bg_player_4'
+COLOR_PLAYER_4 = 'color_player_4'
+
+COLOR_THEMES = {
+    'green': {
+        BG_TEXTURE: f'{BG_DIR}/cards_cloth.jpg',
+        BG_COLOR: 'DarkGreen',
+        BG_COLOR_2: 'YellowGreen',
+        BG_DISABLED: 'Gray',
+        BG_DARK_BTN: 'DarkRed',
+        BG_JOKER_LEAR_BTN: 'LightCyan',
+        COLOR_MAIN: 'Aqua',
+        COLOR_EXTRA: 'Yellow',
+        COLOR_DISABLED: 'DimGray',
+        COLOR_GOOD: 'Lime',
+        COLOR_BAD: 'OrangeRed',
+        COLOR_NEUTRAL: 'Purple',
+        COLOR_DARK_BTN: 'DarkOrange',
+        COLOR_DEAL_NORMAL: 'LightCyan',
+        COLOR_DEAL_NOTRUMP: 'Lime',
+        COLOR_DEAL_DARK: 'Black',
+        COLOR_DEAL_GOLD: 'Yellow',
+        COLOR_DEAL_MIZER: 'OrangeRed',
+        COLOR_DEAL_BROW: 'Fuchsia',
+        BG_PLAYER_1: 'DarkGreen',
+        COLOR_PLAYER_1: 'Yellow',
+        BG_PLAYER_2: 'MidnightBlue',
+        COLOR_PLAYER_2: 'GreenYellow',
+        BG_PLAYER_3: 'DarkRed',
+        COLOR_PLAYER_3: 'Silver',
+        BG_PLAYER_4: 'DarkSlateGray',
+        COLOR_PLAYER_4: 'Aqua'
+    }
+}

@@ -76,6 +76,7 @@ class MainWnd(QMainWindow):
         self.scene.setSceneRect(QRectF(0, 0, *const.AREA_SIZE))
         felt = QBrush(QPixmap(f'{const.BG_DIR}/cards_cloth.jpg'))
         self.scene.setBackgroundBrush(felt)
+        # self.scene.setBackgroundBrush(QColor('DarkGreen'))
         view.setScene(self.scene)
         self.init_menu_actions()
 
@@ -853,6 +854,7 @@ class MainWnd(QMainWindow):
             text = 'Кон по {0} карт{1}'.format(d.cards, letter)
         else:
             text = core_const.DEAL_NAMES[d.type_]
+
         self.deal_label.setStyleSheet('QLabel {color: %s}' % c)
         self.deal_label.setText(text)
 
@@ -1020,12 +1022,12 @@ class MainWnd(QMainWindow):
         self.table_label.setText('Твой заказ')
 
         btnd = self.add_button(lambda: self.dark_btn_click(True), 'В темную', (150, 50),
-                               (round(const.AREA_SIZE[0] / 2) - 150 / 2 - 40, round(const.AREA_SIZE[1] / 2)),
+                               (round(const.AREA_SIZE[0] / 2) - round(150 / 2) - 40, round(const.AREA_SIZE[1] / 2)),
                                16, 65, 'DarkRed', 'DarkOrange')
         self.buttons.append(btnd)
 
         btnl = self.add_button(lambda: self.dark_btn_click(False), 'В светлую', (150, 50),
-                               (round(const.AREA_SIZE[0] / 2) + 150 / 2 + 5, round(const.AREA_SIZE[1] / 2)),
+                               (round(const.AREA_SIZE[0] / 2) + round(150 / 2) + 5, round(const.AREA_SIZE[1] / 2)),
                                16, 65, 'DarkGreen', 'Lime')
         self.buttons.append(btnl)
 

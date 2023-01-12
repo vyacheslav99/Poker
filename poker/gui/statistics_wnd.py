@@ -57,6 +57,7 @@ class StatisticsWindow(QWidget):
         btn_close.setDefault(True)
         btn_close.setFixedWidth(140)
         btn_close.clicked.connect(self.close)
+        btn_close.setShortcut('Esc')
         buttons_box.addWidget(btn_close)
 
         # Собсно Таблица игроков
