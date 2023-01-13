@@ -1,12 +1,10 @@
-import sys
+import sys, os
 # import argparse
-from PyQt5.QtWidgets import QApplication  #, QStyleFactory
+from PyQt5.QtWidgets import QApplication
 
+from domain.models.params import Params
+from gui import const
 from gui import main
-
-# список доступных стилей графического интерфейса
-# ключи задаются в методе QApplication.setStyle(style)
-# print(QStyleFactory.keys())
 
 
 def run():
@@ -14,9 +12,9 @@ def run():
 
     # ap.add_argument('--cheats_on', action='store_true', help='Включить режим читов')
     # args = ap.parse_args()
-
+    params = Params(filename=const.PARAMS_FILE if os.path.exists(const.PARAMS_FILE) else None)
     app = QApplication(sys.argv)
-    app.setStyle('Fusion')
+    app.setStyle(params.style)
     f = app.font()
     f.setPointSize(10)
     app.setFont(f)

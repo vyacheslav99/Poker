@@ -6,6 +6,10 @@ from gui import const
 from core import const as eng_const
 from domain.models.params import Profiles
 
+# список доступных стилей графического интерфейса
+# ключи задаются в методе QApplication.setStyle(style)
+# print(QStyleFactory.keys())
+
 
 class SettingsDialog(QDialog):
 

@@ -13,7 +13,10 @@ class Params(BaseModel):
 
     def __init__(self, filename=None, **kwargs):
         self.user = None
+        # Цветовая тема оформления
         self.color_theme = 'green'
+        # Графический стиль интерфейса
+        self.style = 'Fusion'
         # Вариант колоды
         self.deck_type = random.choice(const.DECK_TYPE)
         # Вариант рубашки
