@@ -17,7 +17,7 @@ class BaseModel:
         """
 
         for k, v in kwargs.items():
-            if hasattr(self, k) and not k.startswith('_'):
+            if not k.startswith('_') and hasattr(self, k) and not callable(getattr(self, k)):
                 setattr(self, k, v)
 
     def from_dict(self, obj):

@@ -65,11 +65,11 @@ class QCard(QGraphicsPixmapItem):
 
         self.setToolTip(val)
 
-    def set_color_shadow(self):
+    def set_color_shadow(self, color: str):
         sh = QGraphicsDropShadowEffect()
         sh.setBlurRadius(30)
         sh.setOffset(5)
-        sh.setColor(Qt.green)
+        sh.setColor(QColor(color))
         self.setGraphicsEffect(sh)
 
     def set_std_shadow(self):

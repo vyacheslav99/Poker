@@ -74,10 +74,8 @@ class MainWnd(QMainWindow):
         view = QGraphicsView()
         self.scene = QGraphicsScene()
         self.scene.setSceneRect(QRectF(0, 0, *const.AREA_SIZE))
-        felt = QBrush(QPixmap(f'{const.BG_DIR}/cards_cloth.jpg'))
-        self.scene.setBackgroundBrush(felt)
-        # self.scene.setBackgroundBrush(QColor('DarkGreen'))
         view.setScene(self.scene)
+        self.apply_decoration()
         self.init_menu_actions()
 
         # view.setFocusPolicy(Qt.StrongFocus)
@@ -86,6 +84,13 @@ class MainWnd(QMainWindow):
         self.resize(*const.WINDOW_SIZE)
         self.center()
         self.show()
+
+    def apply_decoration(self):
+        if self.params.bg_texture():
+            felt = QBrush(QPixmap(self.params.bg_texture()))
+            self.scene.setBackgroundBrush(felt)
+        else:
+            self.scene.setBackgroundBrush(QColor(self.params.bg_color()))
 
     def init_menu_actions(self):
         menubar = self.menuBar()
@@ -212,6 +217,7 @@ class MainWnd(QMainWindow):
                 return
 
             self.params.from_dict(dlg.get_params())
+            self.apply_decoration()
 
             if self.params.user != prv_user:
                 self.set_profile(self.params.user)
@@ -229,6 +235,7 @@ class MainWnd(QMainWindow):
         try:
             if self.started():
                 dlg.deactivate()
+
             result = dlg.exec()
 
             if result == 0 or self.started():
@@ -602,7 +609,7 @@ class MainWnd(QMainWindow):
             self.game_table.destroy()
             self.game_table = None
 
-        self.game_table = GameTableDialog(self.players, self)
+        self.game_table = GameTableDialog(self.players, parent=self)
 
         if len(self.players) == 4:
             pos = (20, 45)
@@ -624,14 +631,14 @@ class MainWnd(QMainWindow):
                                          (pos[0] + 5, pos[1] + 5), 18, 65)
 
         self.first_move_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
-                                               (pos[0] + 5, pos[1] + 50), 16, 65, color='Aqua')
+                                               (pos[0] + 5, pos[1] + 50), 16, 65, color=self.params.color_main())
 
         self.order_info_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 32),
                                                (pos[0] + 5, pos[1] + 100), 16, 65)
 
         self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Запись игры', (160, 50),
                                                 (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
-                                                12, 65, 'YellowGreen', 'Purple')
+                                                12, 65, self.params.bg_color_2(), self.params.color_extra_2())
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -648,17 +655,21 @@ class MainWnd(QMainWindow):
             self.scene.addItem(player)
 
             if p.is_robot:
-                self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]), Qt.cyan, 18, 65)
+                self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]),
+                              QColor(self.params.color_main()), 18, 65)
                 self.set_text(core_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
-                              Qt.gray, 13, 65)
+                              QColor(self.params.color_deal_normal()), 13, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]),
-                                      'Aqua', 16, 70)
+                                      self.params.color_main(), 16, 70)
                 self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35),
-                                      'Aqua', 16, 70)
+                                      self.params.color_main(), 16, 70)
             else:
-                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 12), Qt.cyan, 18, 65)
-                self.add_player_label(i, 'order', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1]), 'Aqua', 16, 70)
-                self.add_player_label(i, 'take', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1] + 35), 'Aqua', 16, 70)
+                self.set_text(p.name, (ap[i][0] + 200, fp[i][1] + const.FACE_SIZE[1] + 12),
+                              QColor(self.params.color_main()), 18, 65)
+                self.add_player_label(i, 'order', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1]),
+                                      self.params.color_main(), 16, 70)
+                self.add_player_label(i, 'take', '', (ap[i][0] + lo[i][0], ap[i][1] + lo[i][1] + 35),
+                                      self.params.color_main(), 16, 70)
 
     def set_text(self, text, position, color, size, weight):
         """
@@ -832,17 +843,17 @@ class MainWnd(QMainWindow):
 
         d = self.game.current_deal()
         if d.type_ == core_const.DEAL_NO_TRUMP:
-            c = 'Lime'
+            c = self.params.color_deal_notrump()
         elif d.type_ == core_const.DEAL_DARK:
-            c = 'Black'
+            c = self.params.color_deal_dark()
         elif d.type_ == core_const.DEAL_GOLD:
-            c = 'Yellow'
+            c = self.params.color_deal_gold()
         elif d.type_ == core_const.DEAL_MIZER:
-            c = 'OrangeRed'
+            c = self.params.color_deal_mizer()
         elif d.type_ == core_const.DEAL_BROW:
-            c = 'Fuchsia'
+            c = self.params.color_deal_brow()
         else:
-            c = 'LightCyan'
+            c = self.params.color_deal_normal()
 
         if d.type_ < 3:
             if d.cards == 1:
@@ -889,32 +900,34 @@ class MainWnd(QMainWindow):
         self.scene.addItem(area)
 
         self.table_label = self.add_label((const.TABLE_AREA_SIZE[0] - 20, 34), (pos[0] + 60, pos[1] + 35), 13, 65,
-                                          color='Yellow')
+                                          color=self.params.color_extra())
         self.table_label.setAlignment(Qt.AlignHCenter)
 
         self.next_button = self.add_button(self.next_button_click, 'Далее', (150, 50), (pos[0] + 230, pos[1] + 70),
-                                           16, 65, 'DarkGreen', 'Lime')
+                                           16, 65, self.params.bg_color(), self.params.color_good())
         self.next_button.hide()
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
         self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE), 'ЗАБРАТЬ',
-                                           (150, 60), (jx, jy), 12, 65, 'Green', 'Yellow')
+                                           (150, 60), (jx, jy), 12, 65, self.params.bg_color(), self.params.color_good())
         self.ja_take_btn.hide()
 
         self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE_BY_MAX),
-                                              'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, 'Green', 'Yellow')
+                                              'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, self.params.bg_color(),
+                                              self.params.color_good())
         self.ja_take_by_btn.hide()
 
         self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_GIVE), 'СКИНУТЬ',
-                                           (150, 60), (jx + 320, jy), 12, 65, 'Green', 'Yellow')
+                                           (150, 60), (jx + 320, jy), 12, 65, self.params.bg_color(),
+                                           self.params.color_good())
         self.ja_give_btn.hide()
 
         x = pos[0] + 130
         for i, lear in enumerate(const.LEARS):
             x = x + 60
             btn = self.add_button(lambda a, b=i: self.ja_select_lear_btn_click(b), size=(50, 50), position=(x, jy),
-                                  bg_color='LightCyan')
+                                  bg_color=self.params.bg_joker_lear_btn())
             btn.setIcon(QIcon(f'{const.SUITS_DIR}/{lear}.png'))
             btn.setToolTip(core_const.LEAR_NAMES[i])
             btn.hide()
@@ -929,7 +942,7 @@ class MainWnd(QMainWindow):
             else:
                 w = round(const.TABLE_AREA_SIZE[0] / 2)
 
-            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 13, 65, color='aqua')
+            lb = self.add_label((w, 150), (pos[i][0], pos[i][1]), 13, 65, color=self.params.color_main())
             lb.setAlignment(aligns[i])
             lb.setTextFormat(Qt.RichText)
 
@@ -957,7 +970,7 @@ class MainWnd(QMainWindow):
                     qc.setToolTip(txt)
 
                 if ti.order == 0:
-                    qc.set_color_shadow()
+                    qc.set_color_shadow(self.params.bg_color())
 
         if overall:
             i, p = self.game.take_player()
@@ -991,23 +1004,27 @@ class MainWnd(QMainWindow):
 
         if len([p for p in self.players if p.order > -1]) == len(self.players):
             diff = n - self.game.current_deal().cards
-            self.order_info_label.setStyleSheet('QLabel {color: %s}' % '{0}'.format('Lime' if diff < 0 else 'OrangeRed'))
-            self.order_info_label.setText('{0} {1}'.format('Перебор ' if diff < 0 else 'Недобор', abs(diff)))
+            self.order_info_label.setStyleSheet('QLabel {color: %s}' % '{0}'.format(
+                self.params.color_good() if diff < 0 else self.params.color_bad()))
+            self.order_info_label.setText('{0} {1}'.format('Перебор' if diff < 0 else 'Недобор', abs(diff)))
         else:
             self.order_info_label.setText(None)
 
     def draw_take(self):
         """ Отрисовка взяток игроков """
 
+        d = self.game.current_deal()
+
         for i, p in enumerate(self.players):
             self.labels[i]['take'].setText(f'{p.take}')
 
-            if p.order > p.take:
-                self.labels[i]['take'].setStyleSheet('QLabel {color: OrangeRed}')
-            elif p.order < p.take:
-                self.labels[i]['take'].setStyleSheet('QLabel {color: Fuchsia}')
+            if p.order > p.take or (d.type_ == core_const.DEAL_MIZER and p.take > 0) or (
+                d.type_ == core_const.DEAL_GOLD and p.take == 0):
+                self.labels[i]['take'].setStyleSheet('QLabel {color: %s}' % self.params.color_bad())
+            elif p.order < p.take and d.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
+                self.labels[i]['take'].setStyleSheet('QLabel {color: %s}' % self.params.color_neutral())
             else:
-                self.labels[i]['take'].setStyleSheet('QLabel {color: Lime}')
+                self.labels[i]['take'].setStyleSheet('QLabel {color: %s}' % self.params.color_good())
 
     def hide_order_and_take(self):
         """ Убрать информацию о заказе и взятке у игроков """
@@ -1023,12 +1040,12 @@ class MainWnd(QMainWindow):
 
         btnd = self.add_button(lambda: self.dark_btn_click(True), 'В темную', (150, 50),
                                (round(const.AREA_SIZE[0] / 2) - round(150 / 2) - 40, round(const.AREA_SIZE[1] / 2)),
-                               16, 65, 'DarkRed', 'DarkOrange')
+                               16, 65, self.params.bg_dark_btn(), self.params.color_dark_btn())
         self.buttons.append(btnd)
 
         btnl = self.add_button(lambda: self.dark_btn_click(False), 'В светлую', (150, 50),
                                (round(const.AREA_SIZE[0] / 2) + round(150 / 2) + 5, round(const.AREA_SIZE[1] / 2)),
-                               16, 65, 'DarkGreen', 'Lime')
+                               16, 65, self.params.bg_color(), self.params.color_good())
         self.buttons.append(btnl)
 
     def show_order_buttons(self):
@@ -1053,7 +1070,8 @@ class MainWnd(QMainWindow):
 
             b, s = self.game.check_order(i, self.order_dark or False)
             btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
-                                   16, 65, 'DarkGreen' if b else 'Gray', 'Lime' if b else 'DimGray')
+                                  16, 65, self.params.bg_color() if b else self.params.bg_disabled(),
+                                  self.params.color_good() if b else self.params.color_disabled())
 
             btn.setDisabled(not b)
             btn.setToolTip(s)
@@ -1101,7 +1119,7 @@ class MainWnd(QMainWindow):
         """
 
         row = []
-        colors = ['Purple']
+        colors = [self.params.color_extra_2()]
         max_scores = max([p.total_scores for p in self.players])
         if not deal:
             deal = self.game.current_deal()
@@ -1112,34 +1130,27 @@ class MainWnd(QMainWindow):
             row.append(core_const.DEAL_NAMES[deal.type_][0])
 
         for p in self.players:
-            colors.append('aqua')
+            colors.append(self.params.color_main())
             order = int(record[p.uid]['order'].split('*')[0])
             # scores = int(record[p.uid]['scores'].split(' ')[0])
 
             if record[p.uid]['take'] < order or (deal.type_ == core_const.DEAL_MIZER and record[p.uid]['take'] > 0) or (
                 deal.type_ == core_const.DEAL_GOLD and record[p.uid]['take'] == 0):
-                colors.append('OrangeRed')
-                colors.append('OrangeRed')
+                colors.append(self.params.color_bad())
+                colors.append(self.params.color_bad())
             elif record[p.uid]['take'] > order and deal.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
-                colors.append('Fuchsia')
-                colors.append('Fuchsia')
+                colors.append(self.params.color_neutral())
+                colors.append(self.params.color_neutral())
             else:
-                colors.append('Lime')
-                colors.append('Lime')
-
-            # if scores < 0:
-            #     colors.append('OrangeRed')
-            # elif scores > 9:
-            #     colors.append('Lime')
-            # else:
-            #     colors.append('Fuchsia')
+                colors.append(self.params.color_good())
+                colors.append(self.params.color_good())
 
             if record[p.uid]['total'] < 0:
-                colors.append('OrangeRed')
+                colors.append(self.params.color_bad())
             elif record[p.uid]['total'] >= max_scores:
-                colors.append('Lime')
+                colors.append(self.params.color_good())
             else:
-                colors.append('aqua')
+                colors.append(self.params.color_neutral())
 
             for k in record[p.uid]:
                 if k == 'order':
@@ -1172,28 +1183,21 @@ class MainWnd(QMainWindow):
 
             if keys['take'] < order or (d.type_ == core_const.DEAL_MIZER and keys['take'] > 0) or (
                 d.type_ == core_const.DEAL_GOLD and keys['take'] == 0):
-                keys['take_color'] = 'OrangeRed'
-                keys['scores_color'] = 'OrangeRed'
+                keys['take_color'] = self.params.color_bad()
+                keys['scores_color'] = self.params.color_bad()
             elif keys['take'] > order and d.type_ not in (core_const.DEAL_GOLD, core_const.DEAL_MIZER):
-                keys['take_color'] = 'Fuchsia'
-                keys['scores_color'] = 'Fuchsia'
+                keys['take_color'] = self.params.color_neutral()
+                keys['scores_color'] = self.params.color_neutral()
             else:
-                keys['take_color'] = 'Lime'
-                keys['scores_color'] = 'Lime'
-
-            # if scores < 0:
-            #     keys['scores_color'] = 'OrangeRed'
-            # elif scores > 9:
-            #     keys['scores_color'] = 'Lime'
-            # else:
-            #     keys['scores_color'] = 'Fuchsia'
+                keys['take_color'] = self.params.color_good()
+                keys['scores_color'] = self.params.color_good()
 
             if keys['total'] < 0:
-                keys['total_color'] = 'OrangeRed'
+                keys['total_color'] = self.params.color_bad()
             elif keys['total'] >= max_scores:
-                keys['total_color'] = 'Lime'
+                keys['total_color'] = self.params.color_good()
             else:
-                keys['total_color'] = 'aqua'
+                keys['total_color'] = self.params.color_main()
 
             self.round_result_labels[i].setText(tmpl.format(**keys))
             self.round_result_labels[i].show()
@@ -1214,7 +1218,7 @@ class MainWnd(QMainWindow):
         pos = (round(const.AREA_SIZE[0] / 2) - round(const.TABLE_AREA_SIZE[0] / 2) + 50,
                round(const.AREA_SIZE[1] / 2) - round(const.TABLE_AREA_SIZE[1] / 2) + 30)
 
-        self.set_text('-= Итоги игры =-', pos, Qt.cyan, 18, 65)
+        self.set_text('-= Итоги игры =-', pos, QColor(self.params.color_main()), 18, 65)
         winner = max([p for p in self.game.players], key=lambda o: o.money)
 
         x, y = pos[0], pos[1] + 20
@@ -1223,11 +1227,11 @@ class MainWnd(QMainWindow):
             money = '{0:.2f}'.format(p.money)
             rub, kop = money.split('.')
             self.set_text(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп', (x, y + i * 30),
-                          Qt.green if p == winner else Qt.yellow, 18, 65)
+                          QColor(self.params.color_good()) if p == winner else QColor(self.params.color_extra()), 18, 65)
 
         y = y + len(self.game.players) * 30 + 60
-        self.set_text(f'Победил {winner.name}', (x, y), Qt.green, 18, 65)
-        self.set_text(random.choice(const.CONGRATULATIONS), (x, y + 60), Qt.magenta, 18, 65)
+        self.set_text(f'Победил {winner.name}', (x, y), QColor(self.params.color_good()), 18, 65)
+        self.set_text(random.choice(const.CONGRATULATIONS), (x, y + 60), QColor(self.params.color_deal_brow()), 18, 65)
 
     def clear_buttons(self):
         """ Убирает все кнопки с центральной области """

@@ -26,8 +26,99 @@ class Params(BaseModel):
         self.start_type = const.GAME_START_TYPE_ALL
         # Игровая статистика локальных компьютерных игроков. key - имя, value - dict, представление RobotStatItem
         self.robots_stat = {}
+        # Кастомные настройки оформления
+        self.custom_decoration = const.DECORATION_THEMES['green'].copy()
 
         super(Params, self).__init__(filename, **kwargs)
+        self.custom_decoration.update({k: v for k, v in const.DECORATION_THEMES['green'].items()
+                                       if k not in self.custom_decoration})
+
+    def _from_theme(self, param):
+        return const.DECORATION_THEMES[self.color_theme].get(param, self.custom_decoration[param])
+
+    def bg_texture(self):
+        return self._from_theme(const.BG_TEXTURE)
+
+    def bg_color(self):
+        return self._from_theme(const.BG_COLOR)
+
+    def bg_color_2(self):
+        return self._from_theme(const.BG_COLOR_2)
+
+    def bg_disabled(self):
+        return self._from_theme(const.BG_DISABLED)
+
+    def bg_dark_btn(self):
+        return self._from_theme(const.BG_DARK_BTN)
+
+    def bg_joker_lear_btn(self):
+        return self._from_theme(const.BG_JOKER_LEAR_BTN)
+
+    def color_main(self):
+        return self._from_theme(const.COLOR_MAIN)
+
+    def color_extra(self):
+        return self._from_theme(const.COLOR_EXTRA)
+
+    def color_extra_2(self):
+        return self._from_theme(const.COLOR_EXTRA_2)
+
+    def color_disabled(self):
+        return self._from_theme(const.COLOR_DISABLED)
+
+    def color_good(self):
+        return self._from_theme(const.COLOR_GOOD)
+
+    def color_bad(self):
+        return self._from_theme(const.COLOR_BAD)
+
+    def color_neutral(self):
+        return self._from_theme(const.COLOR_NEUTRAL)
+
+    def color_dark_btn(self):
+        return self._from_theme(const.COLOR_DARK_BTN)
+
+    def color_deal_normal(self):
+        return self._from_theme(const.COLOR_DEAL_NORMAL)
+
+    def color_deal_notrump(self):
+        return self._from_theme(const.COLOR_DEAL_NOTRUMP)
+
+    def color_deal_dark(self):
+        return self._from_theme(const.COLOR_DEAL_DARK)
+
+    def color_deal_gold(self):
+        return self._from_theme(const.COLOR_DEAL_GOLD)
+
+    def color_deal_mizer(self):
+        return self._from_theme(const.COLOR_DEAL_MIZER)
+
+    def color_deal_brow(self):
+        return self._from_theme(const.COLOR_DEAL_BROW)
+
+    def bg_player_1(self):
+        return self._from_theme(const.BG_PLAYER_1)
+
+    def color_player_1(self):
+        return self._from_theme(const.COLOR_PLAYER_1)
+
+    def bg_player_2(self):
+        return self._from_theme(const.BG_PLAYER_2)
+
+    def color_player_2(self):
+        return self._from_theme(const.COLOR_PLAYER_2)
+
+    def bg_player_3(self):
+        return self._from_theme(const.BG_PLAYER_3)
+
+    def color_player_3(self):
+        return self._from_theme(const.COLOR_PLAYER_3)
+
+    def bg_player_4(self):
+        return self._from_theme(const.BG_PLAYER_4)
+
+    def color_player_4(self):
+        return self._from_theme(const.COLOR_PLAYER_4)
 
 
 class Options(BaseModel):
