@@ -205,6 +205,7 @@ class SettingsDialog(QDialog):
             setattr(self, f'_{attr_name}', attr)
 
             if attr_name == const.BG_TEXTURE:
+                attr.addItem(const.BG_TEXTURE_NOTHING)
                 for fn in os.listdir(const.BG_DIR):
                     px = QPixmap(f'{const.BG_DIR}/{fn}')
                     attr.addItem(QIcon(px), fn)
@@ -243,6 +244,9 @@ class SettingsDialog(QDialog):
         self._color_theme.setCurrentText(self._params.get('color_theme', 'green'))
         self._style.setCurrentText(self._params.get('style', 'Fusion'))
 
+        if self._params['color_theme'] == 'green':
+            self.color_theme_change(0)
+
         if self._profiles.count():
             self._current_profile.setCurrentIndex(self._profiles.get_item(self._params.get('user'))[0])
 
@@ -270,7 +274,10 @@ class SettingsDialog(QDialog):
             for k in self._params['custom_decoration'].keys():
                 attr = getattr(self, f'_{k}')
                 if k == const.BG_TEXTURE:
-                    self._params['custom_decoration'][k] = f'{const.BG_DIR}/{attr.currentText()}'
+                    if attr.currentText() == const.BG_TEXTURE_NOTHING:
+                        self._params['custom_decoration'][k] = None
+                    else:
+                        self._params['custom_decoration'][k] = f'{const.BG_DIR}/{attr.currentText()}'
                 else:
                     self._params['custom_decoration'][k] = attr.currentText()
 
@@ -310,6 +317,9 @@ class SettingsDialog(QDialog):
             attr = getattr(self, f'_{k}')
             attr.setEnabled(enabled)
             if k == const.BG_TEXTURE:
-                attr.setCurrentText(v.split('/')[-1])
+                if v is None:
+                    attr.setCurrentText(const.BG_TEXTURE_NOTHING)
+                else:
+                    attr.setCurrentText(v.split('/')[-1])
             else:
                 attr.setCurrentText(v.lower())

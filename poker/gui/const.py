@@ -90,6 +90,7 @@ BG_PLAYER_3 = 'bg_player_3'
 COLOR_PLAYER_3 = 'color_player_3'
 BG_PLAYER_4 = 'bg_player_4'
 COLOR_PLAYER_4 = 'color_player_4'
+BG_TEXTURE_NOTHING = '< нет >'
 
 DECORATION_THEMES = {
     'green': {
