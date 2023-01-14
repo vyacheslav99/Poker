@@ -1,3 +1,5 @@
+import os
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -24,6 +26,9 @@ class SettingsDialog(QDialog):
         self._color_theme = None            # Цветовая тема
         self._style = None                  # Графический стиль
 
+        for attr in const.DECORATION_THEMES['green'].keys():
+            setattr(self, f'_{attr}', None)
+
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/settings.ico'))
         self.setWindowTitle('Настройки')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -31,7 +36,7 @@ class SettingsDialog(QDialog):
         self.set_params()
 
     def init_ui(self):
-        # Кнопки ОК, Отмена
+        # Кнопки ОК, Отмена, Сброс
         main_layout = QVBoxLayout()
         btn_ok = QPushButton(QIcon(f'{const.RES_DIR}/ok.png'), 'OK')
         btn_ok.setDefault(True)
@@ -165,6 +170,7 @@ class SettingsDialog(QDialog):
         for theme in const.DECORATION_THEMES.keys():
             self._color_theme.addItem(theme)
 
+        self._color_theme.currentIndexChanged.connect(self.color_theme_change)
         l2.addWidget(self._color_theme)
         layout.addLayout(l2, 1, 1, alignment=Qt.AlignLeft)
 
@@ -180,12 +186,41 @@ class SettingsDialog(QDialog):
             self._style.addItem(style)
 
         l2.addWidget(self._style)
-        layout.addLayout(l2, 1, 2, alignment=Qt.AlignRight)
-        # layout.addWidget(QFrame(), 2, 1, 2, 2)
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        layout.addWidget(line, 3, 1, 3, 2)
+        layout.addLayout(l2, 1, 3, alignment=Qt.AlignRight)
+        # line = QFrame()
+        # line.setFrameShape(QFrame.HLine)
+        # line.setFrameShadow(QFrame.Sunken)
+        # layout.addWidget(line, 3, 1, 3, 3)
+
+        row = 4
+        col = 1
+        for attr_name in const.DECORATION_THEMES['green'].keys():
+            l2 = QHBoxLayout()
+            l2.addWidget(QLabel(const.THEME_CONTROLS_TITLE[attr_name]))
+            # l2.addSpacing(10)
+            attr = QComboBox()
+            attr.setEditable(False)
+            attr.setIconSize(QSize(16, 16))
+            attr.setFixedWidth(100)
+            setattr(self, f'_{attr_name}', attr)
+
+            if attr_name == const.BG_TEXTURE:
+                for fn in os.listdir(const.BG_DIR):
+                    px = QPixmap(f'{const.BG_DIR}/{fn}')
+                    attr.addItem(QIcon(px), fn)
+            else:
+                for color in const.COLORS:
+                    px = QPixmap(f'{const.SUITS_DIR}/c.png')
+                    px.fill(QColor(color))
+                    attr.addItem(QIcon(px), color)
+
+            l2.addWidget(attr)
+            layout.addLayout(l2, row, col)
+
+            col += 1
+            if col > 3:
+                row += 1
+                col = 1
 
         group.setLayout(layout)
         main_layout.addSpacing(5)
@@ -231,6 +266,14 @@ class SettingsDialog(QDialog):
         for i in range(self._lear_order.count()):
             self._params['lear_order'].append(self._lear_order.item(i).data(Qt.DisplayRole)[0])
 
+        if self._params['color_theme'] == 'custom':
+            for k in self._params['custom_decoration'].keys():
+                attr = getattr(self, f'_{k}')
+                if k == const.BG_TEXTURE:
+                    self._params['custom_decoration'][k] = f'{const.BG_DIR}/{attr.currentText()}'
+                else:
+                    self._params['custom_decoration'][k] = attr.currentText()
+
         return self._params
 
     def reset(self):
@@ -253,5 +296,20 @@ class SettingsDialog(QDialog):
             item.setData(Qt.DisplayRole, QVariant((lear,)))
             self._lear_order.addItem(item)
 
-    # def _start_type_change(self):
-    #     self._start_type_descr.setText(self._start_type.currentData())
+    def color_theme_change(self, index):
+        theme = self._color_theme.currentText()
+
+        if theme == 'custom':
+            params = self._params['custom_decoration']
+            enabled = True
+        else:
+            params = const.DECORATION_THEMES[theme]
+            enabled = False
+
+        for k, v in params.items():
+            attr = getattr(self, f'_{k}')
+            attr.setEnabled(enabled)
+            if k == const.BG_TEXTURE:
+                attr.setCurrentText(v.split('/')[-1])
+            else:
+                attr.setCurrentText(v.lower())

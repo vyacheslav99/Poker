@@ -124,3 +124,49 @@ DECORATION_THEMES = {
     },
     'custom': {}
 }
+
+COLORS = tuple('aliceblue,antiquewhite,aqua,aquamarine,azure,beige,bisque,black,blanchedalmond,blue,blueviolet,brown,' \
+    'burlywood,cadetblue,chartreuse,chocolate,coral,cornflowerblue,cornsilk,crimson,cyan,darkblue,darkcyan,darkgoldenrod,' \
+    'darkgray,darkgreen,darkgrey,darkkhaki,darkmagenta,darkolivegreen,darkorange,darkorchid,darkred,darksalmon,' \
+    'darkseagreen,darkslateblue,darkslategray,darkslategrey,darkturquoise,darkviolet,deeppink,deepskyblue,dimgray,dimgrey,' \
+    'dodgerblue,firebrick,floralwhite,forestgreen,fuchsia,gainsboro,ghostwhite,gold,goldenrod,gray,grey,green,greenyellow,' \
+    'honeydew,hotpink,indianred,indigo,ivory,khaki,lavender,lavenderblush,lawngreen,lemonchiffon,lightblue,lightcoral,' \
+    'lightcyan,lightgoldenrodyellow,lightgray,lightgreen,lightgrey,lightpink,lightsalmon,lightseagreen,lightskyblue,' \
+    'lightslategray,lightslategrey,lightsteelblue,lightyellow,lime,limegreen,linen,magenta,maroon,mediumaquamarine,' \
+    'mediumblue,mediumorchid,mediumpurple,mediumseagreen,mediumslateblue,mediumspringgreen,mediumturquoise,mediumvioletred,' \
+    'midnightblue,mintcream,mistyrose,moccasin,navajowhite,navy,oldlace,olive,olivedrab,orange,orangered,orchid,' \
+    'palegoldenrod,palegreen,paleturquoise,palevioletred,papayawhip,peachpuff,peru,pink,plum,powderblue,purple,red,' \
+    'rosybrown,royalblue,saddlebrown,salmon,sandybrown,seagreen,seashell,sienna,silver,skyblue,slateblue,slategray,' \
+    'slategrey,snow,springgreen,steelblue,tan,teal,thistle,tomato,turquoise,violet,wheat,white,whitesmoke,yellow,' \
+    'yellowgreen'.split(','))
+
+THEME_CONTROLS_TITLE = {
+    BG_TEXTURE: 'Текстура фона',
+    BG_COLOR: 'Цвет фона',
+    BG_COLOR_2: 'Цвет фона 2',
+    BG_DISABLED: 'Фон неактивного\nэлемента',
+    BG_DARK_BTN: 'Фон кнопки\nВ темную',
+    BG_JOKER_LEAR_BTN: 'Фон кнопок\nвыбора масти джокера',
+    COLOR_MAIN: 'Основной цвет',
+    COLOR_EXTRA: 'Дополнительный цвет',
+    COLOR_EXTRA_2: 'Дополнительный цвет 2',
+    COLOR_DISABLED: 'Цвет неактивного\nэлемента',
+    COLOR_GOOD: 'Цвет хорошего',
+    COLOR_BAD: 'Цвет плохого',
+    COLOR_NEUTRAL: 'Цвет нейтрального',
+    COLOR_DARK_BTN: 'Цвет кнопки\nВ темную',
+    COLOR_DEAL_NORMAL: 'Цвет обычной',
+    COLOR_DEAL_NOTRUMP: 'Цвет бескозырки',
+    COLOR_DEAL_DARK: 'Цвет темной',
+    COLOR_DEAL_GOLD: 'Цвет золотой',
+    COLOR_DEAL_MIZER: 'Цвет мизера',
+    COLOR_DEAL_BROW: 'Цвет лобовой',
+    BG_PLAYER_1: 'Фон игрок 1',
+    COLOR_PLAYER_1: 'Цвет игрок 1',
+    BG_PLAYER_2: 'Фон игрок 2',
+    COLOR_PLAYER_2: 'Цвет игрок 2',
+    BG_PLAYER_3: 'Фон игрок 3',
+    COLOR_PLAYER_3: 'Цвет игрок 3',
+    BG_PLAYER_4: 'Фон игрок 4',
+    COLOR_PLAYER_4: 'Цвет игрок 4'
+}
