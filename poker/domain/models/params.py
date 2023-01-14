@@ -33,6 +33,7 @@ class Params(BaseModel):
         self.custom_decoration = const.DECORATION_THEMES['green'].copy()
 
         super(Params, self).__init__(filename, **kwargs)
+
         self.custom_decoration.update({k: v for k, v in const.DECORATION_THEMES['green'].items()
                                        if k not in self.custom_decoration})
 

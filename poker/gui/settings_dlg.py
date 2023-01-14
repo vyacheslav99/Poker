@@ -6,10 +6,6 @@ from gui import const
 from core import const as eng_const
 from domain.models.params import Profiles
 
-# список доступных стилей графического интерфейса
-# ключи задаются в методе QApplication.setStyle(style)
-# print(QStyleFactory.keys())
-
 
 class SettingsDialog(QDialog):
 
@@ -19,14 +15,14 @@ class SettingsDialog(QDialog):
         self._profiles = profiles
 
         # элементы управления
-        self._color_theme = None            # Цветовая тема
         self._deck_type = None              # Вид колоды
         self._back_type = None              # Вид рубашки
         self._sort_order = None             # Порядок сортировки карт на руках
         self._lear_order = None             # Порядок расположения мастей на руках
         self._start_type = None             # Вариант начала игры
         self._current_profile = None        # Смена текущего профиля
-        # self._start_type_descr = None
+        self._color_theme = None            # Цветовая тема
+        self._style = None                  # Графический стиль
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/settings.ico'))
         self.setWindowTitle('Настройки')
@@ -44,18 +40,25 @@ class SettingsDialog(QDialog):
         btn_cancel = QPushButton(QIcon(f'{const.RES_DIR}/cancel.png'), 'Отмена')
         btn_cancel.setFixedWidth(140)
         btn_cancel.clicked.connect(self.reject)
+        btn_reset = QPushButton('Сброс настроек')
+        btn_reset.setFixedWidth(150)
+        btn_reset.clicked.connect(self.reset)
+
         buttons_box = QHBoxLayout()
-        buttons_box.addWidget(btn_ok)
-        buttons_box.addWidget(btn_cancel)
+        buttons_box.addWidget(btn_reset, alignment=Qt.AlignLeft)
+        buttons_box.addWidget(btn_ok, 1, alignment=Qt.AlignRight)
+        buttons_box.addWidget(btn_cancel, alignment=Qt.AlignRight)
+        btn_ok.setFocus()
 
         group = QGroupBox()
         layout = QGridLayout()
         layout.setHorizontalSpacing(20)
+        layout.setVerticalSpacing(20)
 
         # Текущий профиль
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Текущий профиль'))
-        l2.addSpacing(35)
+        l2.addSpacing(30)
         self._current_profile = QComboBox()
         self._current_profile.setEditable(False)
         self._current_profile.setFixedWidth(230)
@@ -65,6 +68,91 @@ class SettingsDialog(QDialog):
 
         l2.addWidget(self._current_profile)
         layout.addLayout(l2, 1, 1, Qt.AlignLeft)
+
+        # Вариант начала игры
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Вариант начала игры'))
+        l2.addSpacing(12)
+        self._start_type = QComboBox()
+        self._start_type.setEditable(False)
+        self._start_type.setFixedWidth(230)
+
+        for descr in const.GAME_START_TYPES:
+            self._start_type.addItem(f'{descr[0]}', QVariant(descr[1]))
+
+        l2.addWidget(self._start_type)
+        layout.addLayout(l2, 2, 1, Qt.AlignLeft)
+
+        # Выбор колоды
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Колода'))
+        l2.addSpacing(95)
+        self._deck_type = QComboBox()
+        self._deck_type.setEditable(False)
+        self._deck_type.setIconSize(QSize(64, 64))
+        self._deck_type.setFixedWidth(230)
+
+        for i, deck in enumerate(const.DECK_NAMES):
+            px = QPixmap(f'{const.CARD_DECK_DIR}/{const.DECK_TYPE[i]}/qs.bmp')
+            self._deck_type.addItem(QIcon(px), deck)
+
+        l2.addWidget(self._deck_type)
+        layout.addLayout(l2, 3, 1, Qt.AlignLeft)
+
+        # Выбор рубашки
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Рубашка'))
+        # l2.addSpacing(10)
+        self._back_type = QComboBox()
+        self._back_type.setEditable(False)
+        self._back_type.setIconSize(QSize(64, 64))
+        self._back_type.setFixedWidth(230)
+
+        for i in range(1, 10):
+            px = QPixmap(f'{const.CARD_BACK_DIR}/back{i}.bmp')
+            self._back_type.addItem(QIcon(px), f'Рубашка {i}')
+
+        l2.addWidget(self._back_type)
+        layout.addLayout(l2, 3, 2, Qt.AlignLeft)
+
+        # Сортировка карт
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Сортировка карт'))
+        l2.addSpacing(37)
+        self._sort_order = QComboBox()
+        self._sort_order.setEditable(False)
+        self._sort_order.setFixedWidth(230)
+
+        for i in range(2):
+            self._sort_order.addItem('По возрастанию' if i == 0 else 'По убыванию')
+
+        l2.addWidget(self._sort_order)
+        layout.addLayout(l2, 4, 1, Qt.AlignLeft)
+
+        # Порядок мастей
+        l2 = QVBoxLayout()
+        l2.setAlignment(Qt.AlignLeft)
+        # l2.addWidget(QLabel('Порядок расположения мастей'))
+        # l2.addSpacing(5)
+        self._lear_order = QListWidget()
+        self._lear_order.setFlow(QListView.LeftToRight)
+        self._lear_order.setGridSize(QSize(64, 32))
+        self._lear_order.setMovement(QListView.Snap)
+        self._lear_order.setFixedHeight(40)
+        self._lear_order.setFixedWidth(300)
+        self._lear_order.setDefaultDropAction(Qt.MoveAction)
+        self._lear_order.setToolTip('Порядок расположения мастей\nЧтобы изменить порядок, перетащи масть мышкой в нужное место')
+        l2.addWidget(self._lear_order)
+        layout.addLayout(l2, 4, 2, Qt.AlignLeft)
+
+        group.setLayout(layout)
+        main_layout.addWidget(group)
+
+        # Группа Оформление
+        group = QGroupBox('Оформление')
+        layout = QGridLayout()
+        layout.setHorizontalSpacing(10)
+        layout.setVerticalSpacing(10)
 
         # Тема оформления
         l2 = QHBoxLayout()
@@ -78,95 +166,31 @@ class SettingsDialog(QDialog):
             self._color_theme.addItem(theme)
 
         l2.addWidget(self._color_theme)
-        layout.addLayout(l2, 1, 2, Qt.AlignLeft)
+        layout.addLayout(l2, 1, 1, alignment=Qt.AlignLeft)
 
-        # Вариант начала игры
+        # Стиль
         l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Вариант начала игры'))
+        l2.addWidget(QLabel('Стиль'))
         l2.addSpacing(10)
-        self._start_type = QComboBox()
-        self._start_type.setEditable(False)
-        self._start_type.setFixedWidth(230)
+        self._style = QComboBox()
+        self._style.setEditable(False)
+        self._style.setFixedWidth(100)
 
-        for descr in const.GAME_START_TYPES:
-            self._start_type.addItem(f'{descr[0]}', QVariant(descr[1]))
+        for style in QStyleFactory.keys():
+            self._style.addItem(style)
 
-        # self._start_type.currentIndexChanged.connect(self._start_type_change)
-        l2.addWidget(self._start_type)
-        layout.addLayout(l2, 2, 1, Qt.AlignLeft)
-        # self._start_type_descr = QLabel('Выбери вариант')
-        # layout.addWidget(self._start_type_descr, 1, 2)
-
-        # Сортировка карт
-        l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Сортировка карт'))
-        l2.addSpacing(47)
-        self._sort_order = QComboBox()
-        self._sort_order.setEditable(False)
-        self._sort_order.setFixedWidth(230)
-
-        for i in range(2):
-            self._sort_order.addItem('По возрастанию' if i == 0 else 'По убыванию')
-
-        l2.addWidget(self._sort_order)
-        layout.addLayout(l2, 3, 1, Qt.AlignLeft)
-
-        # Порядок мастей
-        l2 = QVBoxLayout()
-        l2.setAlignment(Qt.AlignLeft)
-        l2.addWidget(QLabel('Порядок расположения мастей'))
-        l2.addSpacing(5)
-        self._lear_order = QListWidget()
-        self._lear_order.setFlow(QListView.LeftToRight)
-        self._lear_order.setGridSize(QSize(64, 32))
-        self._lear_order.setMovement(QListView.Snap)
-        self._lear_order.setFixedHeight(50)
-        self._lear_order.setFixedWidth(300)
-        self._lear_order.setDefaultDropAction(Qt.MoveAction)
-        self._lear_order.setToolTip('Чтобы изменить порядок, перетащи масть мышкой в нужное место')
-        l2.addWidget(self._lear_order)
-        layout.addLayout(l2, 4, 1, Qt.AlignLeft)
-
-        # Выбор колоды
-        l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Колода'))
-        l2.addSpacing(20)
-        self._deck_type = QComboBox()
-        self._deck_type.setEditable(False)
-        self._deck_type.setIconSize(QSize(64, 64))
-        self._deck_type.setFixedWidth(230)
-
-        for i, deck in enumerate(const.DECK_NAMES):
-            px = QPixmap(f'{const.CARD_DECK_DIR}/{const.DECK_TYPE[i]}/qs.bmp')
-            self._deck_type.addItem(QIcon(px), deck)
-
-        l2.addWidget(self._deck_type)
-        layout.addLayout(l2, 2, 2, Qt.AlignLeft)
-
-        # Выбор рубашки
-        l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Рубашка'))
-        l2.addSpacing(10)
-        self._back_type = QComboBox()
-        self._back_type.setEditable(False)
-        self._back_type.setIconSize(QSize(64, 64))
-        self._back_type.setFixedWidth(230)
-
-        for i in range(1, 10):
-            px = QPixmap(f'{const.CARD_BACK_DIR}/back{i}.bmp')
-            self._back_type.addItem(QIcon(px), f'Рубашка {i}')
-
-        l2.addWidget(self._back_type)
-        layout.addLayout(l2, 3, 2, Qt.AlignLeft)
-
-        # Кнопка сброса на стандартные
-        btn_reset = QPushButton('Сброс настроек')
-        btn_reset.setFixedWidth(150)
-        btn_reset.clicked.connect(self.reset)
-        layout.addWidget(btn_reset, 4, 2, Qt.AlignRight | Qt.AlignBottom)
+        l2.addWidget(self._style)
+        layout.addLayout(l2, 1, 2, alignment=Qt.AlignRight)
+        # layout.addWidget(QFrame(), 2, 1, 2, 2)
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(line, 3, 1, 3, 2)
 
         group.setLayout(layout)
+        main_layout.addSpacing(5)
         main_layout.addWidget(group)
+        main_layout.addSpacing(10)
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
 
@@ -177,11 +201,12 @@ class SettingsDialog(QDialog):
         if params:
             self._params = params
 
-        self._color_theme.setCurrentText(self._params.get('color_theme', 'green'))
         self._deck_type.setCurrentIndex(const.DECK_TYPE.index(self._params.get('deck_type', 'eng')))
         self._back_type.setCurrentIndex(self._params.get('back_type', 1) - 1)
         self._sort_order.setCurrentIndex(self._params.get('sort_order', 0))
         self._start_type.setCurrentIndex(self._params.get('start_type', const.GAME_START_TYPE_ALL))
+        self._color_theme.setCurrentText(self._params.get('color_theme', 'green'))
+        self._style.setCurrentText(self._params.get('style', 'Fusion'))
 
         if self._profiles.count():
             self._current_profile.setCurrentIndex(self._profiles.get_item(self._params.get('user'))[0])
@@ -194,12 +219,13 @@ class SettingsDialog(QDialog):
             self._lear_order.addItem(item)
 
     def get_params(self):
-        self._params['color_theme'] = self._color_theme.currentText()
         self._params['deck_type'] = const.DECK_TYPE[self._deck_type.currentIndex()]
         self._params['back_type'] = self._back_type.currentIndex() + 1
         self._params['sort_order'] = self._sort_order.currentIndex()
         self._params['start_type'] = self._start_type.currentIndex()
         self._params['user'] = self._current_profile.currentData()
+        self._params['color_theme'] = self._color_theme.currentText()
+        self._params['style'] = self._style.currentText()
 
         self._params['lear_order'] = []
         for i in range(self._lear_order.count()):
@@ -213,11 +239,12 @@ class SettingsDialog(QDialog):
         if res != QMessageBox.Yes:
             return
 
-        self._color_theme.setCurrentText('green')
         self._deck_type.setCurrentIndex(0)
         self._back_type.setCurrentIndex(0)
         self._sort_order.setCurrentIndex(0)
         self._start_type.setCurrentIndex(const.GAME_START_TYPE_ALL)
+        self._color_theme.setCurrentText('green')
+        self._style.setCurrentText('Fusion')
 
         self._lear_order.clear()
         for lear in (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS):

@@ -86,6 +86,11 @@ class MainWnd(QMainWindow):
         self.show()
 
     def apply_decoration(self):
+        self.app.setStyle(self.params.style)
+        f = self.app.font()
+        f.setPointSize(10)
+        self.app.setFont(f)
+
         if self.params.bg_texture():
             felt = QBrush(QPixmap(self.params.bg_texture()))
             self.scene.setBackgroundBrush(felt)
