@@ -57,30 +57,33 @@ GAME_START_TYPES = (
 )
 
 # ключи параметров темы оформления
-# FONT_FAMILY = 'font_family'               # шрифт - только это пока под вопросом
+# FONT_FAMILY = 'font_family'                   # шрифт - только это пока под вопросом
 # фон, цвет фона
-BG_TEXTURE = 'bg_texture'                   # фоновый рисунок
-BG_COLOR = 'bg_color'                       # основной цвет
-BG_COLOR_2 = 'bg_color_2'                   # дополнительный цвет
-BG_DISABLED = 'bg_disabled'                 # цевет неактивного элемента
-BG_DARK_BTN = 'bg_dark_btn'                 # цвет кнопки "в темную"
-BG_JOKER_LEAR_BTN = 'bg_joker_lear_btn'     # цвет кнопок выбора масти джокера
+BG_TEXTURE = 'bg_texture'                       # фоновый рисунок
+BG_COLOR = 'bg_color'                           # основной цвет
+BG_BUTTONS = 'bg_buttons'                       # Фон кнопок на столе
+BG_BUTTONS_2 = 'bg_buttons_2'                   # Фон кнопок на столе, дополнительнй
+BG_DARK_BTN = 'bg_dark_btn'                     # цвет кнопки "в темную"
+BG_JOKER_LEAR_BTN = 'bg_joker_lear_btn'         # цвет кнопок выбора масти джокера
+BG_DISABLED = 'bg_disabled'                     # цевет неактивного элемента
 # цвета текста
-COLOR_MAIN = 'color_main'                   # основной цвет (заказ, счет, имя пользователя и пр.)
-COLOR_EXTRA = 'color_extra'                 # дополнительный (подсказка на столе, шапка таблицы и пр.)
-COLOR_EXTRA_2 = 'color_extra_2'             # дополнительный еще (надписи на некоторых кнопках)
-COLOR_DISABLED = 'color_disabled'           # цевет неактивного элемента
-COLOR_GOOD = 'color_good'                   # цвет позитивных сообщений
-COLOR_BAD = 'color_bad'                     # цвет негативных сообщений
-COLOR_NEUTRAL = 'color_neutral'             # цвет нейтральных сообщений
-COLOR_DARK_BTN = 'color_dark_btn'           # цвет кнопки "в темную"
+COLOR_BUTTONS = 'color_buttons'                 # текст кнопок на столе
+COLOR_BUTTONS_2 = 'color_buttons_2'             # текст кнопок на столе, дополнительнй
+COLOR_DARK_BTN = 'color_dark_btn'               # цвет кнопки "в темную"
+COLOR_DISABLED = 'color_disabled'               # цевет неактивного элемента
+COLOR_MAIN = 'color_main'                       # основной цвет (заказ, имя игрока)
+COLOR_EXTRA = 'color_extra'                     # дополнительный (подсказка на столе)
+COLOR_EXTRA_2 = 'color_extra_2'                 # дополнительный еще (уровень риска)
+COLOR_GOOD = 'color_good'                       # цвет позитивных сообщений
+COLOR_BAD = 'color_bad'                         # цвет негативных сообщений
+COLOR_NEUTRAL = 'color_neutral'                 # цвет нейтральных сообщений
 # цвета надписей раздач
-COLOR_DEAL_NORMAL = 'color_deal_normal'     # обычная
-COLOR_DEAL_NOTRUMP = 'color_deal_notrump'   # бескозырка
-COLOR_DEAL_DARK = 'color_deal_dark'         # темная
-COLOR_DEAL_GOLD = 'color_deal_gold'         # золотая
-COLOR_DEAL_MIZER = 'color_deal_mizer'       # мизер
-COLOR_DEAL_BROW = 'color_deal_brow'         # лобовая
+COLOR_DEAL_NORMAL = 'color_deal_normal'         # обычная
+COLOR_DEAL_NOTRUMP = 'color_deal_notrump'       # бескозырка
+COLOR_DEAL_DARK = 'color_deal_dark'             # темная
+COLOR_DEAL_GOLD = 'color_deal_gold'             # золотая
+COLOR_DEAL_MIZER = 'color_deal_mizer'           # мизер
+COLOR_DEAL_BROW = 'color_deal_brow'             # лобовая
 # цвета игроков в таблице хода игры
 BG_PLAYER_1 = 'bg_player_1'
 COLOR_PLAYER_1 = 'color_player_1'
@@ -96,18 +99,21 @@ DECORATION_THEMES = {
     'green': {
         BG_TEXTURE: f'{BG_DIR}/cards_cloth.jpg',
         BG_COLOR: 'DarkGreen',
-        BG_COLOR_2: 'YellowGreen',
-        BG_DISABLED: 'Gray',
+        BG_BUTTONS: 'DarkGreen',
+        BG_BUTTONS_2: 'YellowGreen',
         BG_DARK_BTN: 'DarkRed',
         BG_JOKER_LEAR_BTN: 'LightCyan',
+        BG_DISABLED: 'Gray',
+        COLOR_DISABLED: 'DimGray',
         COLOR_MAIN: 'Aqua',
         COLOR_EXTRA: 'Yellow',
-        COLOR_EXTRA_2: 'Purple',
-        COLOR_DISABLED: 'DimGray',
+        COLOR_EXTRA_2: 'LightCyan',
+        COLOR_BUTTONS: 'Lime',
+        COLOR_BUTTONS_2: 'Purple',
+        COLOR_DARK_BTN: 'Gold',
         COLOR_GOOD: 'Lime',
         COLOR_BAD: 'Chocolate',
         COLOR_NEUTRAL: 'Gold',
-        COLOR_DARK_BTN: 'Gold',
         COLOR_DEAL_NORMAL: 'LightCyan',
         COLOR_DEAL_NOTRUMP: 'Lime',
         COLOR_DEAL_DARK: 'Black',
@@ -144,30 +150,33 @@ COLORS = tuple('aliceblue,antiquewhite,aqua,aquamarine,azure,beige,bisque,black,
 THEME_CONTROLS_TITLE = {
     BG_TEXTURE: 'Текстура фона',
     BG_COLOR: 'Цвет фона',
-    BG_COLOR_2: 'Цвет фона 2',
     BG_DISABLED: 'Фон неактивного\nэлемента',
+    BG_BUTTONS: 'Фон кнопок',
+    BG_BUTTONS_2: 'Фон кнопок 2',
     BG_DARK_BTN: 'Фон кнопки\nВ темную',
-    BG_JOKER_LEAR_BTN: 'Фон кнопок\nвыбора масти джокера',
+    BG_JOKER_LEAR_BTN: 'Фон кнопок\nмасти джокера',
     COLOR_MAIN: 'Основной цвет',
-    COLOR_EXTRA: 'Дополнительный цвет',
-    COLOR_EXTRA_2: 'Дополнительный цвет 2',
+    COLOR_EXTRA: 'Доп цвет',
+    COLOR_EXTRA_2: 'Доп цвет 2',
     COLOR_DISABLED: 'Цвет неактивного\nэлемента',
+    COLOR_BUTTONS: 'Цвет кнопок',
+    COLOR_BUTTONS_2: 'Цвет кнопок 2',
+    COLOR_DARK_BTN: 'Цвет кнопки\nВ темную',
     COLOR_GOOD: 'Цвет хорошего',
     COLOR_BAD: 'Цвет плохого',
     COLOR_NEUTRAL: 'Цвет нейтрального',
-    COLOR_DARK_BTN: 'Цвет кнопки\nВ темную',
-    COLOR_DEAL_NORMAL: 'Цвет обычной',
-    COLOR_DEAL_NOTRUMP: 'Цвет бескозырки',
-    COLOR_DEAL_DARK: 'Цвет темной',
-    COLOR_DEAL_GOLD: 'Цвет золотой',
-    COLOR_DEAL_MIZER: 'Цвет мизера',
-    COLOR_DEAL_BROW: 'Цвет лобовой',
-    BG_PLAYER_1: 'Фон игрок 1',
-    COLOR_PLAYER_1: 'Цвет игрок 1',
-    BG_PLAYER_2: 'Фон игрок 2',
-    COLOR_PLAYER_2: 'Цвет игрок 2',
-    BG_PLAYER_3: 'Фон игрок 3',
-    COLOR_PLAYER_3: 'Цвет игрок 3',
-    BG_PLAYER_4: 'Фон игрок 4',
-    COLOR_PLAYER_4: 'Цвет игрок 4'
+    COLOR_DEAL_NORMAL: 'Цвет раздачи:\nобычная',
+    COLOR_DEAL_NOTRUMP: 'Цвет раздачи:\nбескозырка',
+    COLOR_DEAL_DARK: 'Цвет раздачи:\nтемная',
+    COLOR_DEAL_GOLD: 'Цвет раздачи:\nзолотая',
+    COLOR_DEAL_MIZER: 'Цвет раздачи:\nмизер',
+    COLOR_DEAL_BROW: 'Цвет раздачи:\nлобовая',
+    BG_PLAYER_1: 'Фон игрока 1',
+    COLOR_PLAYER_1: 'Цвет игрока 1',
+    BG_PLAYER_2: 'Фон игрока 2',
+    COLOR_PLAYER_2: 'Цвет игрока 2',
+    BG_PLAYER_3: 'Фон игрока 3',
+    COLOR_PLAYER_3: 'Цвет игрока 3',
+    BG_PLAYER_4: 'Фон игрока 4',
+    COLOR_PLAYER_4: 'Цвет игрока 4'
 }

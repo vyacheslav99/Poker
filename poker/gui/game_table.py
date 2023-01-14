@@ -40,7 +40,7 @@ class GameTableDialog(QDialog):
         f.setPointSize(12)
         self.btn.setFont(f)
         self.btn.setStyleSheet('QPushButton {background-color: %s; color: %s}' %
-                               (self.params.bg_color_2(), self.params.color_extra_2()))
+                               (self.params.bg_buttons_2(), self.params.color_buttons_2()))
         self.btn.clicked.connect(self.close)
 
         # table
@@ -62,8 +62,8 @@ class GameTableDialog(QDialog):
         for i, cap in enumerate(['Заказ', 'Взял', 'Очки', 'Счет'] * len(self.players), 1):
             self.header.setItem(1, i, QTableWidgetItem(cap))
 
-        self.set_column_style(self.header, 0, 0, 1, Qt.AlignHCenter, self.params.color_extra_2(),
-                              self.params.bg_color_2(), 13, 75)
+        self.set_column_style(self.header, 0, 0, 1, Qt.AlignHCenter, self.params.color_buttons_2(),
+                              self.params.bg_buttons_2(), 13, 75)
         self.header.item(0, 0).setBackground(QColor(self.params.bg_color()))
 
         j = 1
@@ -141,7 +141,7 @@ class GameTableDialog(QDialog):
             item.setToolTip(item.text())
             self.table.setItem(r, i, item)
 
-        self.set_column_style(self.table, 0, r, r, Qt.AlignHCenter, colors[0], self.params.bg_color_2(), 13, 70)
+        self.set_column_style(self.table, 0, r, r, Qt.AlignHCenter, colors[0], self.params.bg_buttons_2(), 13, 70)
 
         j = 1
         for i in range(len(self.players)):

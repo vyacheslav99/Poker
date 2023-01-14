@@ -118,7 +118,7 @@ class SettingsDialog(QDialog):
             self._back_type.addItem(QIcon(px), f'Рубашка {i}')
 
         l2.addWidget(self._back_type)
-        layout.addLayout(l2, 3, 2, Qt.AlignLeft)
+        layout.addLayout(l2, 3, 2, Qt.AlignRight)
 
         # Сортировка карт
         l2 = QHBoxLayout()
@@ -148,7 +148,7 @@ class SettingsDialog(QDialog):
         self._lear_order.setDefaultDropAction(Qt.MoveAction)
         self._lear_order.setToolTip('Порядок расположения мастей\nЧтобы изменить порядок, перетащи масть мышкой в нужное место')
         l2.addWidget(self._lear_order)
-        layout.addLayout(l2, 4, 2, Qt.AlignLeft)
+        layout.addLayout(l2, 4, 2, Qt.AlignRight)
 
         group.setLayout(layout)
         main_layout.addWidget(group)
@@ -165,7 +165,7 @@ class SettingsDialog(QDialog):
         l2.addSpacing(10)
         self._color_theme = QComboBox()
         self._color_theme.setEditable(False)
-        self._color_theme.setFixedWidth(100)
+        self._color_theme.setFixedWidth(120)
 
         for theme in const.DECORATION_THEMES.keys():
             self._color_theme.addItem(theme)
@@ -180,28 +180,30 @@ class SettingsDialog(QDialog):
         l2.addSpacing(10)
         self._style = QComboBox()
         self._style.setEditable(False)
-        self._style.setFixedWidth(100)
+        self._style.setFixedWidth(120)
 
         for style in QStyleFactory.keys():
             self._style.addItem(style)
 
         l2.addWidget(self._style)
         layout.addLayout(l2, 1, 3, alignment=Qt.AlignRight)
-        # line = QFrame()
-        # line.setFrameShape(QFrame.HLine)
-        # line.setFrameShadow(QFrame.Sunken)
-        # layout.addWidget(line, 3, 1, 3, 3)
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(line, 2, 1, 2, 3)
 
         row = 4
         col = 1
-        for attr_name in const.DECORATION_THEMES['green'].keys():
+        for i, attr_name in enumerate(const.DECORATION_THEMES['green'].keys()):
             l2 = QHBoxLayout()
-            l2.addWidget(QLabel(const.THEME_CONTROLS_TITLE[attr_name]))
+            lb = QLabel(const.THEME_CONTROLS_TITLE[attr_name])
+            lb.setAlignment(Qt.AlignRight)
+            l2.addWidget(lb, alignment=Qt.AlignRight | Qt.AlignVCenter)
             # l2.addSpacing(10)
             attr = QComboBox()
             attr.setEditable(False)
             attr.setIconSize(QSize(16, 16))
-            attr.setFixedWidth(100)
+            attr.setFixedWidth(120)
             setattr(self, f'_{attr_name}', attr)
 
             if attr_name == const.BG_TEXTURE:
@@ -219,7 +221,7 @@ class SettingsDialog(QDialog):
             layout.addLayout(l2, row, col)
 
             col += 1
-            if col > 3:
+            if col > 3 or i == 1:
                 row += 1
                 col = 1
 

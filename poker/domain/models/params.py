@@ -46,17 +46,32 @@ class Params(BaseModel):
     def bg_color(self):
         return self._from_theme(const.BG_COLOR)
 
-    def bg_color_2(self):
-        return self._from_theme(const.BG_COLOR_2)
+    def bg_buttons(self):
+        return self._from_theme(const.BG_BUTTONS)
 
-    def bg_disabled(self):
-        return self._from_theme(const.BG_DISABLED)
+    def bg_buttons_2(self):
+        return self._from_theme(const.BG_BUTTONS_2)
 
     def bg_dark_btn(self):
         return self._from_theme(const.BG_DARK_BTN)
 
     def bg_joker_lear_btn(self):
         return self._from_theme(const.BG_JOKER_LEAR_BTN)
+
+    def bg_disabled(self):
+        return self._from_theme(const.BG_DISABLED)
+
+    def color_buttons(self):
+        return self._from_theme(const.COLOR_BUTTONS)
+
+    def color_buttons_2(self):
+        return self._from_theme(const.COLOR_BUTTONS_2)
+
+    def color_dark_btn(self):
+        return self._from_theme(const.COLOR_DARK_BTN)
+
+    def color_disabled(self):
+        return self._from_theme(const.COLOR_DISABLED)
 
     def color_main(self):
         return self._from_theme(const.COLOR_MAIN)
@@ -67,9 +82,6 @@ class Params(BaseModel):
     def color_extra_2(self):
         return self._from_theme(const.COLOR_EXTRA_2)
 
-    def color_disabled(self):
-        return self._from_theme(const.COLOR_DISABLED)
-
     def color_good(self):
         return self._from_theme(const.COLOR_GOOD)
 
@@ -78,9 +90,6 @@ class Params(BaseModel):
 
     def color_neutral(self):
         return self._from_theme(const.COLOR_NEUTRAL)
-
-    def color_dark_btn(self):
-        return self._from_theme(const.COLOR_DARK_BTN)
 
     def color_deal_normal(self):
         return self._from_theme(const.COLOR_DEAL_NORMAL)

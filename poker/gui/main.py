@@ -643,7 +643,7 @@ class MainWnd(QMainWindow):
 
         self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Запись игры', (160, 50),
                                                 (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
-                                                12, 65, self.params.bg_color_2(), self.params.color_extra_2())
+                                                12, 65, self.params.bg_buttons_2(), self.params.color_buttons_2())
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -663,7 +663,7 @@ class MainWnd(QMainWindow):
                 self.set_text(p.name, (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1]),
                               QColor(self.params.color_main()), 18, 65)
                 self.set_text(core_const.RISK_LVL_NAMES[p.risk_level], (ap[i][0] + 3, fp[i][1] + const.FACE_SIZE[1] + 30),
-                              QColor(self.params.color_deal_normal()), 13, 65)
+                              QColor(self.params.color_extra_2()), 13, 65)
                 self.add_player_label(i, 'order', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1]),
                                       self.params.color_main(), 16, 70)
                 self.add_player_label(i, 'take', '', (ap[i][0] + const.FACE_SIZE[0] + lo[i][0], ap[i][1] + lo[i][1] + 35),
@@ -909,23 +909,24 @@ class MainWnd(QMainWindow):
         self.table_label.setAlignment(Qt.AlignHCenter)
 
         self.next_button = self.add_button(self.next_button_click, 'Далее', (150, 50), (pos[0] + 230, pos[1] + 70),
-                                           16, 65, self.params.bg_color(), self.params.color_good())
+                                           16, 65, self.params.bg_buttons(), self.params.color_buttons())
         self.next_button.hide()
 
         jx = pos[0] + 65
         jy = pos[1] + const.TABLE_AREA_SIZE[1] - 45
         self.ja_take_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE), 'ЗАБРАТЬ',
-                                           (150, 60), (jx, jy), 12, 65, self.params.bg_color(), self.params.color_good())
+                                           (150, 60), (jx, jy), 12, 65, self.params.bg_buttons(),
+                                           self.params.color_buttons())
         self.ja_take_btn.hide()
 
         self.ja_take_by_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_TAKE_BY_MAX),
-                                              'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, self.params.bg_color(),
-                                              self.params.color_good())
+                                              'ПО СТАРШИМ', (150, 60), (jx + 160, jy), 12, 65, self.params.bg_buttons(),
+                                              self.params.color_buttons())
         self.ja_take_by_btn.hide()
 
         self.ja_give_btn = self.add_button(lambda: self.joker_action_btn_click(core_const.JOKER_GIVE), 'СКИНУТЬ',
-                                           (150, 60), (jx + 320, jy), 12, 65, self.params.bg_color(),
-                                           self.params.color_good())
+                                           (150, 60), (jx + 320, jy), 12, 65, self.params.bg_buttons(),
+                                           self.params.color_buttons())
         self.ja_give_btn.hide()
 
         x = pos[0] + 130
@@ -1050,7 +1051,7 @@ class MainWnd(QMainWindow):
 
         btnl = self.add_button(lambda: self.dark_btn_click(False), 'В светлую', (150, 50),
                                (round(const.AREA_SIZE[0] / 2) + round(150 / 2) + 5, round(const.AREA_SIZE[1] / 2)),
-                               16, 65, self.params.bg_color(), self.params.color_good())
+                               16, 65, self.params.bg_buttons(), self.params.color_buttons())
         self.buttons.append(btnl)
 
     def show_order_buttons(self):
@@ -1075,8 +1076,8 @@ class MainWnd(QMainWindow):
 
             b, s = self.game.check_order(i, self.order_dark or False)
             btn = self.add_button(lambda state, z=i: self.order_btn_click(z), f'{i}', (50, 50), (x, y),
-                                  16, 65, self.params.bg_color() if b else self.params.bg_disabled(),
-                                  self.params.color_good() if b else self.params.color_disabled())
+                                  16, 65, self.params.bg_buttons() if b else self.params.bg_disabled(),
+                                  self.params.color_buttons() if b else self.params.color_disabled())
 
             btn.setDisabled(not b)
             btn.setToolTip(s)
@@ -1124,7 +1125,7 @@ class MainWnd(QMainWindow):
         """
 
         row = []
-        colors = [self.params.color_extra_2()]
+        colors = [self.params.color_buttons_2()]
         max_scores = max([p.total_scores for p in self.players])
         if not deal:
             deal = self.game.current_deal()
