@@ -1,6 +1,11 @@
 import secrets
 import string
 import random
+import threading
+import time
+
+from typing import Optional
+
 from core import const
 
 
@@ -46,3 +51,31 @@ def gen_passwd(length=9):
     random.shuffle(password)
     password = ''.join(password)
     return password
+
+
+class IntervalTimer:
+
+    def __init__(self, interval: float, func: callable, *args, **kwargs):
+        self._break = False
+        self._interval = interval
+        self._callback = func
+        self._args = args
+        self._kwargs = kwargs
+        self._thread = threading.Thread(target=self._do_exec)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def _do_exec(self):
+        while not self._break:
+            time.sleep(self._interval)
+            if not self._break:
+                try:
+                    self._callback(*self._args, **self._kwargs)
+                except:
+                    break
+
+    def active(self):
+        return self._thread.is_alive()
+
+    def stop(self):
+        self._break = True

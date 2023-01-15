@@ -3,6 +3,8 @@ import random
 import pickle
 import json
 
+from datetime import datetime, timedelta
+
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -33,6 +35,8 @@ class MainWnd(QMainWindow):
         self.curr_profile = None
 
         self._started = False
+        self._timer = None
+        self._start_time = None
         self.players = []
         self.table = {}
         self.game = None
@@ -58,7 +62,10 @@ class MainWnd(QMainWindow):
         self.ja_lear_buttons = []
         self.round_result_labels = []
         self.service_wnd = None
-        self.sb_label = None
+        self.sb_labels = (QLabel(), QLabel())
+
+        for i, lb in enumerate(self.sb_labels):
+            self.statusBar().addPermanentWidget(lb, stretch=1 if i == 0 else -1)
 
         self.start_actn = None
         self.throw_actn = None
@@ -285,18 +292,15 @@ class MainWnd(QMainWindow):
             self.set_profile(new_uid)
             self.save_params()
 
-    def set_status_message(self, message):
+    def set_status_message(self, message, index):
         """
         Записать сообщение в статусбар
 
         :param message: str: Строка сообщения.
+        :param index: int: Индекс панели статусбара, куда записать сообщение
         """
 
-        if self.sb_label:
-            self.statusBar().removeWidget(self.sb_label)
-
-        self.sb_label = QLabel(message)
-        self.statusBar().addPermanentWidget(self.sb_label, 1)
+        self.sb_labels[index].setText(message)
 
     def add_label(self, size, position, font_size, font_weight, color=None, text=None, tooltip=None):
         """
@@ -392,7 +396,7 @@ class MainWnd(QMainWindow):
 
         self.params.user = uid
         self.curr_profile = self.profiles.get(uid)
-        self.set_status_message(self.curr_profile.name)
+        self.set_status_message(self.curr_profile.name, 0)
 
         if os.path.exists(f'{self.get_profile_dir()}/options.json'):
             self.options = Options(filename=f'{self.get_profile_dir()}/options.json')
@@ -480,7 +484,10 @@ class MainWnd(QMainWindow):
 
         # И поехала игра
         self._started = True
+        self._start_time = datetime.now()
         self.is_new_round = True
+        self._timer = utils.IntervalTimer(1.0, self.display_game_time)
+
         self.init_game_table()
         self.next()
 
@@ -516,6 +523,8 @@ class MainWnd(QMainWindow):
                 self.players[i] = user
 
         self._started = True
+        self._start_time = datetime.now()
+        self._timer = utils.IntervalTimer(1.0, self.display_game_time)
 
         # отрисуем игровой стол
         self.init_game_table()
@@ -550,7 +559,11 @@ class MainWnd(QMainWindow):
         if self.game and self.game.started():
             self.game.stop(flag)
 
+        if self._timer and self._timer.active():
+            self._timer.stop()
+
         self._started = False
+        self._start_time = None
         self.players = []
         self.clear()
 
@@ -596,6 +609,7 @@ class MainWnd(QMainWindow):
             self.remove_widget(lb)
         self.round_result_labels = []
 
+        self.set_status_message('', 1)
         self.scene.clear()
         self.refresh_menu_actions()
 
@@ -1562,3 +1576,13 @@ class MainWnd(QMainWindow):
                                 self.curr_profile.uid if self.curr_profile else None)
 
         QMessageBox.information(self._stat_wnd, 'Сообщение', 'Поздравляю! Все похерено успешно', QMessageBox.Ok)
+
+    def game_time(self):
+        if self._start_time:
+            return datetime.now() - self._start_time
+
+        return None
+
+    def display_game_time(self):
+        if self.started():
+            self.set_status_message(f"Время игры: {str(self.game_time()).split('.')[0]}", 1)
