@@ -37,6 +37,7 @@ class MainWnd(QMainWindow):
         self._started = False
         self._timer = None
         self._start_time = None
+        self._prv_game_time = None
         self.players = []
         self.table = {}
         self.game = None
@@ -484,6 +485,7 @@ class MainWnd(QMainWindow):
 
         # И поехала игра
         self._started = True
+        self._prv_game_time = None
         self._start_time = datetime.now()
         self.is_new_round = True
         self._timer = utils.IntervalTimer(1.0, self.display_game_time)
@@ -508,6 +510,7 @@ class MainWnd(QMainWindow):
         self.joker_walk_card = mt['joker_walk_card']
         self.is_new_lap = mt['is_new_lap']
         self.is_new_round = mt['is_new_round']
+        self._prv_game_time = timedelta(seconds=mt['game_time'] or 0.0)
 
         self.players = self.game.players
         for i, p in enumerate(self.players):
@@ -544,7 +547,8 @@ class MainWnd(QMainWindow):
             'order_dark': self.order_dark,
             'joker_walk_card': self.joker_walk_card,
             'is_new_lap': self.is_new_lap,
-            'is_new_round': self.is_new_round
+            'is_new_round': self.is_new_round,
+            'game_time': self.game_time().total_seconds()
         }
 
         fn = f'{self.get_profile_dir()}/save/auto.psg'
@@ -1579,9 +1583,12 @@ class MainWnd(QMainWindow):
 
     def game_time(self):
         if self._start_time:
-            return datetime.now() - self._start_time
+            if self._prv_game_time:
+                return self._prv_game_time + (datetime.now() - self._start_time)
+            else:
+                return datetime.now() - self._start_time
 
-        return None
+        return timedelta(seconds=0.0)
 
     def display_game_time(self):
         if self.started():
