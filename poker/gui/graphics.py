@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from gui import const
-from modules.core import const as core_const
+from core import const as core_const
 
 
 class QCard(QGraphicsPixmapItem):
@@ -65,11 +65,11 @@ class QCard(QGraphicsPixmapItem):
 
         self.setToolTip(val)
 
-    def set_color_shadow(self):
+    def set_color_shadow(self, color: str):
         sh = QGraphicsDropShadowEffect()
         sh.setBlurRadius(30)
         sh.setOffset(5)
-        sh.setColor(Qt.green)
+        sh.setColor(QColor(color))
         self.setGraphicsEffect(sh)
 
     def set_std_shadow(self):

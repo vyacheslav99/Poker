@@ -1,36 +1,38 @@
 import logging
-import controllers
+
+from typing import Optional, Tuple, List, Callable
+
+from domain.models.request import HttpMethods
 
 
-class Router(object):
+class Router:
 
-    __methods = ('get', 'post', 'put', 'delete', 'head', 'options', 'patch', 'copy', 'link', 'unlink', 'purge', 'lock',
-                 'unlock', 'propfind', 'view')
+    _instance = None
+    _roadmap = {}
+    __methods = tuple(v for v in HttpMethods)
     __reg_error = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}'
     __reg_conflict = 'Cannot register handler for route "{0} {1}"! {2}\nProcessed: {3}.{4}\nRegistered: {5}.{6}'
     __found_endpoint = 'Found endpoint :: {0} {1} : {2}.{3}'
 
     def __new__(cls):
-        if not hasattr(cls, '_instance'):
+        if not cls._instance:
             cls._instance = super(Router, cls).__new__(cls)
-            cls._instance._build_roadmap()
+            cls._instance._roadmap = {k: {} for k in cls.__methods}
 
         return cls._instance
 
-    def _build_roadmap(self):
+    def collect(self, package):
         # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
         # types: A: absolute, V: variable, S: starting with
 
-        self._roadmap = {k: {} for k in self.__methods}
-
-        for cls in dir(controllers):
+        for cls in dir(package):
             if not cls.startswith('_'):
-                obj = eval(f'controllers.{cls}')
+                obj = getattr(package, cls)
 
-                if str(type(obj)).startswith('<class'):
-                    for attr in obj.__dict__:
-                        if not attr.startswith('_') and type(obj.__dict__[attr]) == staticmethod:
-                            func = eval(f'controllers.{cls}.{attr}')
+                if str(type(obj)).startswith('<class') and str(type(obj)) != "<class 'module'>":
+                    for attr in dir(obj):
+                        if not attr.startswith('_') and type(obj.__dict__.get(attr)) == staticmethod:
+                            func = getattr(obj, attr)
                             doc = func.__doc__
 
                             if doc:
@@ -45,17 +47,17 @@ class Router(object):
 
                                 self.register(routes, methods, func, cls, attr)
 
-    def _add(self, path, method, func, class_name, attr_name):
+    def _add(self, path: str, method: str, func: Callable, class_name: str, attr_name: str):
         if not path or not path.startswith('/'):
-            raise Exception(self.__reg_error.format(method.upper(), path, 'Bad url address!', class_name, attr_name))
+            raise Exception(self.__reg_error.format(method, path, 'Bad url address!', class_name, attr_name))
 
         type_ = 'A'
         params = []
         path = path.lower().strip()
-        method = method.lower().strip()
+        method = method.upper().strip()
 
         if method not in self.__methods:
-            raise Exception(self.__reg_error.format(method.upper(), path, 'Method not allowed!', class_name, attr_name))
+            raise Exception(self.__reg_error.format(method, path, 'Method not allowed!', class_name, attr_name))
 
         if path.find('<') > -1:
             type_ = 'V'
@@ -65,18 +67,19 @@ class Router(object):
         elif path.endswith('*'):
             type_ = 'S'
 
-        self._raise_if_exists(method, path, class_name, attr_name)
-        logging.debug(self.__found_endpoint.format(method.upper(), path, class_name, attr_name))
+        self._raise_if_exists(type_, method, path, class_name, attr_name)
+        logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
 
-    def _raise_if_exists(self, method, path, class_name, attr_name):
+    def _raise_if_exists(self, type_, method: str, path: str, class_name: str, attr_name: str):
         key, obj = self._get(method, path)
 
-        if obj and obj[0] != 'S' and (obj[3] != class_name or obj[4] != attr_name):
-            raise Exception(self.__reg_conflict.format(
-                method.upper(), path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
+        if key:
+            if (obj[0] in ['S', 'A'] and key == path) or (obj[0] == 'V' and type_ == 'V'):
+                raise Exception(self.__reg_conflict.format(
+                    method, path, 'Route already registered!', class_name, attr_name, obj[3], obj[4]))
 
-    def _find_var(self, method, path):
+    def _find_var(self, method: str, path: str) -> Optional[str]:
         for tmpl in self._roadmap[method]:
             if self._roadmap[method][tmpl][0] == 'V':
                 if self._match(tmpl, path):
@@ -84,7 +87,7 @@ class Router(object):
 
         return None
 
-    def _find_starts(self, method, path):
+    def _find_starts(self, method: str, path: str) -> Optional[str]:
         for tmpl in self._roadmap[method]:
             if self._roadmap[method][tmpl][0] == 'S':
                 if path.startswith(tmpl.replace('*', '')):
@@ -92,9 +95,9 @@ class Router(object):
 
         return None
 
-    def _get(self, method, path):
+    def _get(self, method: str, path: str) -> Tuple[str, tuple]:
         path = path.lower()
-        method = method.lower()
+        method = method.upper()
         key = path
 
         # абсолютное совпадение
@@ -114,7 +117,7 @@ class Router(object):
 
         return key, obj
 
-    def _match(self, template, path):
+    def _match(self, template: str, path: str) -> bool:
         tmpl_parts = template.split('/')
         path_parts = path.split('/')
 
@@ -127,15 +130,18 @@ class Router(object):
 
         return True
 
-    def register(self, routes, methods, func, class_name, attr_name):
+    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str | None, attr_name: str):
         for path in routes:
             if not methods:
                 methods = [s for s in self.__methods]
 
             for method in methods:
-                self._add(path, method, func, class_name, attr_name)
+                try:
+                    self._add(path, method, func, class_name, attr_name)
+                except Exception as e:
+                    logging.exception('Route registration error', exc_info=e)
 
-    def get(self, method, path):
+    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
         params = []
         key, obj = self._get(method, path)
 

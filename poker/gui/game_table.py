@@ -2,25 +2,35 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+from domain.models.params import Params
 from gui import const
 
 
 class GameTableDialog(QDialog):
 
-    users_color = ('Yellow', 'GreenYellow', 'Silver', 'Aqua')
-    users_bg = ('DarkGreen', 'MidnightBlue', 'DarkRed', 'DarkSlateGray')
-
-    def __init__(self, players, parent=None):
+    def __init__(self, players, parent):
         super().__init__(parent)
 
         self.players = players
+        self.params: Params = parent.params
         self.game_table = None
+
+        self.users_color = (self.params.color_player_1(), self.params.color_player_2(), self.params.color_player_3(),
+                            self.params.color_player_4())
+        self.users_bg = (self.params.bg_player_1(), self.params.bg_player_2(), self.params.bg_player_3(),
+                         self.params.bg_player_4())
 
         self.setWindowTitle('Запись хода игры')
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        if self.params.bg_texture():
+            bg = QPixmap(self.params.bg_texture())
+        else:
+            bg = QColor(self.params.bg_color())
+
         pal = QPalette()
-        pal.setBrush(QPalette.Window, QBrush(QPixmap(f'{const.BG_DIR}/default.bmp')))
+        pal.setBrush(QPalette.Window, QBrush(bg))
         self.setPalette(pal)
 
         self.btn = QPushButton("Продолжить")
@@ -29,12 +39,13 @@ class GameTableDialog(QDialog):
         f.setWeight(65)
         f.setPointSize(12)
         self.btn.setFont(f)
-        self.btn.setStyleSheet('QPushButton {background-color: YellowGreen; color: DarkBlue}')
+        self.btn.setStyleSheet('QPushButton {background-color: %s; color: %s}' %
+                               (self.params.bg_buttons_2(), self.params.color_buttons_2()))
         self.btn.clicked.connect(self.close)
 
         # table
         self.header = QTableWidget(self)
-        self.header.setStyleSheet('QTableWidget {background-color: Green}')
+        self.header.setStyleSheet('QTableWidget {background-color: %s}' % self.params.bg_color())
         self.header.setColumnCount(len(self.players) * 4 + 1)
         self.header.setRowCount(2)
         self.header.setItem(0, 0, QTableWidgetItem(' '))
@@ -51,8 +62,9 @@ class GameTableDialog(QDialog):
         for i, cap in enumerate(['Заказ', 'Взял', 'Очки', 'Счет'] * len(self.players), 1):
             self.header.setItem(1, i, QTableWidgetItem(cap))
 
-        self.set_column_style(self.header, 0, 0, 1, Qt.AlignHCenter, 'Purple', 'YellowGreen', 13, 75)
-        self.header.item(0, 0).setBackground(QColor('Green'))
+        self.set_column_style(self.header, 0, 0, 1, Qt.AlignHCenter, self.params.color_buttons_2(),
+                              self.params.bg_buttons_2(), 13, 75)
+        self.header.item(0, 0).setBackground(QColor(self.params.bg_color()))
 
         j = 1
         for i in range(len(self.players)):
@@ -71,7 +83,7 @@ class GameTableDialog(QDialog):
         self.header.setFixedHeight(76)
 
         self.table = QTableWidget(self)
-        self.table.setStyleSheet('QTableWidget {background-color: Green}')
+        self.table.setStyleSheet('QTableWidget {background-color: %s}' % self.params.bg_color())
         self.table.setColumnCount(len(self.players) * 4 + 1)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -129,7 +141,7 @@ class GameTableDialog(QDialog):
             item.setToolTip(item.text())
             self.table.setItem(r, i, item)
 
-        self.set_column_style(self.table, 0, r, r, Qt.AlignHCenter, colors[0], 'YellowGreen', 13, 70)
+        self.set_column_style(self.table, 0, r, r, Qt.AlignHCenter, colors[0], self.params.bg_buttons_2(), 13, 70)
 
         j = 1
         for i in range(len(self.players)):

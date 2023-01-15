@@ -4,7 +4,8 @@
 
 import sys, random
 
-from modules.core import const, helpers, engine
+from domain.models.player import Player
+from core import helpers, const, engine
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'СиТриПиО', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',
           'Птица Говорун', 'Маленький помошник Сатаны', 'Эндрю', 'Валли', 'Бамблби', 'Маленикий помошник Санты',
@@ -46,6 +47,7 @@ class Game:
 
     def poll_of_agreements(self):
         """ Опросить о договоренностях на игру """
+        self.options = {}
 
         print('Перед началом игры надо кое о чем договориться')
         self.skip_lines(1)
@@ -59,14 +61,14 @@ class Game:
 
         for i in range(player_cnt):
             if i == 0 and not self.autogame:
-                self.players.append(helpers.Player())
+                self.players.append(Player())
                 self.players[i].uid = i
                 self.players[i].is_robot = False
                 self.players[i].name = self.ask('Как звать-то тебя?') or f'{humans.pop(random.randrange(0, len(humans)))}'
                 print(f'Тебя зовут: {self.players[i].name}')
                 print('Теперь давай заполним остальных игроков...')
             else:
-                self.players.append(helpers.Player())
+                self.players.append(Player())
                 self.players[i].uid = i
                 if auto:
                     self.players[i].is_robot = True
@@ -91,8 +93,6 @@ class Game:
         print(f"Ставка: {self.options['bet']} коп")
 
         # 3. Раздачи
-        self.options = {}
-
         if self.ask('Хочешь выбрать, какие раздачи будут в игре (по умолчанию будут присутсвовать все) (д/Н)?').lower() in ('д', 'y'):
             print('Сейчас будут перечисляться названия раздач. Если надо исключить какую-то - отвечай "н", иначе она будет включена')
             self.skip_lines(1)
@@ -271,12 +271,12 @@ class Game:
         self.skip_lines(2)
         print('-= Итоги игры =-')
         for p in self.game.players:
-            money = '{0:.2f}'.format(p.total_money)
+            money = '{0:.2f}'.format(p.money)
             rub, kop = money.split('.')
             print(f'{p.name}:    {p.total_scores} :: {rub} руб {kop} коп')
 
         self.skip_lines(1)
-        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.total_money)}')
+        print(f'Победил {max([p for p in self.game.players], key=lambda x: x.money)}')
         print(random.choice(congratulations))
 
     def ask_joker_walk(self, card):

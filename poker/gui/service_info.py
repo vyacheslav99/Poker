@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from gui import const
-from modules.core import const as core_const
+from core import const as core_const
 
 
 class ServiceInfoDialog(QDialog):

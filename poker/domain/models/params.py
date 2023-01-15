@@ -3,22 +3,25 @@ import json
 import uuid
 import random
 
-from modules.base_model import BaseModel
+from domain.models.base_model import BaseModel
+from domain.models.player import Player
 from gui import const, utils
-from modules.core import const as eng_const
-from modules.core.helpers import Player
+from core import const as eng_const
 
 
 class Params(BaseModel):
 
     def __init__(self, filename=None, **kwargs):
         self.user = None
+        # Цветовая тема оформления
         self.color_theme = 'green'
+        # Графический стиль интерфейса
+        self.style = 'Fusion'
         # Вариант колоды
         self.deck_type = random.choice(const.DECK_TYPE)
         # Вариант рубашки
         self.back_type = random.randint(1, 9)
-        # Сортировка карт пр показе у игрока: 0: По возрастанию, 1: По убыванию
+        # Сортировка карт при показе у игрока: 0: По возрастанию, 1: По убыванию
         self.sort_order = 0
         # Порядок расположения мастей
         self.lear_order = (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS)
@@ -26,8 +29,109 @@ class Params(BaseModel):
         self.start_type = const.GAME_START_TYPE_ALL
         # Игровая статистика локальных компьютерных игроков. key - имя, value - dict, представление RobotStatItem
         self.robots_stat = {}
+        # Кастомные настройки оформления
+        self.custom_decoration = const.DECORATION_THEMES['green'].copy()
 
         super(Params, self).__init__(filename, **kwargs)
+
+        self.custom_decoration.update({k: v for k, v in const.DECORATION_THEMES['green'].items()
+                                       if k not in self.custom_decoration})
+
+    def _from_theme(self, param):
+        return const.DECORATION_THEMES[self.color_theme].get(param, self.custom_decoration[param])
+
+    def bg_texture(self):
+        return self._from_theme(const.BG_TEXTURE)
+
+    def bg_color(self):
+        return self._from_theme(const.BG_COLOR)
+
+    def bg_buttons(self):
+        return self._from_theme(const.BG_BUTTONS)
+
+    def bg_buttons_2(self):
+        return self._from_theme(const.BG_BUTTONS_2)
+
+    def bg_dark_btn(self):
+        return self._from_theme(const.BG_DARK_BTN)
+
+    def bg_joker_lear_btn(self):
+        return self._from_theme(const.BG_JOKER_LEAR_BTN)
+
+    def bg_disabled(self):
+        return self._from_theme(const.BG_DISABLED)
+
+    def color_buttons(self):
+        return self._from_theme(const.COLOR_BUTTONS)
+
+    def color_buttons_2(self):
+        return self._from_theme(const.COLOR_BUTTONS_2)
+
+    def color_dark_btn(self):
+        return self._from_theme(const.COLOR_DARK_BTN)
+
+    def color_disabled(self):
+        return self._from_theme(const.COLOR_DISABLED)
+
+    def color_main(self):
+        return self._from_theme(const.COLOR_MAIN)
+
+    def color_extra(self):
+        return self._from_theme(const.COLOR_EXTRA)
+
+    def color_extra_2(self):
+        return self._from_theme(const.COLOR_EXTRA_2)
+
+    def color_good(self):
+        return self._from_theme(const.COLOR_GOOD)
+
+    def color_bad(self):
+        return self._from_theme(const.COLOR_BAD)
+
+    def color_neutral(self):
+        return self._from_theme(const.COLOR_NEUTRAL)
+
+    def color_deal_normal(self):
+        return self._from_theme(const.COLOR_DEAL_NORMAL)
+
+    def color_deal_notrump(self):
+        return self._from_theme(const.COLOR_DEAL_NOTRUMP)
+
+    def color_deal_dark(self):
+        return self._from_theme(const.COLOR_DEAL_DARK)
+
+    def color_deal_gold(self):
+        return self._from_theme(const.COLOR_DEAL_GOLD)
+
+    def color_deal_mizer(self):
+        return self._from_theme(const.COLOR_DEAL_MIZER)
+
+    def color_deal_brow(self):
+        return self._from_theme(const.COLOR_DEAL_BROW)
+
+    def bg_player_1(self):
+        return self._from_theme(const.BG_PLAYER_1)
+
+    def color_player_1(self):
+        return self._from_theme(const.COLOR_PLAYER_1)
+
+    def bg_player_2(self):
+        return self._from_theme(const.BG_PLAYER_2)
+
+    def color_player_2(self):
+        return self._from_theme(const.COLOR_PLAYER_2)
+
+    def bg_player_3(self):
+        return self._from_theme(const.BG_PLAYER_3)
+
+    def color_player_3(self):
+        return self._from_theme(const.COLOR_PLAYER_3)
+
+    def bg_player_4(self):
+        return self._from_theme(const.BG_PLAYER_4)
+
+    def color_player_4(self):
+        return self._from_theme(const.COLOR_PLAYER_4)
 
 
 class Options(BaseModel):
@@ -159,11 +263,11 @@ class RobotStatItem(BaseModel):
     def __init__(self, filename=None, **kwargs):
         self.started = 0            # кол-во начатых игр (+1 в начале игры)
         self.completed = 0          # кол-во сыгранных игр (+1 при завершении игры)
-        self.throw = 0              # кол-во брошенных партий (+1 когда бросаешь игру)
+        self.thrown = 0             # кол-во брошенных партий (+1 когда бросаешь игру)
         self.winned = 0             # кол-во выигранных партий (+1 при выигрыше (набрал больше всех))
         self.lost = 0               # кол-во проигранных партий (+1 при проигрыше)
         self.summary = 0            # общий суммарный выигрыш (сумма очков всех сыгранных партий)
-        self.money = 0.0            # общая сумма денег (сумма денег всех сыгранных партий)
+        self.total_money = 0.0      # общая сумма денег (сумма денег всех сыгранных партий)
         self.last_scores = 0        # последний выигрыш (очки)
         self.last_money = 0.0       # последний выигрыш (деньги)
         self.best_scores = 0        # лучший выигрыш (очки)

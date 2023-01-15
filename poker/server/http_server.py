@@ -4,19 +4,20 @@ import threading
 import datetime, time
 import random
 
+from typing import Optional, Tuple, List
+
 from configs import config
-from .handler import Handler
-from .router import Router
+from server.handler import Handler
 
 
 class Worker(object):
 
-    def __init__(self, index):
+    def __init__(self, index: int):
         self.id = index
-        self._queue = []
-        self._thread = None
+        self._queue: List[Tuple[str, int, socket.socket]] = []
+        self._thread: Optional[threading.Thread] = None
         self._break = False
-        self._handler = None
+        self._handler: Optional[Handler] = None
         self._done = True
         self._locked = False
         self.last_used = datetime.datetime.now()
@@ -47,11 +48,11 @@ class Worker(object):
 
     def init_thread(self):
         self._thread = threading.Thread(target=self._do_process)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
         logging.debug('[{0}] Initialized Thread: {1}'.format(self.id, self._thread.name))
 
-    def accept(self, sock, client_ip, client_port):
+    def accept(self, sock: socket.socket, client_ip: str, client_port: int):
         self._queue.append((client_ip, client_port, sock))
 
     def stop(self):
@@ -61,16 +62,16 @@ class Worker(object):
         if self._handler:
             self._handler.stop()
 
-        if self._thread and self._thread.isAlive():
-            self._thread.join(3)
+        if self._thread and self._thread.is_alive():
+            self._thread.join(0.5)
 
         for conn in self._queue:
             conn[2].close()
 
-    def is_free(self):
+    def is_free(self) -> bool:
         return self._done
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return len(self._queue) == 0
 
     def lock(self):
@@ -79,21 +80,21 @@ class Worker(object):
     def unlock(self):
         self._locked = False
 
-    def locked(self):
+    def locked(self) -> bool:
         return self._locked
 
 
 class HTTPServer(object):
 
-    def __init__(self, host, port, init_handlers=0, max_handlers=0):
+    def __init__(self, host: str, port: int, init_handlers: int = 0, max_handlers: int = 0):
         self.active = False
-        self.sock = None
-        self.host = host
-        self.port = port
-        self.init_handlers = init_handlers
-        self.max_handlers = max_handlers
-        self.wrk_pool = []
-        self.wrk_svc_thread = None
+        self.sock: Optional[socket.socket] = None
+        self.host: str = host
+        self.port: int = port
+        self.init_handlers: int = init_handlers
+        self.max_handlers: int = max_handlers
+        self.wrk_pool: List[Worker] = []
+        self.wrk_svc_thread: Optional[threading.Thread] = None
 
     def _init_socket(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -105,14 +106,14 @@ class HTTPServer(object):
 
     def _start_wrk_service(self):
         self.wrk_svc_thread = threading.Thread(target=self._do_wrk_service)
-        self.wrk_svc_thread.setDaemon(True)
+        self.wrk_svc_thread.daemon = True
         self.wrk_svc_thread.start()
 
     def _init_workers(self):
         for i in range(self.init_handlers):
             self.wrk_pool.append(Worker(i))
 
-    def _get_worker(self):
+    def _get_worker(self) -> Optional[Worker]:
         for wrk in self.wrk_pool:
             if wrk.is_free() and not wrk.locked():
                 wrk.last_used = datetime.datetime.now()
@@ -151,7 +152,7 @@ class HTTPServer(object):
                     self.wrk_pool[i].unlock()
                     i += 1
 
-    def _accept_connection(self, sock, client_ip, client_port):
+    def _accept_connection(self, sock: socket.socket, client_ip: str, client_port: int):
         worker = self._get_worker()
 
         if worker is None:
@@ -182,7 +183,7 @@ class HTTPServer(object):
                 raise
 
             try:
-                conn.setblocking(0)
+                conn.setblocking(False)
                 self._accept_connection(conn, *addr)
                 # возврат завершившихся workers в пул вынесен в отдельный поток
                 # self._check_workers()
@@ -191,7 +192,6 @@ class HTTPServer(object):
 
     def start(self):
         try:
-            Router()  # init singleton object
             self.active = True
             self._init_workers()
             self._start_wrk_service()
@@ -202,18 +202,19 @@ class HTTPServer(object):
         except Exception as e:
             logging.exception("Unexpected error: %s" % e)
         finally:
-            self._close()
+            self._finalize()
 
     def stop(self):
         self.active = False
 
-    def _close(self):
+    def _finalize(self):
         logging.info('Stop listen on {0}:{1}'.format(self.host, self.port))
+
         if self.sock:
             self.sock.close()
 
-        if self.wrk_svc_thread and self.wrk_svc_thread.isAlive():
-            self.wrk_svc_thread.join(3)
+        if self.wrk_svc_thread and self.wrk_svc_thread.is_alive():
+            self.wrk_svc_thread.join(0.5)
 
         for wrk in self.wrk_pool:
             wrk.stop()

@@ -1,12 +1,7 @@
 import sys
 # import argparse
-from PyQt5.QtWidgets import QApplication  #, QStyleFactory
-
+from PyQt5.QtWidgets import QApplication
 from gui import main
-
-# список доступных стилей графического интерфейса
-# ключи задаются в методе QApplication.setStyle(style)
-# print(QStyleFactory.keys())
 
 
 def run():
@@ -14,12 +9,7 @@ def run():
 
     # ap.add_argument('--cheats_on', action='store_true', help='Включить режим читов')
     # args = ap.parse_args()
-
     app = QApplication(sys.argv)
-    app.setStyle('Fusion')
-    f = app.font()
-    f.setPointSize(10)
-    app.setFont(f)
 
     # не убирай переменную wnd!!! Без нее приложение не работает - процесс есть, а окно пропадает
     # т.е. просто main.MainWnd(app) не работает - надо обязательно присвоить его переменной

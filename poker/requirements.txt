@@ -3,3 +3,5 @@
 chardet
 pyqt5
 colour
+marshmallow
+psycopg2-binary

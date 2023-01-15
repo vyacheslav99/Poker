@@ -2,8 +2,9 @@
 
 import random
 
-from . import const
-from .helpers import GameException, Player, Deal, Card, TableItem
+from core import const
+from core.helpers import GameException, Deal, Card, TableItem
+from domain.models.player import Player
 
 
 class BaseEngine(object):
@@ -261,7 +262,7 @@ class BaseEngine(object):
             scores += x
             detailed.append(x)
 
-        # минусуем итог, если недобор/мизер/причие минусующие условия
+        # минусуем итог, если недобор/мизер/прочие минусующие условия
         if (deal_type == const.DEAL_MIZER and player.take > 0) or (
             deal_type != const.DEAL_MIZER and player.take < player.order and player.order > 0) or (
             deal_type == const.DEAL_GOLD and self._gold_mizer_on_null and player.take == 0):
@@ -405,7 +406,7 @@ class BaseEngine(object):
         Завершение игры, подведение итогов
 
         :param flag: Флаги завершения игры: const.GAME_STOP_...
-            None: закончить и подвести итоги (когда партия завершена и все ходы сиграны - обычный конец игры)
+            None: закончить и подвести итоги (когда партия завершена и все ходы сыграны - обычный конец игры)
             0: отложить партию - просто остановить на время, чтобы потом продолжить (для сохранения/загрузки)
             1: бросить партию. Игра завершается совсем, итоги не подводятся. Тому кто бросил +1 к брошенным играм
         """
@@ -414,7 +415,7 @@ class BaseEngine(object):
 
         if flag == const.GAME_STOP_THROW:
             for p in self._players:
-                p.throw += 1
+                p.thrown += 1
         elif flag == const.GAME_STOP_DEFER:
             return
         else:
@@ -433,31 +434,31 @@ class BaseEngine(object):
                         self._players[ordered[i][0]].lost += 1
 
                     for j in range(len(ordered)):
-                        self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[j][1]
+                        self._players[ordered[i][0]].money += ordered[i][1] - ordered[j][1]
             else:
                 for i in range(len(ordered)):
                     if i == 0:
-                        self._players[ordered[i][0]].total_money += ordered[0][1]
+                        self._players[ordered[i][0]].money += ordered[0][1]
                         # общая статистика
                         self._players[ordered[i][0]].winned += 1
                     else:
-                        self._players[ordered[i][0]].total_money += ordered[i][1] - ordered[0][1]
+                        self._players[ordered[i][0]].money += ordered[i][1] - ordered[0][1]
                         # общая статистика
                         self._players[ordered[i][0]].lost += 1
 
             for p in self._players:
                 # очки умножаем на ставку в копейках и делим на 100 - получаем итог партии в деньгах
-                p.total_money = p.total_money * self._bet / 100.0
+                p.money = p.money * self._bet / 100.0
                 # общая статистика
                 p.completed += 1
                 p.last_scores = p.total_scores
                 p.summary += p.total_scores
-                p.last_money = p.total_money
-                p.money += p.total_money
+                p.last_money = p.money
+                p.total_money += p.money
                 p.best_scores = max(p.best_scores, p.total_scores)
-                p.best_money = max(p.best_money, p.total_money)
+                p.best_money = max(p.best_money, p.money)
                 p.worse_scores = min(p.worse_scores or p.total_scores, p.total_scores)
-                p.worse_money = min(p.worse_money, p.total_money)
+                p.worse_money = min(p.worse_money, p.money)
 
     def next(self):
         """ Центральный метод реализации игрового цикла """
@@ -680,7 +681,7 @@ class BaseEngine(object):
         return self._players
 
     @players.setter
-    def players(self, players:list):
+    def players(self, players: list):
         if len(players) < 3:
             raise GameException('Недостаточно игроков для начала игры! Количество игроков не может быть меньше 3-х')
 

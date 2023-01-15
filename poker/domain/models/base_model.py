@@ -1,7 +1,7 @@
 import json
 
 
-class BaseModel(object):
+class BaseModel:
 
     def __init__(self, filename=None, **kwargs):
         if filename:
@@ -17,7 +17,7 @@ class BaseModel(object):
         """
 
         for k, v in kwargs.items():
-            if hasattr(self, k) and not k.startswith(self.__class__.__name__):
+            if not k.startswith('_') and hasattr(self, k) and not callable(getattr(self, k)):
                 setattr(self, k, v)
 
     def from_dict(self, obj):
@@ -55,7 +55,7 @@ class BaseModel(object):
         :return: dict
         """
 
-        return {k: self.__dict__[k] for k in self.__dict__ if not k.startswith(self.__class__.__name__)}
+        return {k: getattr(self, k) for k in dir(self) if not k.startswith('_') and not callable(getattr(self, k))}
 
     def save(self, filename):
         """

@@ -4,15 +4,15 @@ from PyQt5.QtCore import *
 
 from gui import const
 from gui.graphics import Face2, Avatar, GridMoneyItemDelegate
-from modules.params import Profiles
+from domain.models.params import Profiles
 
 
 class StatisticsWindow(QWidget):
 
     _columns_ = (('name', 'Игрок', ''), ('is_robot', 'ИИ?', 'Робот или Человек?'), ('started', 'Начато', 'Сколько партий начинал'),
-                 ('completed', 'Сыграно', 'Сколько партий доиграно до конца'), ('throw', 'Брошено', 'Сколько партий брошено'),
+                 ('completed', 'Сыграно', 'Сколько партий доиграно до конца'), ('thrown', 'Брошено', 'Сколько партий брошено'),
                  ('winned', 'Выиграно', 'Сколько партий выиграно'), ('lost', 'Проиграно', 'Сколько партий проиграно'),
-                 ('summary', 'Счет', 'Сумма очков за все игры'), ('money', 'Всего денег', 'Сумма денег за все игры'),
+                 ('summary', 'Счет', 'Сумма очков за все игры'), ('total_money', 'Всего денег', 'Сумма денег за все игры'),
                  ('last_scores', 'Последний\nвыигрыш\n(очки)', 'Очки, набранные в последней игре'),
                  ('last_money', 'Последний\nвыигрыш\n(деньги)', 'Деньги, набранные в последней игре'),
                  ('best_scores', 'Лучший\nвыигрыш\n(очки)', 'Самый большой выигрыш за все игры в очках'),
@@ -32,6 +32,7 @@ class StatisticsWindow(QWidget):
 
         # элементы управления
         self._grid = None
+        self.btn_reset = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/player.ico'))
         self.setWindowTitle('Таблица результатов')
@@ -43,12 +44,20 @@ class StatisticsWindow(QWidget):
     def init_ui(self):
         # Кнопка Закрыть
         main_layout = QVBoxLayout()
+        buttons_box = QHBoxLayout()
+        buttons_box.setAlignment(Qt.AlignRight)
+        ib_box = QHBoxLayout()
+        ib_box.setAlignment(Qt.AlignLeft)
+
+        self.btn_reset = QPushButton('Сбросить статистику')
+        ib_box.addWidget(self.btn_reset)
+        buttons_box.addLayout(ib_box, 1)
+
         btn_close = QPushButton('Закрыть')
         btn_close.setDefault(True)
         btn_close.setFixedWidth(140)
         btn_close.clicked.connect(self.close)
-        buttons_box = QHBoxLayout()
-        buttons_box.setAlignment(Qt.AlignRight)
+        btn_close.setShortcut('Esc')
         buttons_box.addWidget(btn_close)
 
         # Собсно Таблица игроков
