@@ -1,17 +1,5 @@
-__history/
-data/
-*.dcu
-*.exe
-*.identcache
-*.dproj.local
-*.dsk
-*.archimate.bak
 config.py
-settings.py
-poker.stat
-logs/
 *.pyc
-*.bat
 __pycache__/
 .idea/
 Pipfile.lock
