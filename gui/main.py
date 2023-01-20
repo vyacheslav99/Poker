@@ -613,7 +613,7 @@ class MainWnd(QMainWindow):
             self.remove_widget(lb)
         self.round_result_labels = []
 
-        self.set_status_message('', 1)
+        self.set_status_message(' ', 1)
         self.scene.clear()
         self.refresh_menu_actions()
 
