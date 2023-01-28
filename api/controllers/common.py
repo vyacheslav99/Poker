@@ -18,7 +18,7 @@ class CommonController:
         if request.method == HttpMethods.HEAD:
             return None
 
-        return 'Still alive'
+        return {'server': 'Poker game server', 'version': '1.0.0', 'status': 'still alive'}
 
     @staticmethod
     def download_file(request):

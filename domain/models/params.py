@@ -12,7 +12,10 @@ from core import const as eng_const
 class Params(BaseModel):
 
     def __init__(self, filename=None, **kwargs):
+        # uid текущего профиля пользователя
         self.user = None
+        # Адрес сервера сетевой игры
+        self.server = None
         # Цветовая тема оформления
         self.color_theme = 'green'
         # Графический стиль интерфейса

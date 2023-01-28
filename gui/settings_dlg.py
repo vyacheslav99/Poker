@@ -4,7 +4,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import const
+from gui import const, client
 from core import const as eng_const
 from domain.models.params import Profiles
 
@@ -23,6 +23,8 @@ class SettingsDialog(QDialog):
         self._lear_order = None             # Порядок расположения мастей на руках
         self._start_type = None             # Вариант начала игры
         self._current_profile = None        # Смена текущего профиля
+        self._server = None                 # Адрес сервера
+        self._server_info = None            # Текст с информацией о состоянии подключения
         self._color_theme = None            # Цветовая тема
         self._style = None                  # Графический стиль
 
@@ -73,6 +75,25 @@ class SettingsDialog(QDialog):
 
         l2.addWidget(self._current_profile)
         layout.addLayout(l2, 1, 1, Qt.AlignLeft)
+
+        # Cервер
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Сервер'))
+        self._server = QLineEdit()
+        # self._server.setFixedWidth(230)
+        # self._server.editingFinished.connect(self._name_edited)
+
+        l2.addWidget(self._server)
+        layout.addLayout(l2, 1, 2, alignment=Qt.AlignRight)
+
+        l2 = QHBoxLayout()
+        btn_connect = QPushButton('Проверить подключение')
+        # btn_connect.setFixedWidth(150)
+        btn_connect.clicked.connect(self.check_connection)
+        self._server_info = QLabel(' ')
+        l2.addWidget(btn_connect)
+        l2.addWidget(self._server_info)
+        layout.addLayout(l2, 2, 2, alignment=Qt.AlignLeft)
 
         # Вариант начала игры
         l2 = QHBoxLayout()
@@ -239,6 +260,7 @@ class SettingsDialog(QDialog):
         if params:
             self._params = params
 
+        self._server.setText(self._params.get('server', ''))
         self._deck_type.setCurrentIndex(const.DECK_TYPE.index(self._params.get('deck_type', 'eng')))
         self._back_type.setCurrentIndex(self._params.get('back_type', 1) - 1)
         self._sort_order.setCurrentIndex(self._params.get('sort_order', 0))
@@ -260,6 +282,7 @@ class SettingsDialog(QDialog):
             self._lear_order.addItem(item)
 
     def get_params(self):
+        self._params['server'] = self._server.text() or None
         self._params['deck_type'] = const.DECK_TYPE[self._deck_type.currentIndex()]
         self._params['back_type'] = self._back_type.currentIndex() + 1
         self._params['sort_order'] = self._sort_order.currentIndex()
@@ -291,6 +314,7 @@ class SettingsDialog(QDialog):
         if res != QMessageBox.Yes:
             return
 
+        self._server.setText('')
         self._deck_type.setCurrentIndex(0)
         self._back_type.setCurrentIndex(0)
         self._sort_order.setCurrentIndex(0)
@@ -325,3 +349,11 @@ class SettingsDialog(QDialog):
                     attr.setCurrentText(v.split('/')[-1])
             else:
                 attr.setCurrentText(v.lower())
+
+    def check_connection(self):
+        if self._server.text().strip():
+            res, mes = client.Client(self._server.text().strip()).is_alive()
+            mes = ': '.join(['OK' if res else 'N/A', mes])
+            self._server_info.setText(mes)
+        else:
+            self._server_info.setText('Введи арес хоста')

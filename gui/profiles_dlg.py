@@ -43,7 +43,7 @@ class ProfilesDialog(QDialog):
         else:
             self.reject()
         
-        super(ProfilesDialog, self).close()
+        return super(ProfilesDialog, self).close()
 
     def init_ui(self):
         # Кнопка Закрыть
