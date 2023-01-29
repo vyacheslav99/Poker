@@ -18,7 +18,6 @@ def is_alive(request):
     return {'server': 'Poker game server', 'version': '1.0.0', 'status': 'still alive'}
 
 
-# пример класса контроллера с ручками, который принимает Router.collect_package
 # class CommonController:
 #
 #     @staticmethod

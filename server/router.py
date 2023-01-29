@@ -21,6 +21,24 @@ class Router:
 
         return cls._instance
 
+    def register_class(self, controller_class):
+        for attr in dir(controller_class):
+            if not attr.startswith('_') and type(controller_class.__dict__.get(attr)) == staticmethod:
+                func = getattr(controller_class, attr)
+                doc = func.__doc__
+
+                if doc:
+                    routes = []
+                    methods = []
+
+                    for line in doc.split('\n'):
+                        if ':route:' in line:
+                            routes.append(line.split(':route:')[1].strip())
+                        if ':methods:' in line:
+                            methods.extend(line.split(':methods:')[1].strip().split(','))
+
+                    self.register(routes, methods, func, class_name=controller_class.__name__, attr_name=attr)
+
     def collect_package(self, package):
         # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
         # types: A: absolute, V: variable, S: starting with
@@ -30,28 +48,28 @@ class Router:
                 obj = getattr(package, cls)
 
                 if str(type(obj)).startswith('<class') and str(type(obj)) != "<class 'module'>":
-                    for attr in dir(obj):
-                        if not attr.startswith('_') and type(obj.__dict__.get(attr)) == staticmethod:
-                            func = getattr(obj, attr)
-                            doc = func.__doc__
+                    self.register_class(obj)
 
-                            if doc:
-                                routes = []
-                                methods = []
-
-                                for line in doc.split('\n'):
-                                    if ':route:' in line:
-                                        routes.append(line.split(':route:')[1].strip())
-                                    if ':methods:' in line:
-                                        methods.extend(line.split(':methods:')[1].strip().split(','))
-
-                                self.register(routes, methods, func, cls, attr)
-
-    def collect(self, collection: List[tuple]):
+    def collect(self, collection: List[Tuple[str, List[str], Callable]]):
         for item in collection:
             path, methods, func = item
+
             for method in methods:
-                self.add(path, method, func)
+                try:
+                    self.add(path, method, func)
+                except Exception as e:
+                    logging.exception('Route registration error', exc_info=e)
+
+    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str = None, attr_name: str = None):
+        for path in routes:
+            if not methods:
+                methods = [s for s in self.__methods]
+
+            for method in methods:
+                try:
+                    self.add(path, method, func, class_name=class_name, attr_name=attr_name)
+                except Exception as e:
+                    logging.exception('Route registration error', exc_info=e)
 
     def add(self, path: str, method: str, func: Callable, class_name: str = None, attr_name: str = None):
         if not path or not path.startswith('/'):
@@ -76,17 +94,6 @@ class Router:
         self._raise_if_exists(type_, method, path, class_name, attr_name)
         logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
-
-    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str = None, attr_name: str = None):
-        for path in routes:
-            if not methods:
-                methods = [s for s in self.__methods]
-
-            for method in methods:
-                try:
-                    self.add(path, method, func, class_name, attr_name)
-                except Exception as e:
-                    logging.exception('Route registration error', exc_info=e)
 
     def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
         params = []

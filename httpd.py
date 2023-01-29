@@ -41,6 +41,7 @@ def main():
     router = Router()
     # router.collect_package(handlers)
     router.collect(collection)
+    # router.register_class(CommonController)
 
     logging.info('Starting server...')
     try:
