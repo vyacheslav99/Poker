@@ -34,7 +34,10 @@ class Handler:
         if self.request:
             return self.request.method
         else:
-            return decode(self.raw_request).split('\r\n')[0].split(' ')[0] or HttpMethods.GET
+            try:
+                return decode(self.raw_request).split('\r\n')[0].split(' ')[0] or HttpMethods.GET
+            except:
+                return HttpMethods.GET
 
     def _create_response(self) -> Optional[Response]:
         if self.__can_stop:

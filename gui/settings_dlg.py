@@ -25,6 +25,7 @@ class SettingsDialog(QDialog):
         self._current_profile = None        # Смена текущего профиля
         self._server = None                 # Адрес сервера
         self._server_info = None            # Текст с информацией о состоянии подключения
+        self._btn_connect = None            # кнопка Проверить подключение
         self._color_theme = None            # Цветовая тема
         self._style = None                  # Графический стиль
 
@@ -80,18 +81,17 @@ class SettingsDialog(QDialog):
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Сервер'))
         self._server = QLineEdit()
-        # self._server.setFixedWidth(230)
-        # self._server.editingFinished.connect(self._name_edited)
 
         l2.addWidget(self._server)
         layout.addLayout(l2, 1, 2, alignment=Qt.AlignRight)
 
         l2 = QHBoxLayout()
-        btn_connect = QPushButton('Проверить подключение')
+        self._btn_connect = QPushButton('Проверить подключение')
         # btn_connect.setFixedWidth(150)
-        btn_connect.clicked.connect(self.check_connection)
-        self._server_info = QLabel(' ')
-        l2.addWidget(btn_connect)
+        self._btn_connect.clicked.connect(self.check_connection)
+        self._server_info = QLabel('Состояние: неизвестно')
+        self._server_info.setStyleSheet('QLabel {color: gray}')
+        l2.addWidget(self._btn_connect)
         l2.addWidget(self._server_info)
         layout.addLayout(l2, 2, 2, alignment=Qt.AlignLeft)
 
@@ -351,9 +351,28 @@ class SettingsDialog(QDialog):
                 attr.setCurrentText(v.lower())
 
     def check_connection(self):
+        color = 'gray'
+
         if self._server.text().strip():
+            self._btn_connect.setEnabled(False)
+            self._server_info.setText('Минуточку...')
+
             res, mes = client.Client(self._server.text().strip()).is_alive()
+            if res:
+                text = 'OK'
+                color = 'green'
+            else:
+                text = 'N/A'
+                color = 'maroon'
+
             mes = ': '.join(['OK' if res else 'N/A', mes])
-            self._server_info.setText(mes)
+            self._server_info.setText(f'Состояние: {text}')
+
+            if not res:
+                QMessageBox.warning(self, 'Ошибка', mes)
+
+            self._btn_connect.setEnabled(True)
         else:
-            self._server_info.setText('Введи арес хоста')
+            self._server_info.setText('не задан хост')
+
+        self._server_info.setStyleSheet(''.join(('QLabel {color:', color, '}')))

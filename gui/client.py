@@ -15,7 +15,7 @@ class Client:
             data = res.json()
 
             if res.ok:
-                if {'server', 'version', 'status'} & set(data.keys()):
+                if {'server', 'version', 'status'} == set(data.keys()):
                     return True, '\n'.join([data[k] for k in data])
                 else:
                     return False, 'Bad response format'
