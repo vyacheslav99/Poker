@@ -9,7 +9,7 @@ from server.router import Router
 from server.db import postgresql_connection
 
 from api.modules.dispatcher import GameDispatcher
-from api import handlers
+from api import handlers, collection
 
 
 def main():
@@ -39,7 +39,8 @@ def main():
     app.db = postgresql_connection(config.DATABASE)
     app.dispatcher = GameDispatcher()
     router = Router()
-    router.collect(handlers)
+    # router.collect_package(handlers)
+    router.collect(collection)
 
     logging.info('Starting server...')
     try:

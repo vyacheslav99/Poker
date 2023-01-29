@@ -5,8 +5,7 @@ import marshmallow
 
 from typing import Optional, Tuple, List, Callable
 
-from api.modules import utils
-from server.helpers import Request, Response, HTTPException, HttpMethods
+from server.helpers import Request, Response, HTTPException, HttpMethods, decode
 from server.router import Router
 
 
@@ -35,7 +34,7 @@ class Handler:
         if self.request:
             return self.request.method
         else:
-            return utils.decode(self.raw_request).split('\r\n')[0].split(' ')[0] or HttpMethods.GET
+            return decode(self.raw_request).split('\r\n')[0].split(' ')[0] or HttpMethods.GET
 
     def _create_response(self) -> Optional[Response]:
         if self.__can_stop:

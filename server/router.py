@@ -21,7 +21,7 @@ class Router:
 
         return cls._instance
 
-    def collect(self, package):
+    def collect_package(self, package):
         # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
         # types: A: absolute, V: variable, S: starting with
 
@@ -46,6 +46,12 @@ class Router:
                                         methods.extend(line.split(':methods:')[1].strip().split(','))
 
                                 self.register(routes, methods, func, cls, attr)
+
+    def collect(self, collection: List[tuple]):
+        for item in collection:
+            path, methods, func = item
+            for method in methods:
+                self.add(path, method, func)
 
     def add(self, path: str, method: str, func: Callable, class_name: str = None, attr_name: str = None):
         if not path or not path.startswith('/'):
