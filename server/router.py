@@ -47,7 +47,7 @@ class Router:
 
                                 self.register(routes, methods, func, cls, attr)
 
-    def _add(self, path: str, method: str, func: Callable, class_name: str, attr_name: str):
+    def add(self, path: str, method: str, func: Callable, class_name: str = None, attr_name: str = None):
         if not path or not path.startswith('/'):
             raise Exception(self.__reg_error.format(method, path, 'Bad url address!', class_name, attr_name))
 
@@ -70,6 +70,32 @@ class Router:
         self._raise_if_exists(type_, method, path, class_name, attr_name)
         logging.debug(self.__found_endpoint.format(method, path, class_name, attr_name))
         self._roadmap[method][path] = (type_, func, params, class_name, attr_name)
+
+    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str = None, attr_name: str = None):
+        for path in routes:
+            if not methods:
+                methods = [s for s in self.__methods]
+
+            for method in methods:
+                try:
+                    self.add(path, method, func, class_name, attr_name)
+                except Exception as e:
+                    logging.exception('Route registration error', exc_info=e)
+
+    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
+        params = []
+        key, obj = self._get(method, path)
+
+        if not obj:
+            return None, None
+
+        if obj[0] == 'V':
+            parts = path.split('/')
+            params = [parts[i] for i in obj[2]]
+        elif obj[0] == 'S':
+            params = [path.replace(key.replace('*', ''), '')]
+
+        return obj[1], params
 
     def _raise_if_exists(self, type_, method: str, path: str, class_name: str, attr_name: str):
         key, obj = self._get(method, path)
@@ -129,29 +155,3 @@ class Router:
                 return False
 
         return True
-
-    def register(self, routes: List[str], methods: List[str], func: Callable, class_name: str | None, attr_name: str):
-        for path in routes:
-            if not methods:
-                methods = [s for s in self.__methods]
-
-            for method in methods:
-                try:
-                    self._add(path, method, func, class_name, attr_name)
-                except Exception as e:
-                    logging.exception('Route registration error', exc_info=e)
-
-    def get(self, method: str, path: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
-        params = []
-        key, obj = self._get(method, path)
-
-        if not obj:
-            return None, None
-
-        if obj[0] == 'V':
-            parts = path.split('/')
-            params = [parts[i] for i in obj[2]]
-        elif obj[0] == 'S':
-            params = [path.replace(key.replace('*', ''), '')]
-
-        return obj[1], params

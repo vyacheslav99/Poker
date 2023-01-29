@@ -1,15 +1,19 @@
+from typing import List
 from functools import wraps
 
 from server.helpers import Request, Response
+from server.router import Router
 from domain.models.base_model import BaseModel
 
+router = Router()
 
-def schemas_definition(query_schema=None, body_schema=None, response_schema=None):
+
+def route(rule: str, methods: List[str], query_schema=None, body_schema=None, response_schema=None):
     def prepare_body(body):
         if isinstance(body, BaseModel):
             body = body.as_dict()
 
-        return dict(success=True, result=response_schema().dump(body))
+        return dict(success=True, result=response_schema().dump(body) if response_schema else body)
 
     def wrapper(func):
         @wraps(func)

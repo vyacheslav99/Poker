@@ -12,7 +12,7 @@ from server.router import Router
 
 class Handler:
 
-    __log_format_str = '[{thread_id}] - {client_ip}:{client_port} "{method} {uri} {protocol}" {code} {len_response}'
+    __log_format_str = '[{thread_id}] - {client_ip}:{client_port} "{method} {uri} {protocol}" {status} {code} {len_response}'
 
     def __init__(self, worker_id: int, sock: socket.socket, client_ip: str, client_port: int):
         self.id: int = worker_id
@@ -118,6 +118,7 @@ class Handler:
                                                       method=self._get_request_method(),
                                                       uri=self.request.uri if self.request else '/',
                                                       protocol=self.response.protocol,
+                                                      status=self.response.status,
                                                       code=self.response.code, len_response=len(self.raw_response)))
 
     def _send_response(self):
