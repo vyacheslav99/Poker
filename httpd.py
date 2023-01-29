@@ -6,7 +6,10 @@ from configs import config
 from server.http_server import HTTPServer
 from server.application import app
 from server.router import Router
-from api import controllers
+from server.db import postgresql_connection
+
+from api.modules.dispatcher import GameDispatcher
+from api import handlers
 
 
 def main():
@@ -33,16 +36,17 @@ def main():
                         config.INIT_HANDLERS, config.MAX_HANDLERS)
 
     logging.debug('Enabled DEDUG mode logging level!')
-    app.initialize()
+    app.db = postgresql_connection(config.DATABASE)
+    app.dispatcher = GameDispatcher()
     router = Router()
-    router.collect(controllers)
+    router.collect(handlers)
 
     logging.info('Starting server...')
     try:
         server.start()
     finally:
         logging.info('Server stopped')
-        app.finalize()
+        app.dispatcher.finalize()
 
 
 if __name__ == '__main__':

@@ -6,9 +6,8 @@ import marshmallow
 from typing import Optional, Tuple, List, Callable
 
 from api.modules import utils
-from server.helpers import Request, Response, HTTPException
+from server.helpers import Request, Response, HTTPException, HttpMethods
 from server.router import Router
-from domain.models.request import HttpMethods
 
 
 class Handler:

@@ -1,9 +1,7 @@
 import os
 
 from configs import config
-from domain.models.request import HttpMethods
-from server.helpers import Response, HTTPException
-from api.modules import utils
+from server.helpers import Response, HTTPException, HttpMethods, get_content_type
 
 
 class CommonController:
@@ -39,7 +37,7 @@ class CommonController:
 
         if os.path.isfile(file_path):
             resp = Response(200, 'OK', protocol=request.protocol,
-                            headers={'Content-Type': utils.get_content_type(file_path),
+                            headers={'Content-Type': get_content_type(file_path),
                                      'Content-Disposition': f"attachment; filename={os.path.split(file_name)[1]}"})
 
             with open(file_path, 'rb') as f:

@@ -2,7 +2,7 @@ import logging
 
 from typing import Optional, Tuple, List, Callable
 
-from domain.models.request import HttpMethods
+from server.helpers import HttpMethods
 
 
 class Router:

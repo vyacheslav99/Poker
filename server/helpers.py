@@ -1,11 +1,47 @@
 import logging
 import datetime
 import json
+import chardet
+import mimetypes
 
+from enum import Enum
 from typing import Optional, Union, Any, Iterable, Mapping, Dict
 from urllib import parse
 
-from api.modules import utils
+CONTENT_TYPE_JSON = 'application/json'
+CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'
+CONTENT_TYPE_TEXT_PLAIN = 'text/plain'
+CONTENT_TYPE_TEXT_HTML = 'text/html'
+
+
+def get_content_type(file_name: str) -> str:
+    return mimetypes.guess_type(file_name)[0] or CONTENT_TYPE_OCTET_STREAM
+
+
+def decode(byte_str: bytes) -> str:
+    enc = chardet.detect(byte_str)
+    return byte_str.decode(enc['encoding'] or 'utf-8')
+
+
+class HttpMethods(str, Enum):
+    GET = 'GET'
+    POST = 'POST'
+    PUT = 'PUT'
+    DELETE = 'DELETE'
+    HEAD = 'HEAD'
+    OPTIONS = 'OPTIONS'
+    PATCH = 'PATCH'
+    COPY = 'COPY'
+    LINK = 'LINK'
+    UNLINK = 'UNLINK'
+    PURGE = 'PURGE'
+    LOCK = 'LOCK'
+    UNLOCK = 'UNLOCK'
+    PROPFIND = 'PROPFIND'
+    VIEW = 'VIEW'
+
+    def __str__(self):
+        return self.value
 
 
 class HTTPException(Exception):
@@ -31,7 +67,7 @@ class Request:
         self._parse_request_str()
 
     def _parse_request_str(self):
-        data = utils.decode(self._raw_request).split('\r\n')
+        data = decode(self._raw_request).split('\r\n')
         logging.debug(data[0])
         self._method, self._uri, self._protocol = data[0].split(' ')
 
@@ -63,7 +99,7 @@ class Request:
             self._json = json.loads(self._body)
 
     def is_json(self):
-        return self._headers.get('Content-Type', '').lower() == utils.CONTENT_TYPE_JSON
+        return self._headers.get('Content-Type', '').lower() == CONTENT_TYPE_JSON
 
     @property
     def method(self) -> Optional[str]:
@@ -149,7 +185,7 @@ class Response:
         if isinstance(self._body, str):
             return self._body
         elif isinstance(self._body, bytes):
-            return utils.decode(self._body)
+            return decode(self._body)
         else:
             try:
                 return json.dumps(self._body)
