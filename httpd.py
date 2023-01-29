@@ -9,6 +9,7 @@ from server.router import Router
 from server.db import postgresql_connection
 
 from api.modules.dispatcher import GameDispatcher
+# handlers надо проимортировать, так как там в init импортируются модули с хэндлерами, чтобы они зарегистрировались
 from api import handlers, collection
 
 
