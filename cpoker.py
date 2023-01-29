@@ -4,7 +4,7 @@
 
 import sys, random
 
-from domain.models.player import Player
+from models.player import Player
 from core import helpers, const, engine
 
 ROBOTS = ('Бендер', 'Флексо', 'Вертер', 'Робот Гедонист', 'СиТриПиО', 'R2D2', 'Громозека', 'Калькулон', 'Терминатор',

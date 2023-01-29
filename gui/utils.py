@@ -4,8 +4,6 @@ import random
 import threading
 import time
 
-from typing import Optional
-
 from core import const
 
 

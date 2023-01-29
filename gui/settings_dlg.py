@@ -6,7 +6,7 @@ from PyQt5.QtCore import *
 
 from gui import const, client
 from core import const as eng_const
-from domain.models.params import Profiles
+from models.params import Profiles
 
 
 class SettingsDialog(QDialog):

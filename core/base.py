@@ -4,7 +4,7 @@ import random
 
 from core import const
 from core.helpers import GameException, Deal, Card, TableItem
-from domain.models.player import Player
+from models.player import Player
 
 
 class BaseEngine(object):

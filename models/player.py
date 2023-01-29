@@ -1,7 +1,7 @@
 import random
 
 from core import const
-from domain.models.base_model import BaseModel
+from models.base_model import BaseModel
 
 
 class Player(BaseModel):
