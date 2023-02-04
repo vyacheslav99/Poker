@@ -1,4 +1,6 @@
 import requests
+import hashlib
+import base64
 
 from typing import Tuple
 
@@ -7,11 +9,11 @@ class Client:
 
     def __init__(self, host):
         self._host = host
-        self._base_url = f'{self._host}/api/v1'
+        self._api_url = f'{self._host}/api/v1'
 
     def is_alive(self) -> Tuple[bool, str]:
         try:
-            res = requests.get(f'{self._base_url}/is_alive')
+            res = requests.get(f'{self._api_url}/is_alive')
             data = res.json()
 
             if res.ok:
