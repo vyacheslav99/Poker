@@ -22,8 +22,9 @@ def get_public_key(request: Request):
 
     raise HTTPException(404, message='No public keys found')
 
+
 @api.endpoint('/file', HttpMethods.GET)
-def download_file(request):
+def download_file(request: Request):
     file_name = request.params.get('file_name', '')
 
     if not file_name:
