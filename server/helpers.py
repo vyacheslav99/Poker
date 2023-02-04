@@ -14,6 +14,36 @@ CONTENT_TYPE_TEXT_PLAIN = 'text/plain'
 CONTENT_TYPE_TEXT_HTML = 'text/html'
 CONTENT_TYPE_PEM = 'application/x-pem-file'
 
+HTTP_CODES = {
+    100: 'Continue',
+    200: 'OK',
+    201: 'Created',
+    202: 'Accepted',
+    300: 'Redirection',
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not Found',
+    405: 'Method Not Allowed',
+    406: 'Not Acceptable',
+    409: 'Conflict',
+    500: 'Internal Server Error'
+}
+
+def http_code(http_status: int) -> str:
+    def _get_group_code(v):
+        if v < 200:
+            return HTTP_CODES[100]
+        elif v < 300:
+            return HTTP_CODES[200]
+        elif v < 400:
+            return HTTP_CODES[300]
+        elif v < 500:
+            return HTTP_CODES[400]
+        else:
+            return HTTP_CODES[500]
+
+    return HTTP_CODES.get(http_status, _get_group_code(http_status))
 
 def get_content_type(file_name: str) -> str:
     return mimetypes.guess_type(file_name)[0] or CONTENT_TYPE_OCTET_STREAM
@@ -47,9 +77,8 @@ class HttpMethods(str, Enum):
 
 class HTTPException(Exception):
 
-    def __init__(self, http_status: int, http_error: str, code: str = None, message: str = None):
-        self.http_status: int = http_status
-        self.http_error: str = http_error
+    def __init__(self, status: int, code: str = None, message: str = None):
+        self.status: int = status
         self.code = code
         self.message = message
 
@@ -137,17 +166,16 @@ class Request:
 
 class Response:
 
-    def __init__(self, status: int, code: str, headers: Dict[str, Any] = None, body: Any = None, protocol: str = None):
+    def __init__(self, status: int, headers: Dict[str, Any] = None, body: Any = None, protocol: str = None):
         self._protocol: str = protocol or 'HTTP/1.1'
         self._status: int = status
-        self._code: str = code
         self._headers: Dict[str, Any] = headers or self.default_headers()
         self.body: str = body or ''
 
     @classmethod
     def default_headers(cls, headers: Dict[str, Any] = None) -> Dict[str, Any]:
         res = {
-            'Content-Type': ('application/json', 'charset=utf-8'),
+            'Content-Type': (CONTENT_TYPE_JSON, 'charset=utf-8'),
             'Content-Length': 0,
             'Date': datetime.datetime.today().strftime("%a, %d %b %Y %H:%M %Z"),
             'Server': 'Poker_Svc/1.0.0',
@@ -173,11 +201,11 @@ class Response:
 
     @property
     def code(self) -> str:
-        return self._code
+        return http_code(self._status)
 
     @property
     def headers(self) -> Dict[str, Any]:
-        return self._headers
+        return self.default_headers(headers=self._headers)
 
     @property
     def body(self) -> str:
@@ -215,10 +243,6 @@ class Response:
     def status(self, status: int):
         self._status = status
 
-    @code.setter
-    def code(self, code: str):
-        self._code = code
-
     @headers.setter
     def headers(self, headers: Union[Dict[str, Any], Iterable[Mapping[str, Any]]]):
         self._headers = dict(headers)
@@ -232,8 +256,8 @@ class Response:
         self.set_header('Content-Length', len(self.bytes) if body else 0)
 
     def __str__(self):
-        data = ['{0} {1} {2}'.format(self._protocol, self._status, self._code)]
-        data.extend('{0}: {1}'.format(*head) for head in self._headers.items())
+        data = ['{0} {1} {2}'.format(self._protocol, self._status, self.code)]
+        data.extend('{0}: {1}'.format(*head) for head in self.headers.items())
         data.append('')
         if self._body is not None:
             data.append(self.body)
@@ -241,8 +265,8 @@ class Response:
         return '\r\n'.join(data)
 
     def __bytes__(self):
-        data = [('{0} {1} {2}'.format(self._protocol, self._status, self._code)).encode()]
-        data.extend(('{0}: {1}'.format(*head)).encode() for head in self._headers.items())
+        data = [('{0} {1} {2}'.format(self._protocol, self._status, self.code)).encode()]
+        data.extend(('{0}: {1}'.format(*head)).encode() for head in self.headers.items())
         data.append(b'')
         if self._body is not None:
             data.append(self.bytes)

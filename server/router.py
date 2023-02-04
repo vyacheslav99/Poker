@@ -1,11 +1,71 @@
 import logging
 
-from typing import Optional, Tuple, List, Callable
+from functools import wraps
+from typing import Union, Optional, Tuple, List, Callable
+from dataclasses import dataclass
+from marshmallow import Schema
 
-from server.helpers import HttpMethods
+from server.helpers import HttpMethods, Request, Response
+
+
+@dataclass
+class Endpoint:
+    rule: str
+    methods: Union[str, List[str]]
+    func: Callable
 
 
 class Router:
+
+    def __init__(self, api_prefix: str = None):
+        self._api_prefix = api_prefix
+        self._items: List[Endpoint] = []
+
+    def __getitem__(self, item):
+        return self._items[item]
+
+    def endpoint(self, rule: str, methods: Union[str, List[str]], query_schema: Schema = None, body_schema: Schema = None,
+                 response_schema: Schema = None):
+        def prepare_body(body):
+            if hasattr(body, 'as_dict'):
+                body = body.as_dict()
+            elif hasattr(body, 'asdict'):
+                body = body.asdict()
+
+            return dict(success=True, result=response_schema.dump(body))
+
+        def wrapper(func):
+            @wraps(func)
+            def wrapped(*args, **kwargs):
+                request: Request = args[0]
+
+                if query_schema:
+                    request._params = query_schema.load(request.params)
+                if body_schema:
+                    request._json = body_schema.load(request.json)
+
+                response = func(*args, **kwargs)
+
+                if response_schema:
+                    if isinstance(response, Response):
+                        if response.status < 400:
+                            response.body = prepare_body(response.body)
+                    elif isinstance(response, tuple):
+                        if response[-1] < 400:
+                            response = (prepare_body(response[0]), *response[1:])
+                    else:
+                        response = prepare_body(response)
+
+                return response
+
+            self._items.append(Endpoint(f'{self._api_prefix or ""}{rule}', methods, wrapped))
+
+            return wrapped
+
+        return wrapper
+
+
+class ApiDispatcher:
 
     _instance = None
     _roadmap = {}
@@ -16,7 +76,7 @@ class Router:
 
     def __new__(cls):
         if not cls._instance:
-            cls._instance = super(Router, cls).__new__(cls)
+            cls._instance = super(ApiDispatcher, cls).__new__(cls)
             cls._instance._roadmap = {k: {} for k in cls.__methods}
 
         return cls._instance
@@ -40,9 +100,6 @@ class Router:
                     self.register(routes, methods, func, class_name=controller_class.__name__, attr_name=attr)
 
     def collect_package(self, package):
-        # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
-        # types: A: absolute, V: variable, S: starting with
-
         for cls in dir(package):
             if not cls.startswith('_'):
                 obj = getattr(package, cls)
@@ -50,13 +107,17 @@ class Router:
                 if str(type(obj)).startswith('<class') and str(type(obj)) != "<class 'module'>":
                     self.register_class(obj)
 
-    def collect(self, collection: List[Tuple[str, List[str], Callable]]):
+    def collect(self, collection: Router | List[Tuple[str, Union[str, List[str]], Callable]]):
         for item in collection:
-            path, methods, func = item
+            if not isinstance(item, Endpoint):
+                item = Endpoint(*item)
 
-            for method in methods:
+            if isinstance(item.methods, str):
+                item.methods = [item.methods]
+
+            for method in item.methods:
                 try:
-                    self.add(path, method, func)
+                    self.add(item.rule, method, item.func, '<module>', str(item.func).split(' ')[1])
                 except Exception as e:
                     logging.exception('Route registration error', exc_info=e)
 
@@ -72,6 +133,9 @@ class Router:
                     logging.exception('Route registration error', exc_info=e)
 
     def add(self, path: str, method: str, func: Callable, class_name: str = None, attr_name: str = None):
+        # {'/url/for/route': (type:str, function:callable, params:[], class, method)}
+        # types: A: absolute, V: variable, S: starting with
+
         if not path or not path.startswith('/'):
             raise Exception(self.__reg_error.format(method, path, 'Bad url address!', class_name, attr_name))
 

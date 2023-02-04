@@ -5,12 +5,11 @@ import argparse
 from configs import config
 from server.http_server import HTTPServer
 from server.application import app
-from server.router import Router
+from server.router import ApiDispatcher
 from server.db import postgresql_connection
 
 from api.modules.dispatcher import GameDispatcher
-# handlers надо проимортировать, так как там в init импортируются модули с хэндлерами, чтобы они зарегистрировались
-from api import handlers, collection
+from api.handlers.common import api as common_api
 
 
 def main():
@@ -39,10 +38,8 @@ def main():
     logging.debug('Enabled DEDUG mode logging level!')
     app.db = postgresql_connection(config.DATABASE)
     app.dispatcher = GameDispatcher()
-    router = Router()
-    # router.collect_package(handlers)
-    router.collect(collection)
-    # router.register_class(CommonController)
+    api_dispatcher = ApiDispatcher()
+    api_dispatcher.collect(common_api)
 
     logging.info('Starting server...')
     try:

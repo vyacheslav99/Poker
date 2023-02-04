@@ -6,7 +6,7 @@ import marshmallow
 from typing import Optional, Tuple, List, Callable
 
 from server.helpers import Request, Response, HTTPException, HttpMethods, decode
-from server.router import Router
+from server.router import ApiDispatcher
 
 
 class Handler:
@@ -23,7 +23,7 @@ class Handler:
         self.raw_response: bytes = b''
         self.request: Optional[Request] = None
         self.response: Optional[Response] = None
-        self.roadmap: Router = Router()  # get singleton obect
+        self.roadmap: ApiDispatcher = ApiDispatcher()  # get singleton obect
 
     def _route(self, addr: str, method: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
         return self.roadmap.get(method, addr)
@@ -44,7 +44,7 @@ class Handler:
             return None
 
         if not self.raw_request:
-            return self._error_response(400, 'Bad request', message='Request is empty')
+            return self._error_response(400, message='Request is empty')
 
         try:
             self.request = Request(self.raw_request)
@@ -55,35 +55,33 @@ class Handler:
 
                 if not isinstance(resp, Response):
                     if isinstance(resp, tuple):
-                        if len(resp) == 3:
-                            status, code, resp = resp[2], resp[1], resp[0]
-                        elif len(resp) == 2:
-                            status, code, resp = resp[1], 'OK', resp[0]
+                        if len(resp) == 2:
+                            status, resp = resp[1], resp[0]
                         else:
-                            status, code, resp = 200, 'OK', resp
+                            status, resp = 200, resp
                     else:
-                        status, code, resp = 200, 'OK', resp
+                        status, resp = 200, resp
 
-                    resp = Response(status, code, body=resp)
+                    resp = Response(status, body=resp)
 
                 return resp
             else:
-                return self._error_response(405, 'Method Not Allowed',
-                    message=f'Handler for route <{self.request.method} {self.request.uri}> not registered')
+                return self._error_response(
+                    405, message=f'Handler for route <{self.request.method} {self.request.uri}> not registered')
         except HTTPException as e:
             logging.exception('[{0}] Error on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(e.http_status, e.http_error, code=e.code, message=e.message)
+            return self._error_response(e.status, code=e.code, message=e.message)
         except marshmallow.exceptions.MarshmallowError as e:
             logging.exception('[{0}] Error request params or body validation to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(400, 'Bad request', code=f'{e.__class__}', message=f'{e.__class__}: {e}')
+            return self._error_response(400, code=f'{e.__class__}', message=f'{e.__class__}: {e}')
         except Exception as e:
             logging.exception('[{0}] Unhandled exception on prepare response to {1}:{2}'.format(
                 self.id, self.client_ip, self.client_port))
-            return self._error_response(500, 'Internal Server Error', message=f'{e.__class__}: {e}')
+            return self._error_response(500, message=f'{e.__class__}: {e}')
 
-    def _error_response(self, status: int, error: str, code: str = 'error', message: str = None) -> Response:
+    def _error_response(self, status: int, code: str = 'error', message: str = None) -> Response:
         body = None
 
         if self._get_request_method() != HttpMethods.HEAD and (code or message):
@@ -93,7 +91,7 @@ class Handler:
             if message:
                 body['message'] = message
 
-        return Response(status, error, body=dict(success=False, error=body))
+        return Response(status, body=dict(success=False, error=body))
 
     def _read_request(self):
         while not self.__can_stop:

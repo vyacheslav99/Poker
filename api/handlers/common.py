@@ -2,10 +2,12 @@ import os
 
 from configs import config
 from server.helpers import Request, Response, HTTPException, HttpMethods, get_content_type, CONTENT_TYPE_PEM
-from api import route
+from server.router import Router
+
+api = Router()
 
 
-@route('/api/v1/is_alive', [HttpMethods.HEAD, HttpMethods.GET])
+@api.endpoint('/is_alive', [HttpMethods.HEAD, HttpMethods.GET])
 def is_alive(request: Request):
     if request.method == HttpMethods.HEAD:
         return None
@@ -13,13 +15,12 @@ def is_alive(request: Request):
     return {'server': 'Poker game server', 'version': '1.0.0', 'status': 'still alive'}
 
 
-@route('/api/v1/public-key', [HttpMethods.GET])
+@api.endpoint('/public-key', HttpMethods.GET)
 def get_public_key(request: Request):
     if config.RSA_PUBLIC_KEY:
-        return Response(200, 'OK', headers=Response.default_headers({'Content-Type': CONTENT_TYPE_PEM}),
-                        body=config.RSA_PUBLIC_KEY)
+        return Response(200, headers={'Content-Type': CONTENT_TYPE_PEM}, body=config.RSA_PUBLIC_KEY)
 
-    raise HTTPException(404, 'Not found', message='No public keys found')
+    raise HTTPException(404, message='No public keys found')
 
 
 #     def download_file(request):
