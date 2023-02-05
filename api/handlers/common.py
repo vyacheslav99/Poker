@@ -3,6 +3,7 @@ import os
 from configs import config
 from server.helpers import Request, Response, HTTPException, HttpMethods, get_content_type, CONTENT_TYPE_PEM
 from server.router import Router
+from api.modules.security import AuthorizationRequiredProvider
 
 api = Router()
 
@@ -15,7 +16,7 @@ def is_alive(request: Request):
     return {'server': 'Poker game server', 'version': '1.0.0', 'status': 'still alive'}
 
 
-@api.endpoint('/public-key', HttpMethods.GET)
+@api.endpoint('/public-key', HttpMethods.GET, security=(AuthorizationRequiredProvider(),))
 def get_public_key(request: Request):
     if config.RSA_PUBLIC_KEY:
         return Response(200, headers={'Content-Type': CONTENT_TYPE_PEM}, body=config.RSA_PUBLIC_KEY)

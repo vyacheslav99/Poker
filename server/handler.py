@@ -6,7 +6,7 @@ import marshmallow
 from typing import Optional, Tuple, List, Callable
 
 from server.helpers import Request, Response, HTTPException, HttpMethods, decode
-from server.router import ApiDispatcher
+from server.router import ApiDispatcher, EndpointMeta
 
 
 class Handler:
@@ -25,7 +25,7 @@ class Handler:
         self.response: Optional[Response] = None
         self.roadmap: ApiDispatcher = ApiDispatcher()  # get singleton obect
 
-    def _route(self, addr: str, method: str) -> Tuple[Optional[Callable], Optional[List[str]]]:
+    def _route(self, addr: str, method: str) -> Tuple[Optional[Callable], Optional[List[str]], Optional[EndpointMeta]]:
         return self.roadmap.get(method, addr)
 
     def _get_request_method(self) -> str:
@@ -48,10 +48,10 @@ class Handler:
 
         try:
             self.request = Request(self.raw_request)
-            handler_, params = self._route(self.request.uri, self.request.method)
+            handler_, params, meta = self._route(self.request.uri, self.request.method)
 
             if callable(handler_):
-                resp = handler_(self.request, *params)
+                resp = handler_(self.request, *params, __metadata__=meta)
 
                 if not isinstance(resp, Response):
                     if isinstance(resp, tuple):

@@ -1,9 +1,11 @@
 import logging
 import datetime
 import json
+
 import chardet
 import mimetypes
 
+from abc import abstractmethod
 from enum import Enum
 from typing import Optional, Union, Any, Iterable, Mapping, Dict
 from urllib import parse
@@ -272,3 +274,10 @@ class Response:
             data.append(self.bytes)
 
         return b'\r\n'.join(data)
+
+
+class SecurityProvider:
+
+    @abstractmethod
+    def exec(self, request: Request):
+        raise NotImplementedError()
