@@ -28,6 +28,7 @@ class SettingsDialog(QDialog):
         self._btn_connect = None            # кнопка Проверить подключение
         self._color_theme = None            # Цветовая тема
         self._style = None                  # Графический стиль
+        self._show_bikes = None             # Травить байки
 
         for attr in const.DECORATION_THEMES['green'].keys():
             setattr(self, f'_{attr}', None)
@@ -171,6 +172,12 @@ class SettingsDialog(QDialog):
         l2.addWidget(self._lear_order)
         layout.addLayout(l2, 4, 2, Qt.AlignRight)
 
+        # Травить байки
+        l2 = QHBoxLayout()
+        self._show_bikes = QCheckBox('Травить байки во время игры')
+        l2.addWidget(self._show_bikes)
+        layout.addLayout(l2, 5, 1, Qt.AlignLeft)
+
         group.setLayout(layout)
         main_layout.addWidget(group)
 
@@ -267,6 +274,7 @@ class SettingsDialog(QDialog):
         self._start_type.setCurrentIndex(self._params.get('start_type', const.GAME_START_TYPE_ALL))
         self._color_theme.setCurrentText(self._params.get('color_theme', 'green'))
         self._style.setCurrentText(self._params.get('style', 'Fusion'))
+        self._show_bikes.setChecked(self._params.get('show_bikes', True))
 
         if self._params['color_theme'] == 'green':
             self.color_theme_change(0)
@@ -290,6 +298,7 @@ class SettingsDialog(QDialog):
         self._params['user'] = self._current_profile.currentData()
         self._params['color_theme'] = self._color_theme.currentText()
         self._params['style'] = self._style.currentText()
+        self._params['show_bikes'] = self._show_bikes.isChecked()
 
         self._params['lear_order'] = []
         for i in range(self._lear_order.count()):
@@ -321,6 +330,7 @@ class SettingsDialog(QDialog):
         self._start_type.setCurrentIndex(const.GAME_START_TYPE_ALL)
         self._color_theme.setCurrentText('green')
         self._style.setCurrentText('Fusion')
+        self._show_bikes.setChecked(True)
 
         self._lear_order.clear()
         for lear in (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS):

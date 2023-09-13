@@ -7,6 +7,7 @@ verify_ssl = true
 # pyqt5designer = "*"
 auto-py-to-exe = "*"
 psycopg2 = "*"
+pyqt5-stubs = "*"
 
 [packages]
 chardet = "*"

@@ -34,6 +34,8 @@ class Params(BaseModel):
         self.robots_stat = {}
         # Кастомные настройки оформления
         self.custom_decoration = const.DECORATION_THEMES['green'].copy()
+        # Травить байки
+        self.show_bikes = True
 
         super(Params, self).__init__(filename, **kwargs)
 

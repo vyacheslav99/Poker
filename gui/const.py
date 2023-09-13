@@ -11,6 +11,7 @@ CARD_BACK_DIR = f'{RES_DIR}/back'
 CARD_DECK_DIR = f'{RES_DIR}/deck'
 FACE_DIR = f'{RES_DIR}/face'
 SUITS_DIR = f'{RES_DIR}/suits'
+BIKES_FILE = f'{RES_DIR}/bikes.json'
 
 DECK_TYPE = ('eng', 'rus', 'slav', 'sol', 'souv')  # типы внешних видов колод (так же называются папки с соотв. картинками)
 DECK_NAMES = ('Буржуйская', 'Русская', 'Славянская', 'Пасьянсовая', 'Сувенирная')
@@ -38,6 +39,7 @@ USER_FACE_SIZE = 180, 180   # width, height
 PLAYER_AREA_SIZE = 300, 200
 INFO_AREA_SIZE = 500, 200
 TABLE_AREA_SIZE = 500, 450
+BIKE_TIMER_INTERVAL = 30, 180
 
 # Варианты начала игры:
 #   0 - быстрый: без диалогов: игроки случайно; договоренности сохраненные/дефолтные
