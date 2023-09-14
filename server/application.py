@@ -1,10 +1,6 @@
-import logging
-
 from typing import Optional
 
-from configs import config
-from api.modules.db import postgresql_connection
-from server.dispatcher import Dispatcher
+from server.db import postgresql_connection
 
 
 class Application:
@@ -18,26 +14,15 @@ class Application:
         return cls._instance
 
     def __init__(self):
-        self._dispatcher: Optional[Dispatcher] = None
         self._db: Optional[postgresql_connection] = None
 
-    def initialize(self):
-        self._dispatcher = Dispatcher()
-        logging.debug('Connecting to database...')
-        self._db = postgresql_connection(config.DATABASE)
-
-    def finalize(self):
-        if self._dispatcher:
-            logging.info('Dumping games...')
-            self._dispatcher.on_close()
-
     @property
-    def db(self):
+    def db(self) -> postgresql_connection:
         return self._db
 
-    @property
-    def dispatcher(self):
-        return self._dispatcher
+    @db.setter
+    def db(self, conn: postgresql_connection):
+        self._db = conn
 
 
 app = Application()

@@ -3,8 +3,8 @@
 import random
 
 from core import const
-from domain.models.base_model import BaseModel
-from domain.models.player import Player
+from models.base_model import BaseModel
+from models.player import Player
 
 
 class GameException(Exception):

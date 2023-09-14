@@ -3,8 +3,8 @@ import json
 import uuid
 import random
 
-from domain.models.base_model import BaseModel
-from domain.models.player import Player
+from models.base_model import BaseModel
+from models.player import Player
 from gui import const, utils
 from core import const as eng_const
 
@@ -12,7 +12,10 @@ from core import const as eng_const
 class Params(BaseModel):
 
     def __init__(self, filename=None, **kwargs):
+        # uid текущего профиля пользователя
         self.user = None
+        # Адрес сервера сетевой игры
+        self.server = None
         # Цветовая тема оформления
         self.color_theme = 'green'
         # Графический стиль интерфейса
@@ -31,6 +34,8 @@ class Params(BaseModel):
         self.robots_stat = {}
         # Кастомные настройки оформления
         self.custom_decoration = const.DECORATION_THEMES['green'].copy()
+        # Травить байки
+        self.show_bikes = True
 
         super(Params, self).__init__(filename, **kwargs)
 

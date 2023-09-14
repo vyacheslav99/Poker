@@ -4,9 +4,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import const
+from gui import const, client
 from core import const as eng_const
-from domain.models.params import Profiles
+from models.params import Profiles
 
 
 class SettingsDialog(QDialog):
@@ -23,8 +23,12 @@ class SettingsDialog(QDialog):
         self._lear_order = None             # Порядок расположения мастей на руках
         self._start_type = None             # Вариант начала игры
         self._current_profile = None        # Смена текущего профиля
+        self._server = None                 # Адрес сервера
+        self._server_info = None            # Текст с информацией о состоянии подключения
+        self._btn_connect = None            # кнопка Проверить подключение
         self._color_theme = None            # Цветовая тема
         self._style = None                  # Графический стиль
+        self._show_bikes = None             # Травить байки
 
         for attr in const.DECORATION_THEMES['green'].keys():
             setattr(self, f'_{attr}', None)
@@ -73,6 +77,24 @@ class SettingsDialog(QDialog):
 
         l2.addWidget(self._current_profile)
         layout.addLayout(l2, 1, 1, Qt.AlignLeft)
+
+        # Cервер
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Сервер'))
+        self._server = QLineEdit()
+
+        l2.addWidget(self._server)
+        layout.addLayout(l2, 1, 2, alignment=Qt.AlignRight)
+
+        l2 = QHBoxLayout()
+        self._btn_connect = QPushButton('Проверить подключение')
+        # btn_connect.setFixedWidth(150)
+        self._btn_connect.clicked.connect(self.check_connection)
+        self._server_info = QLabel('Состояние: неизвестно')
+        self._server_info.setStyleSheet('QLabel {color: gray}')
+        l2.addWidget(self._btn_connect)
+        l2.addWidget(self._server_info)
+        layout.addLayout(l2, 2, 2, alignment=Qt.AlignLeft)
 
         # Вариант начала игры
         l2 = QHBoxLayout()
@@ -149,6 +171,12 @@ class SettingsDialog(QDialog):
         self._lear_order.setToolTip('Порядок расположения мастей\nЧтобы изменить порядок, перетащи масть мышкой в нужное место')
         l2.addWidget(self._lear_order)
         layout.addLayout(l2, 4, 2, Qt.AlignRight)
+
+        # Травить байки
+        l2 = QHBoxLayout()
+        self._show_bikes = QCheckBox('Травить байки во время игры')
+        l2.addWidget(self._show_bikes)
+        layout.addLayout(l2, 5, 1, Qt.AlignLeft)
 
         group.setLayout(layout)
         main_layout.addWidget(group)
@@ -239,12 +267,14 @@ class SettingsDialog(QDialog):
         if params:
             self._params = params
 
+        self._server.setText(self._params.get('server', ''))
         self._deck_type.setCurrentIndex(const.DECK_TYPE.index(self._params.get('deck_type', 'eng')))
         self._back_type.setCurrentIndex(self._params.get('back_type', 1) - 1)
         self._sort_order.setCurrentIndex(self._params.get('sort_order', 0))
         self._start_type.setCurrentIndex(self._params.get('start_type', const.GAME_START_TYPE_ALL))
         self._color_theme.setCurrentText(self._params.get('color_theme', 'green'))
         self._style.setCurrentText(self._params.get('style', 'Fusion'))
+        self._show_bikes.setChecked(self._params.get('show_bikes', True))
 
         if self._params['color_theme'] == 'green':
             self.color_theme_change(0)
@@ -260,6 +290,7 @@ class SettingsDialog(QDialog):
             self._lear_order.addItem(item)
 
     def get_params(self):
+        self._params['server'] = self._server.text() or None
         self._params['deck_type'] = const.DECK_TYPE[self._deck_type.currentIndex()]
         self._params['back_type'] = self._back_type.currentIndex() + 1
         self._params['sort_order'] = self._sort_order.currentIndex()
@@ -267,6 +298,7 @@ class SettingsDialog(QDialog):
         self._params['user'] = self._current_profile.currentData()
         self._params['color_theme'] = self._color_theme.currentText()
         self._params['style'] = self._style.currentText()
+        self._params['show_bikes'] = self._show_bikes.isChecked()
 
         self._params['lear_order'] = []
         for i in range(self._lear_order.count()):
@@ -291,12 +323,14 @@ class SettingsDialog(QDialog):
         if res != QMessageBox.Yes:
             return
 
+        self._server.setText('')
         self._deck_type.setCurrentIndex(0)
         self._back_type.setCurrentIndex(0)
         self._sort_order.setCurrentIndex(0)
         self._start_type.setCurrentIndex(const.GAME_START_TYPE_ALL)
         self._color_theme.setCurrentText('green')
         self._style.setCurrentText('Fusion')
+        self._show_bikes.setChecked(True)
 
         self._lear_order.clear()
         for lear in (eng_const.LEAR_SPADES, eng_const.LEAR_CLUBS, eng_const.LEAR_DIAMONDS, eng_const.LEAR_HEARTS):
@@ -325,3 +359,30 @@ class SettingsDialog(QDialog):
                     attr.setCurrentText(v.split('/')[-1])
             else:
                 attr.setCurrentText(v.lower())
+
+    def check_connection(self):
+        color = 'gray'
+
+        if self._server.text().strip():
+            self._btn_connect.setEnabled(False)
+            self._server_info.setText('Минуточку...')
+
+            res, mes = client.Client(self._server.text().strip()).is_alive()
+            if res:
+                text = 'OK'
+                color = 'green'
+            else:
+                text = 'N/A'
+                color = 'maroon'
+
+            mes = ': '.join(['OK' if res else 'N/A', mes])
+            self._server_info.setText(f'Состояние: {text}')
+
+            if not res:
+                QMessageBox.warning(self, 'Ошибка', mes)
+
+            self._btn_connect.setEnabled(True)
+        else:
+            self._server_info.setText('не задан хост')
+
+        self._server_info.setStyleSheet(''.join(('QLabel {color:', color, '}')))

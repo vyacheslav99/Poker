@@ -1,7 +1,7 @@
 import random
 
 from core import const
-from domain.models.base_model import BaseModel
+from models.base_model import BaseModel
 
 
 class Player(BaseModel):
@@ -180,7 +180,6 @@ class Player(BaseModel):
 
     def __str__(self):
         if self.is_robot:
-            # s = f'Робот <{const.DIFFICULTY_NAMES[self.level]}, {const.RISK_LVL_NAMES[self.risk_level]}>'
             s = f'Робот <{const.RISK_LVL_NAMES[self.risk_level]}>'
         else:
             s = 'Человек'

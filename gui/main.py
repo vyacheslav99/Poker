@@ -10,7 +10,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from core import helpers, const as core_const, engine
-from domain.models.params import Params, Options, Profiles, RobotStatItem
+from models.params import Params, Options, Profiles, RobotStatItem
 from gui import const, utils
 from gui.graphics import QCard, Face, Lear, Area
 from gui.game_table import GameTableDialog
@@ -33,11 +33,14 @@ class MainWnd(QMainWindow):
         self.profiles = Profiles(filename=const.PROFILES_FILE if os.path.exists(const.PROFILES_FILE) else None)
         self.options = Options()
         self.curr_profile = None
+        self._bikes = []
+        self.load_bikes()
 
         self._started = False
         self._timer = None
         self._start_time = None
         self._prv_game_time = None
+        self._bike_timer = None
         self.players = []
         self.table = {}
         self.game = None
@@ -64,6 +67,7 @@ class MainWnd(QMainWindow):
         self.round_result_labels = []
         self.service_wnd = None
         self.sb_labels = (QLabel(), QLabel())
+        self.bike_area = None
 
         for i, lb in enumerate(self.sb_labels):
             self.statusBar().addPermanentWidget(lb, stretch=1 if i == 0 else -1)
@@ -92,6 +96,13 @@ class MainWnd(QMainWindow):
         self.resize(*const.WINDOW_SIZE)
         self.center()
         self.show()
+
+    def load_bikes(self):
+        try:
+            with open(const.BIKES_FILE, 'rb') as f:
+                self._bikes = json.loads(f.read().decode())
+        except Exception as e:
+            print(f'Cannot load bikes! Error: {e}')
 
     def apply_decoration(self):
         self.app.setStyle(self.params.style)
@@ -490,6 +501,9 @@ class MainWnd(QMainWindow):
         self.is_new_round = True
         self._timer = utils.IntervalTimer(1.0, self.display_game_time)
 
+        if self.params.show_bikes:
+            self._bike_timer = utils.IntervalTimer(float(random.randint(*const.BIKE_TIMER_INTERVAL)), self.show_bike)
+
         self.init_game_table()
         self.next()
 
@@ -529,6 +543,9 @@ class MainWnd(QMainWindow):
         self._start_time = datetime.now()
         self._timer = utils.IntervalTimer(1.0, self.display_game_time)
 
+        if self.params.show_bikes:
+            self._bike_timer = utils.IntervalTimer(float(random.randint(*const.BIKE_TIMER_INTERVAL)), self.show_bike)
+
         # отрисуем игровой стол
         self.init_game_table()
         self.draw_info_area()
@@ -565,6 +582,9 @@ class MainWnd(QMainWindow):
 
         if self._timer and self._timer.active():
             self._timer.stop()
+
+        if self._bike_timer and self._bike_timer.active():
+            self._bike_timer.stop()
 
         self._started = False
         self._start_time = None
@@ -605,6 +625,9 @@ class MainWnd(QMainWindow):
         self.remove_widget(self.grid_stat_button)
         self.grid_stat_button = None
 
+        self.remove_widget(self.bike_area)
+        self.bike_area = None
+
         for btn in self.ja_lear_buttons:
             self.remove_widget(btn)
         self.ja_lear_buttons = []
@@ -613,7 +636,7 @@ class MainWnd(QMainWindow):
             self.remove_widget(lb)
         self.round_result_labels = []
 
-        self.set_status_message('', 1)
+        self.set_status_message(' ', 1)
         self.scene.clear()
         self.refresh_menu_actions()
 
@@ -634,20 +657,24 @@ class MainWnd(QMainWindow):
 
         self.game_table = GameTableDialog(self.players, parent=self)
 
+        fp = self.get_face_positions()
+        ap = self.get_area_positions()
+        lo = self.get_label_offsets()
+
         if len(self.players) == 4:
             pos = (20, 45)
             ipos = (-35, 10)
+            bsize = (500, 240)
+            bpos = (ap[2][0] + const.PLAYER_AREA_SIZE[0] + 70, pos[1] - 5)
         else:
             pos = (round(const.WINDOW_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2) + 5, 45)
             ipos = (round(const.AREA_SIZE[0] / 2) - round(const.INFO_AREA_SIZE[0] / 2), 10)
+            bsize = (430, 440)
+            bpos = (16, ap[1][1] + const.PLAYER_AREA_SIZE[1] + 50)
 
         info_area = Area(self, const.INFO_AREA_SIZE)
         info_area.setPos(*ipos)
         self.scene.addItem(info_area)
-
-        fp = self.get_face_positions()
-        ap = self.get_area_positions()
-        lo = self.get_label_offsets()
         self.draw_table_area()
 
         self.deal_label = self.add_label((const.INFO_AREA_SIZE[0] - const.CARD_SIZE[0] - 20, 37),
@@ -662,6 +689,10 @@ class MainWnd(QMainWindow):
         self.grid_stat_button = self.add_button(self.show_statistics_grid, 'Запись игры', (160, 50),
                                                 (pos[0] + const.INFO_AREA_SIZE[0] - 170, pos[1] + const.INFO_AREA_SIZE[1] - 60),
                                                 12, 65, self.params.bg_buttons_2(), self.params.color_buttons_2())
+
+        self.bike_area = self.add_label(bsize, bpos,11,60, color=self.params.color_extra())
+        self.bike_area.setWordWrap(True)
+        self.bike_area.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         for i, p in enumerate(self.players):
             if i == 0:
@@ -1593,3 +1624,16 @@ class MainWnd(QMainWindow):
     def display_game_time(self):
         if self.started():
             self.set_status_message(f"Время игры: {str(self.game_time()).split('.')[0]}", 1)
+
+    def show_bike(self):
+        if self.started():
+            self._bike_timer.stop()
+            self.bike_area.setText(f'{random.choice(self.players).name}:\n\n{random.choice(self._bikes)}')
+            self.bike_area.setToolTip(self.bike_area.text())
+            self._bike_timer = utils.IntervalTimer(60.0, self.hide_bike)
+
+    def hide_bike(self):
+        if self.started():
+            self._bike_timer.stop()
+            self.bike_area.setText('')
+            self._bike_timer = utils.IntervalTimer(float(random.randint(*const.BIKE_TIMER_INTERVAL)), self.show_bike)

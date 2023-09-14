@@ -8,7 +8,7 @@ from PyQt5.QtCore import *
 
 from gui import const
 from gui.graphics import Face2
-from domain.models.params import Profiles
+from models.params import Profiles
 
 
 class ProfilesDialog(QDialog):
@@ -43,7 +43,7 @@ class ProfilesDialog(QDialog):
         else:
             self.reject()
         
-        super(ProfilesDialog, self).close()
+        return super(ProfilesDialog, self).close()
 
     def init_ui(self):
         # Кнопка Закрыть

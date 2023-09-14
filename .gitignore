@@ -6,3 +6,5 @@ Pipfile.lock
 build/
 dist/
 poker.spec
+*.log
+*.pem

@@ -1,6 +1,8 @@
 import logging
 import uuid
 
+from typing import List
+
 from core.engine import Engine
 
 
@@ -20,3 +22,17 @@ class GameWrapper:
 
     def save_game(self):
         logging.debug(f'Saving game: {self.uid}')
+
+
+class GameDispatcher:
+
+    def __init__(self):
+        self._games: List[GameWrapper] = []
+        #todo:  load games
+
+    def finalize(self):
+        logging.info('Dumping games...')
+
+        for game in self._games:
+            if not game.is_finished():
+                game.save_game()

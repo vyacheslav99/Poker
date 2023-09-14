@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 
 from gui import const
 from gui.graphics import Face2, Avatar, GridMoneyItemDelegate
-from domain.models.params import Profiles
+from models.params import Profiles
 
 
 class StatisticsWindow(QWidget):
@@ -42,7 +42,6 @@ class StatisticsWindow(QWidget):
         self.resize(*const.WINDOW_SIZE)
 
     def init_ui(self):
-        # Кнопка Закрыть
         main_layout = QVBoxLayout()
         buttons_box = QHBoxLayout()
         buttons_box.setAlignment(Qt.AlignRight)
@@ -61,7 +60,6 @@ class StatisticsWindow(QWidget):
         buttons_box.addWidget(btn_close)
 
         # Собсно Таблица игроков
-
         self._grid = QTableWidget(self)
         self._grid.setColumnCount(len(self._columns_))
         # self._grid.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -126,7 +124,7 @@ class StatisticsWindow(QWidget):
             row += 1
 
         self._grid.setSortingEnabled(True)
-        self._grid.sortByColumn(7, Qt.DescendingOrder)
+        self._grid.sortByColumn(8, Qt.DescendingOrder)
 
     def set_item(self, row, col, item, bold=False):
         if col == 1:

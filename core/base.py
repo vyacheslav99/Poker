@@ -1,10 +1,10 @@
-""" Базовый класс игрового движка """
+""" Базовый класс игрового движка. Тупой ИИ """
 
 import random
 
 from core import const
 from core.helpers import GameException, Deal, Card, TableItem
-from domain.models.player import Player
+from models.player import Player
 
 
 class BaseEngine(object):
@@ -333,7 +333,7 @@ class BaseEngine(object):
 
         return True, None
 
-    def _can_beat_card_ti(self, card_low:TableItem, card_top:TableItem):
+    def _can_beat_card_ti(self, card_low: TableItem, card_top: TableItem):
         """
         Определяет, побъет ли карта card_top карту card_low. Первая card_low, card_top - та, что ложат сверху.
         Вернет True, если побила card_top, False - если бьет card_low.
@@ -341,7 +341,7 @@ class BaseEngine(object):
 
         return self._can_beat_card(card_low.card, card_top.card)
 
-    def _can_beat_card(self, card_low:Card, card_top:Card):
+    def _can_beat_card(self, card_low: Card, card_top: Card):
         """
         Определяет, побъет ли карта card_top карту card_low. Первая card_low, card_top - та, что ложат сверху.
         Вернет True, если побила card_top, False - если бьет card_low.
@@ -728,7 +728,7 @@ class BaseEngine(object):
     # Далее идут методы ИИ, которые определяют поведение компьютерных игроков.
     # Данная реализация просто описывает минимальный интерфейс класса ИИ. Здесь это просто заглушки -
     # они просто выдают случайные значения, не противоречащие правилам игры, так что движок будет вполне работоспособен,
-    # но абсолютно уныл, если играть с ИИ.
+    # но абсолютно туп, если играть с ИИ.
 
     def _ai_fix_released_card(self, card):
         """
@@ -746,9 +746,15 @@ class BaseEngine(object):
         """
 
         player = self._players[self._curr_player]
-        cnt = self._deals[self._curr_deal].cards
+        deal_type = self._deals[self._curr_deal].type_
+        cnt = random.randint(0, len(self._deals[self._curr_deal].cards))
 
-        can, _ = self.check_order(cnt, False)
+        if deal_type in (const.DEAL_BROW, const.DEAL_DARK):
+            is_dark = False
+        else:
+            is_dark = random.randint(0, 100) < 10 if self._dark_allowed else False
+
+        can, _ = self.check_order(cnt, is_dark=is_dark)
         while not can:
             if cnt <= 0:
                 cnt += 1
@@ -757,9 +763,9 @@ class BaseEngine(object):
             else:
                 cnt += random.choice([-1, 1])
 
-            can, _ = self.check_order(cnt, False)
+            can, _ = self.check_order(cnt, is_dark=is_dark)
 
-        return cnt, False
+        return cnt, is_dark
 
     def _ai_calc_walk(self) -> int:
         """
