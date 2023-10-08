@@ -528,16 +528,13 @@ class MainWnd(QMainWindow):
 
         self.players = self.game.players
         for i, p in enumerate(self.players):
-            # подгрузим компьютерным игрокам их статистику
-            if p.is_robot and p.name in self.params.robots_stat:
-                p.from_dict(self.params.robots_stat[p.name])
-
             # загруженного игрока человека надо подменить на текущего, чтобы актуализировать его данные
             # (по сути это он и есть, но физически объекты уже разные)
             if p.uid == self.params.user:
                 user = self.profiles.get(self.params.user)
                 user.assign_game_variables(p)
                 self.players[i] = user
+                break
 
         self._started = True
         self._start_time = datetime.now()
