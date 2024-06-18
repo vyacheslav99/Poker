@@ -10,5 +10,5 @@ psycopg2-binary==2.9.5
 pyqt5==5.15.8
 pyqt5-qt5==5.15.2
 pyqt5-sip==12.11.1
-urllib3==1.26.18
+urllib3==1.26.19
 requests==2.31.0
