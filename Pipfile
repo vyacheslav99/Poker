@@ -5,13 +5,12 @@ verify_ssl = true
 
 [dev-packages]
 # pyqt5designer = "*"
-auto-py-to-exe = "*"
+# auto-py-to-exe = "*"
 psycopg2 = "*"
 pyqt5-stubs = "*"
 
 [packages]
 chardet = "*"
-colour = "*"
 marshmallow = "*"
 psycopg2-binary = "*"
 pyqt5 = "*"
