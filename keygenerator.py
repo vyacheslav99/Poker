@@ -59,8 +59,8 @@ def test(pubkey=None, prvkey=None):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('--test', '-t', action='store_true', help='Выполнить тестовый цикл шифрования-расшифровки, '
-                                                              'используя текущие ключи')
+    ap.add_argument('--test', '-t', action='store_true',
+                    help='Выполнить тестовый цикл шифрования-расшифровки, используя текущие ключи')
     args = ap.parse_args()
 
     if args.test:

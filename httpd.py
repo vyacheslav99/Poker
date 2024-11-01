@@ -20,8 +20,8 @@ def main():
     ap.add_argument('--debug_mode', '-dbg', action='store_true', help='Включить вывод отладочной информации')
     ap.add_argument('--listen_addr', '-a', help=f'Хост сервера. По умолчанию {config.LISTEN_ADDR}')
     ap.add_argument('--port', '-p', type=int, help=f'Порт сервера. По умолчанию {config.LISTEN_PORT}')
-    ap.add_argument('--log_file', '-l', type=str, help='Перенаправить вывод логов в указанный файл. '
-                                                       'Если не задан, логи будут писаться в консоль')
+    ap.add_argument('--log_file', '-l', type=str,
+                    help='Перенаправить вывод логов в указанный файл. Если не задан, логи будут писаться в консоль')
     args = ap.parse_args()
 
     if args.log_file:
