@@ -1,7 +1,9 @@
 -i https://pypi.org/simple
-chardet==*
-marshmallow==*
-pyqt5==*
+pyqt5~=5.15.11
 pyqt5-qt5==*
 pyqt5-sip==*
-requests==*
+requests~=2.32.3
+pydantic==*
+fastapi~=0.115.4
+marshmallow~=3.23.0
+rsa~=4.9

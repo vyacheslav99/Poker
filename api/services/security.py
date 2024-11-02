@@ -1,4 +1,11 @@
-from server.helpers import Request, HTTPException, SecurityProvider
+from abc import abstractmethod
+
+
+class SecurityProvider:
+
+    @abstractmethod
+    def exec(self, request: Request):
+        raise NotImplementedError()
 
 
 class AuthorizationRequiredProvider(SecurityProvider):

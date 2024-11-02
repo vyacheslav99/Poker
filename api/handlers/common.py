@@ -1,48 +1,46 @@
 import os
 
+from fastapi import APIRouter, HTTPException, Response
+
 from configs import config
-from server.helpers import Request, Response, HTTPException, HttpMethods, get_content_type, CONTENT_TYPE_PEM
-from server.router import Router
+from api.models.common import ContentType
+from starlette.status import HTTP_404_NOT_FOUND
 
-api = Router()
-
-
-@api.endpoint('/is_alive', [HttpMethods.HEAD, HttpMethods.GET])
-def is_alive(request: Request):
-    if request.method == HttpMethods.HEAD:
-        return None
-
-    return {'server': 'Poker game server', 'version': '1.0.0', 'status': 'still alive'}
+router = APIRouter(tags=['base'])
 
 
-@api.endpoint('/public-key', HttpMethods.GET)
-def get_public_key(request: Request):
+@router.get('/is_alive')
+async def is_alive():
+    return {'server': config.SERVER_NAME, 'version': config.SERVER_VERSION, 'status': 'still alive'}
+
+
+@router.get('/public-key')
+def get_public_key() -> Response:
     if config.RSA_PUBLIC_KEY:
-        return Response(200, headers={'Content-Type': CONTENT_TYPE_PEM}, body=config.RSA_PUBLIC_KEY)
+        return Response(config.RSA_PUBLIC_KEY, media_type=ContentType.CONTENT_TYPE_PEM)
 
-    raise HTTPException(404, message='No public keys found')
+    raise HTTPException(HTTP_404_NOT_FOUND, detail='No public keys found')
 
-
-@api.endpoint('/file', HttpMethods.GET)
-def download_file(request: Request):
-    file_name = request.params.get('file_name', '')
-
-    if not file_name:
-        raise HTTPException(400, message=f'Missing required parameter <file_name> in request query')
-
-    if file_name.startswith(('/', '\\')):
-        file_name = file_name[1:]
-
-    file_path = os.path.normpath(os.path.join(config.FILESTORE_DIR, file_name))
-
-    if os.path.isfile(file_path):
-        resp = Response(200, protocol=request.protocol,
-                        headers={'Content-Type': get_content_type(file_path),
-                                 'Content-Disposition': f"attachment; filename={os.path.split(file_name)[1]}"})
-
-        with open(file_path, 'rb') as f:
-            resp.body = f.read()
-
-        return resp
-    else:
-        raise HTTPException(404, message=f'Requested file <{file_name}> not found')
+# @api.endpoint('/file', HttpMethods.GET)
+# def download_file(request: Request):
+#     file_name = request.params.get('file_name', '')
+#
+#     if not file_name:
+#         raise HTTPException(400, message=f'Missing required parameter <file_name> in request query')
+#
+#     if file_name.startswith(('/', '\\')):
+#         file_name = file_name[1:]
+#
+#     file_path = os.path.normpath(os.path.join(config.FILESTORE_DIR, file_name))
+#
+#     if os.path.isfile(file_path):
+#         resp = Response(200, protocol=request.protocol,
+#                         headers={'Content-Type': get_content_type(file_path),
+#                                  'Content-Disposition': f"attachment; filename={os.path.split(file_name)[1]}"})
+#
+#         with open(file_path, 'rb') as f:
+#             resp.body = f.read()
+#
+#         return resp
+#     else:
+#         raise HTTPException(404, message=f'Requested file <{file_name}> not found')
