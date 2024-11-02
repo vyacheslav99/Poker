@@ -11,6 +11,7 @@ pyqt5-stubs = "*"
 
 [packages]
 #psycopg2-binary = "*"
+asyncpg = "*"
 pyqt5 = "*"
 requests = "*"
 rsa = "*"

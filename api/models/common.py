@@ -1,5 +1,4 @@
 from enum import StrEnum
-from pydantic import BaseModel
 
 
 class ContentType(StrEnum):

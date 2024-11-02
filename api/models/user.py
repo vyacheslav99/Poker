@@ -1,6 +1,4 @@
-from marshmallow import Schema, fields
-
-from base_model import BaseModel
+from pydantic import BaseModel
 
 
 class SignupSchema(Schema):

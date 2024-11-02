@@ -1,6 +1,4 @@
-from server.router import Router
-from server.helpers import Request, HttpMethods
-from models.user import SignupSchema, UserSchema, SessionSchema
+from api.models.user import SignupSchema, UserSchema, SessionSchema
 
 api = Router('/api/v1')
 

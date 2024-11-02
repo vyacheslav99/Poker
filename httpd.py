@@ -3,7 +3,9 @@ import logging
 import uvicorn
 
 from configs import config
-# не убирать это, так как переменная импортируется при старте сервера uvicorn-ом
+# Не убирать этот импорт, так как переменная импортируется при старте сервера uvicorn-ом
+# в ситуации, когда в метод uvicorn.run в качестве объекта сервера передается строка импорта ('httpd:app') а не объект.
+# Такой способ нужен для того, чтобы можно было при старте передать workers более 1
 from api import app
 
 
@@ -20,7 +22,7 @@ def main():
         host=config.LISTEN_ADDR,
         port=config.LISTEN_PORT,
         workers=config.WORKERS,
-        log_level=logging.getLevelName(config.LOGGING['level']).lower()
+        log_level=logging.getLevelName(config.LOGGING['level']).lower(),
     )
 
 
