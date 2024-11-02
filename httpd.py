@@ -2,19 +2,9 @@ import os
 import logging
 import uvicorn
 
-from fastapi import FastAPI
-
 from configs import config
-from api.handlers import get_api_router
-
-
-def create_app() -> FastAPI:
-    app = FastAPI(debug=config.DEBUG, title=config.SERVER_NAME, version=config.SERVER_VERSION)
-    app.include_router(get_api_router())
-    return app
-
-
-app = create_app()
+# не убирать это, так как переменная импортируется при старте сервера uvicorn-ом
+from api import app
 
 
 def main():
@@ -26,7 +16,7 @@ def main():
 
     uvicorn.run(
         'httpd:app',
-        # create_app(),
+        # app,
         host=config.LISTEN_ADDR,
         port=config.LISTEN_PORT,
         workers=config.WORKERS,
