@@ -1,16 +1,18 @@
 import os
 
 from fastapi import APIRouter, HTTPException, Response
+from starlette.status import HTTP_404_NOT_FOUND
 
 from configs import config
 from api.models.common import ContentType
-from starlette.status import HTTP_404_NOT_FOUND
+from api import db
 
 router = APIRouter(tags=['base'])
 
 
 @router.get('/is_alive')
 async def is_alive():
+    val = await db.fetchval('select 1')
     return {'server': config.SERVER_NAME, 'version': config.SERVER_VERSION, 'status': 'still alive'}
 
 

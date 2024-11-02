@@ -1,12 +1,12 @@
 import os
 import logging
 import uvicorn
+from fastapi import FastAPI
 
 from configs import config
-# Не убирать этот импорт, так как переменная импортируется при старте сервера uvicorn-ом
-# в ситуации, когда в метод uvicorn.run в качестве объекта сервера передается строка импорта ('httpd:app') а не объект.
-# Такой способ нужен для того, чтобы можно было при старте передать workers более 1
-from api import app
+from api import create_app
+
+app: FastAPI = create_app()
 
 
 def main():
