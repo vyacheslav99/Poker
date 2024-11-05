@@ -4,19 +4,21 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-# pyqt5designer = "*"
-# auto-py-to-exe = "*"
-#psycopg2 = "*"
+#pyqt5designer = "*"
+#auto-py-to-exe = "*"
 pyqt5-stubs = "*"
 
 [packages]
-#psycopg2-binary = "*"
+"psycopg[binary]" = "*"
 asyncpg = "*"
 pyqt5 = "*"
 requests = "*"
 rsa = "*"
 pydantic = "*"
 "fastapi[standard]" = "0.115.4"
+"passlib[bcrypt]" = "*"
+pyjwt = "*"
+yoyo-migrations = "*"
 
 [requires]
 python_version = ">=3.10"

@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, FastAPI, Request, Response
+from fastapi import APIRouter, FastAPI, Request, Response, status
 from fastapi.exceptions import HTTPException
 from fastapi.exception_handlers import http_exception_handler
 from starlette.middleware.errors import ServerErrorMiddleware
@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from api import db, config
 from .handlers.common import router as common_router
+from .handlers.user import router as user_router
 
 
 @asynccontextmanager
@@ -30,13 +31,13 @@ async def db_setup(app: FastAPI):
 def get_api_router() -> APIRouter:
     router = APIRouter()
     router.include_router(common_router)
-    # router.include_router(support_controller.router)
+    router.include_router(user_router)
     return router
 
 
 async def handle_error(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, HTTPException):
-        status_code = getattr(exc, 'status_code', getattr(exc, 'code', 500))
+        status_code = getattr(exc, 'status_code', getattr(exc, 'code', status.HTTP_500_INTERNAL_SERVER_ERROR))
         message = getattr(exc, 'message', str(exc))
         exc = HTTPException(status_code=status_code, detail=message)
 

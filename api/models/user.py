@@ -1,19 +1,28 @@
+import uuid
+
+from datetime import datetime
 from pydantic import BaseModel
 
 
-class SignupSchema(Schema):
-    login = fields.String(required=True)
-    password = fields.String(required=True)
-    secret = fields.String(required=True)
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 
-class UserSchema(Schema):
-    uid = fields.UUID()
-    login = fields.String()
-    name = fields.String()
-    avatar = fields.String(allow_none=True)
-    session_id = fields.String(allow_none=True)
+class AuthData(BaseModel):
+    username: str
+    password: str
 
 
-class SessionSchema(Schema):
-    session_id: fields.String()
+class User(BaseModel):
+    uid: uuid.UUID
+    username: str
+    fullname: str
+    avatar: str | None = None
+
+
+class UserDTO(User):
+    password: str
+    disabled: bool = False
+    created_at: datetime | None = None
+    updated_at: datetime | None = None

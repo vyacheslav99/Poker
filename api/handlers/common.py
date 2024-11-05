@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 from api import config
 from api.models.common import ContentType
 
-router = APIRouter(tags=['base'])
+router = APIRouter(prefix='/api', tags=['base'])
 
 
 @router.get('/is_alive')
