@@ -9,6 +9,22 @@ LISTEN_ADDR = 'localhost'
 LISTEN_PORT = 2100
 WORKERS = 2
 
+DATABASE = {
+    'host': 'localhost',
+    'port': 5432,
+    'dbname': 'poker',
+    'user': 'user',
+    'password': 'pass'
+}
+
+DB_CONNECTIONS = {
+    'default': {
+        'dsn': f"postgresql://{DATABASE['user']}:{DATABASE['password']}@{DATABASE['host']}:{DATABASE['port']}/{DATABASE['dbname']}",
+        'min_size': 3,
+        'max_size': 10,
+    }
+}
+
 LOGGING = {
     'filename': None,
     'level': logging.DEBUG if DEBUG else logging.INFO,
@@ -19,14 +35,6 @@ LOGGING = {
 DOCUMENT_ROOT = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'server'))
 DATA_DIR = os.path.join(DOCUMENT_ROOT, 'data')
 FILESTORE_DIR = os.path.join(DATA_DIR, 'files')
-
-DATABASE = {
-    'host': 'localhost',
-    'port': 5432,
-    'dbname': 'poker',
-    'user': 'user',
-    'password': 'pass'
-}
 
 RSA_PRIVATE_KEY = ''
 

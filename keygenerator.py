@@ -3,7 +3,7 @@ import rsa
 import base64
 import hashlib
 
-from configs import config
+from api import config
 
 
 def gen_keys():

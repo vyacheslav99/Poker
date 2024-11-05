@@ -3,8 +3,7 @@ import logging
 import uvicorn
 from fastapi import FastAPI
 
-from configs import config
-from api import create_app
+from api import create_app, config
 
 app: FastAPI = create_app()
 
