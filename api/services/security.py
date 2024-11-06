@@ -136,6 +136,13 @@ class Security:
         return Token(access_token=token, token_type='bearer')
 
     async def create_user(self, user: AuthBody) -> User:
+        """
+        Создание нового пользователя.
+        Пароль принимает в зашифрованном виде и закодированный в base64.
+        Пароль должен быть зашифрован публичным клчом, выданным нашим сервисом (ручка /api/public-key).
+        Возвращает модель пользователя.
+        """
+
         return await UserRepo.create_user(User(
             uid=uuid.uuid4(),
             username=user.username,
@@ -144,6 +151,11 @@ class Security:
         ))
 
     async def change_password(self, user: User, old_pwd_encrypted: str, new_pwd_encrypted: str):
+        """
+        Смена пароля пользователя.
+        Пароли передаем в зашифрованном виде
+        """
+
         old_passwd = self.decrypt_password(old_pwd_encrypted)
 
         if not self._pwd_context.verify(old_passwd, user.password):
