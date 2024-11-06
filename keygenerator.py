@@ -65,7 +65,9 @@ def encode(passphrase: str):
 
     print('Process base64 encoding...')
     b64 = base64.urlsafe_b64encode(cipher)
-    print(f'Success! encoded:\n{b64.hex()}\n{b64.decode()}')
+    print('Success!')
+    print(f'\nHEX data:\n{b64.hex()}')
+    print(f'\nToken:\n{b64.decode()}')
 
 
 if __name__ == '__main__':

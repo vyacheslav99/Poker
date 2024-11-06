@@ -3,13 +3,13 @@ import uuid
 
 from api import db
 from api.db.expressions import condition
-from api.models.security import UserDTO, Session
+from api.models.security import User, Session
 
 
 class UserRepo:
 
     @staticmethod
-    async def get_user(user_id: uuid.UUID | str = None, username: str = None) -> UserDTO | None:
+    async def get_user(user_id: uuid.UUID | str = None, username: str = None) -> User | None:
         if not user_id and not username:
             raise Exception('Один из параметров должен быть передан: user_id or username')
 
@@ -21,10 +21,10 @@ class UserRepo:
             conditions.and_x('username = %(username)s', username=username)
 
         row = await db.fetchone(f'select * from users where {conditions}', **conditions.values)
-        return UserDTO(**row) if row else None
+        return User(**row) if row else None
 
     @staticmethod
-    async def create_user(user: UserDTO) -> UserDTO:
+    async def create_user(user: User) -> User:
         sql = """
         insert into users (uid, username, fullname, password)
         values (%(uid)s, %(username)s, %(fullname)s, %(password)s)
@@ -32,7 +32,7 @@ class UserRepo:
         """
 
         res = await db.fetchone(sql, **user.model_dump())
-        return UserDTO(**res) if res else None
+        return User(**res) if res else None
 
     @staticmethod
     async def get_session(sid: uuid.UUID) -> Session | None:
@@ -55,4 +55,10 @@ class UserRepo:
 
         await db.execute(
             sql, client_info=json.dumps(session.client_info), **session.model_dump(exclude={'client_info'})
+        )
+
+    @staticmethod
+    async def change_password(user_id: uuid.UUID, new_password: str):
+        await db.execute(
+            'update users set password = %(password)s where uid = %(uid)s', uid=user_id, password=new_password
         )

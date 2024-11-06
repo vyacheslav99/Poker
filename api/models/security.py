@@ -9,25 +9,25 @@ class Token(BaseModel):
     token_type: str
 
 
-class TokenData(BaseModel):
+class TokenPayload(BaseModel):
     sid: str
     sub: str
     exp: int
 
 
-class AuthData(BaseModel):
+class AuthBody(BaseModel):
     username: str
     password: str
 
 
-class User(BaseModel):
+class UserBase(BaseModel):
     uid: uuid.UUID
     username: str
     fullname: str
     avatar: str | None = None
 
 
-class UserDTO(User):
+class User(UserBase):
     password: str
     disabled: bool = False
     created_at: datetime | None = None
@@ -40,3 +40,8 @@ class Session(BaseModel):
     username: str | None = None
     client_info: dict | None = None
     created_at: datetime | None = None
+
+
+class ChangePasswordBody(BaseModel):
+    password: str
+    new_password: str

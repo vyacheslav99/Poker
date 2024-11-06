@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from api.services.security import Security
-from api.models.security import User
+from api.models.security import UserBase
 
 
-CheckAuthProvider = Annotated[User, Depends(Security.check_auth)]
+CheckAuthProvider = Annotated[UserBase, Depends(Security.check_auth)]

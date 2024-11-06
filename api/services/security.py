@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from pydantic import ValidationError
 
 from api import config
-from api.models.security import UserDTO, Token, AuthData, TokenData, Session
+from api.models.security import User, Token, AuthBody, TokenPayload, Session
 from api.models.exceptions import UnauthorizedException
 from api.repositories.user import UserRepo
 
@@ -35,7 +35,7 @@ class Security:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No public keys found')
 
     @staticmethod
-    async def check_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> UserDTO:
+    async def check_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> User:
         """
         Проверка авторизации по Bearer токену из заголовка Authorization.
 
@@ -46,7 +46,7 @@ class Security:
         """
 
         try:
-            payload = TokenData(**jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM]))
+            payload = TokenPayload(**jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM]))
             session = await UserRepo.get_session(uuid.UUID(payload.sid))
             user = await UserRepo.get_user(username=payload.sub)
 
@@ -86,7 +86,7 @@ class Security:
         Возвращает зашифрованный с помощью jwt токен
         """
 
-        payload = TokenData(
+        payload = TokenPayload(
             sid=str(session_id),
             sub=username,
             exp=int((
@@ -135,10 +135,18 @@ class Security:
 
         return Token(access_token=token, token_type='bearer')
 
-    async def create_user(self, user: AuthData) -> UserDTO:
-        return await UserRepo.create_user(UserDTO(
+    async def create_user(self, user: AuthBody) -> User:
+        return await UserRepo.create_user(User(
             uid=uuid.uuid4(),
             username=user.username,
             password=self._pwd_context.hash(self.decrypt_password(user.password)),
             fullname=user.username
         ))
+
+    async def change_password(self, user: User, old_pwd_encrypted: str, new_pwd_encrypted: str):
+        old_passwd = self.decrypt_password(old_pwd_encrypted)
+
+        if not self._pwd_context.verify(old_passwd, user.password):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
+
+        await UserRepo.change_password(user.uid, self._pwd_context.hash(self.decrypt_password(new_pwd_encrypted)))
