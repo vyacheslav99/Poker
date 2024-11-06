@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from api import db, config
 from .handlers.common import router as common_router
-from .handlers.user import router as user_router
+from .handlers.security import router as user_router
 
 
 @asynccontextmanager

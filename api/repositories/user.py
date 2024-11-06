@@ -1,8 +1,9 @@
+import json
 import uuid
 
 from api import db
 from api.db.expressions import condition
-from api.models.user import UserDTO
+from api.models.security import UserDTO, Session
 
 
 class UserRepo:
@@ -19,16 +20,39 @@ class UserRepo:
         if username:
             conditions.and_x('username = %(username)s', username=username)
 
-        data = await db.fetchone(f'select * from users where {conditions}', **conditions.values)
-        return UserDTO(**data) if data else None
+        row = await db.fetchone(f'select * from users where {conditions}', **conditions.values)
+        return UserDTO(**row) if row else None
 
     @staticmethod
     async def create_user(user: UserDTO) -> UserDTO:
         sql = """
-        insert into users (uid, username, fullname, password, avatar)
-        values (%(uid)s, %(username)s, %(fullname)s, %(password)s, %(avatar)s)
+        insert into users (uid, username, fullname, password)
+        values (%(uid)s, %(username)s, %(fullname)s, %(password)s)
         returning *
         """
 
         res = await db.fetchone(sql, **user.model_dump())
         return UserDTO(**res) if res else None
+
+    @staticmethod
+    async def get_session(sid: uuid.UUID) -> Session | None:
+        sql = """
+        select s.*, u.username
+        from session s
+            join users u on u.uid = s.uid 
+        where s.sid = %(sid)s
+        """
+
+        row = await db.fetchone(sql, sid=sid)
+        return Session(**dict(row, client_info=json.loads(row['client_info']))) if row else None
+
+    @staticmethod
+    async def create_session(session: Session):
+        sql = """
+        insert into session (sid, uid, client_info)
+        values (%(sid)s, %(uid)s, %(client_info)s)
+        """
+
+        await db.execute(
+            sql, client_info=json.dumps(session.client_info), **session.model_dump(exclude={'client_info'})
+        )

@@ -9,6 +9,12 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenData(BaseModel):
+    sid: str
+    sub: str
+    exp: int
+
+
 class AuthData(BaseModel):
     username: str
     password: str
@@ -26,3 +32,11 @@ class UserDTO(User):
     disabled: bool = False
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+class Session(BaseModel):
+    sid: uuid.UUID
+    uid: uuid.UUID
+    username: str | None = None
+    client_info: dict | None = None
+    created_at: datetime | None = None
