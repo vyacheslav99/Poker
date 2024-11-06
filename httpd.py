@@ -1,4 +1,3 @@
-import os
 import logging
 import uvicorn
 from fastapi import FastAPI
@@ -9,9 +8,6 @@ app: FastAPI = create_app()
 
 
 def main():
-    if not os.path.exists(config.DOCUMENT_ROOT):
-        os.makedirs(config.DOCUMENT_ROOT, exist_ok=True)
-
     logging.basicConfig(**config.LOGGING)
     logging.debug('Enabled DEDUG mode logging level!')
 

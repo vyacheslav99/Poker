@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
+from api.handlers import CheckAuthProvider
 from api.models.security import User, Token, AuthData
 from api.models.http import ContentType
 from api.services.security import Security
@@ -31,5 +32,5 @@ async def register(body: AuthData) -> User:
 
 
 @router.get('/me', response_model=User)
-async def get_current_user(curr_user: User = Depends(Security.check_auth)):
+async def get_current_user(curr_user: CheckAuthProvider):
     return curr_user
