@@ -8,6 +8,8 @@ from api.models.security import User, Session
 
 class UserRepo:
 
+    _protected_user_fileds = ['uid']
+
     @staticmethod
     async def get_user(user_id: uuid.UUID | str = None, username: str = None) -> User | None:
         if not user_id and not username:
@@ -39,7 +41,7 @@ class UserRepo:
         fields = db.expressions.set()
 
         for k, v in data.items():
-            if k not in ('uid', 'password'):
+            if k not in UserRepo._protected_user_fileds:
                 fields.field(k, v)
 
         if not fields.values:
@@ -88,12 +90,6 @@ class UserRepo:
 
         await db.execute(
             sql, client_info=json.dumps(session.client_info), **session.model_dump(exclude={'client_info'})
-        )
-
-    @staticmethod
-    async def change_password(user_id: uuid.UUID, new_password: str):
-        await db.execute(
-            'update users set password = %(password)s where uid = %(uid)s', uid=user_id, password=new_password
         )
 
     @staticmethod

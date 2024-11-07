@@ -167,7 +167,7 @@ class Security:
         if not self._pwd_context.verify(old_passwd, user.password):
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
 
-        await UserRepo.change_password(user.uid, self._pwd_context.hash(self.decrypt_password(new_pwd_encrypted)))
+        await UserRepo.update_user(user.uid, password=self._pwd_context.hash(self.decrypt_password(new_pwd_encrypted)))
 
         if close_sessions:
             await self.close_another_sessions(user)
