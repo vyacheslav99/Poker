@@ -45,7 +45,11 @@ async def handle_error(request: Request, exc: Exception) -> Response:
         if not isinstance(status_code, int):
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        message = getattr(exc, 'message', str(exc))
+        if config.DEBUG:
+            message = getattr(exc, 'message', str(exc))
+        else:
+            message = 'Oops, something went wrong'
+
         exc = HTTPException(status_code=status_code, detail=message)
 
     return await http_exception_handler(request, exc)
