@@ -17,7 +17,7 @@ def gen_keys():
     with open('./privatekey.pem', 'wb') as f:
         f.write(prvkey.save_pkcs1(format='PEM'))
 
-    print('Done! Saved to api folder: privatekey.pem, publickey.pem')
+    print('Done! Saved to project root folder: privatekey.pem, publickey.pem')
 
     print('Testing keys...')
     test(pubkey=pubkey, prvkey=prvkey)

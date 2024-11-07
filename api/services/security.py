@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from pydantic import ValidationError
 
 from api import config
-from api.models.security import User, Token, AuthBody, TokenPayload, Session
+from api.models.security import User, Token, Login, TokenPayload, Session
 from api.models.exceptions import UnauthorizedException
 from api.repositories.user import UserRepo
 
@@ -40,7 +40,7 @@ class Security:
         Проверка авторизации по Bearer токену из заголовка Authorization.
 
         Токен из заголовка извлекает класс OAuth2PasswordBearer и передает его в параметре token в метод.
-        Токен - это зашифрованный jwt json-объект представление модели TokenData.
+        Токен - это зашифрованный jwt json-объект представление модели TokenPayload.
         Метод расшифровывает токен, выполняет все проверки его валидности, валидности сессии и пользователя,
         после чего возвращает данные пользователя из БД
         """
@@ -61,7 +61,7 @@ class Security:
 
             if datetime.now(tz=timezone.utc) > datetime.fromtimestamp(payload.exp, tz=timezone.utc):
                 await UserRepo.delete_sessions([session.sid])
-                raise UnauthorizedException(detail='Session has expired')
+                raise UnauthorizedException(detail='Session has been expired')
 
             user.curr_sid = session.sid
             return user
@@ -137,7 +137,7 @@ class Security:
 
         return Token(access_token=token, token_type='bearer')
 
-    async def create_user(self, user: AuthBody) -> User:
+    async def create_user(self, user: Login) -> User:
         """
         Создание нового пользователя.
         Пароль принимает в зашифрованном виде и закодированный в base64.

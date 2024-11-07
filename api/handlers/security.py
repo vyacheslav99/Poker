@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.handlers import CheckAuthProvider
-from api.models.security import UserBase, Token, AuthBody, ChangePasswordBody, Session
+from api.models.security import UserBase, Token, Login, ChangePasswordBody, Session
 from api.models.http import ContentType
 from api.models.common import SuccessResponse, DeletedResponse
 from api.services.security import Security
 
-router = APIRouter(prefix='/api', tags=['user'])
+router = APIRouter(prefix='/api', tags=['security'])
 
 
 @router.get('/public-key', response_model=str)
@@ -18,18 +18,18 @@ def get_public_key():
     return Response(Security.get_public_key(), media_type=ContentType.CONTENT_TYPE_PEM)
 
 
-@router.post('/register', status_code=status.HTTP_201_CREATED)
-async def register(body: AuthBody) -> UserBase:
+@router.post('/signup', status_code=status.HTTP_201_CREATED)
+async def signup(body: Login) -> UserBase:
     return await Security().create_user(body)
 
 
 @router.post('/login')
-async def authorize(body: AuthBody, request: Request) -> Token:
+async def authorize(body: Login, request: Request) -> Token:
     return await Security().do_authorize_safe(body.username, body.password, request=request)
 
 
 @router.post('/login-form')
-async def login_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], request: Request) -> Token:
+async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], request: Request) -> Token:
     return await Security().do_authorize_unsafe(form_data.username, form_data.password, request=request)
 
 

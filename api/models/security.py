@@ -1,8 +1,6 @@
 import uuid
 
 from datetime import datetime
-from typing import Any
-
 from pydantic import BaseModel
 
 
@@ -17,7 +15,7 @@ class TokenPayload(BaseModel):
     exp: int
 
 
-class AuthBody(BaseModel):
+class Login(BaseModel):
     username: str
     password: str
 

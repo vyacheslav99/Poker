@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 import typing
 
@@ -15,7 +13,7 @@ class CompositeExpressionType(str, enum.Enum):
 class CompositeExpression:
 
     def __init__(
-        self, type: CompositeExpressionType, *expressions: typing.Union[CompositeExpression, str],
+        self, type: CompositeExpressionType, *expressions: typing.Union['CompositeExpression', str],
     ):
 
         self.type = type
@@ -30,7 +28,7 @@ class CompositeExpression:
     def __len__(self) -> int:
         return len(self.expressions)
 
-    def add(self, *expressions: typing.Union[CompositeExpression, str]) -> 'CompositeExpression':
+    def add(self, *expressions: typing.Union['CompositeExpression', str]) -> 'CompositeExpression':
         self.expressions += (expression for expression in expressions if expression and expression is not self)
         return self
 

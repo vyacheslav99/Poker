@@ -10,7 +10,7 @@ from starlette.middleware.errors import ServerErrorMiddleware
 
 from api import db, config
 from .handlers.common import router as common_router
-from .handlers.security import router as user_router
+from .handlers.security import router as security_router
 
 
 @asynccontextmanager
@@ -34,13 +34,17 @@ async def setup_infrastructure(app: FastAPI):
 def get_api_router() -> APIRouter:
     router = APIRouter()
     router.include_router(common_router)
-    router.include_router(user_router)
+    router.include_router(security_router)
     return router
 
 
 async def handle_error(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, HTTPException):
         status_code = getattr(exc, 'status_code', getattr(exc, 'code', status.HTTP_500_INTERNAL_SERVER_ERROR))
+
+        if not isinstance(status_code, int):
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
         message = getattr(exc, 'message', str(exc))
         exc = HTTPException(status_code=status_code, detail=message)
 
