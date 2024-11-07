@@ -1,6 +1,8 @@
 import uuid
 
 from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -30,6 +32,7 @@ class UserBase(BaseModel):
 class User(UserBase):
     password: str
     disabled: bool = False
+    curr_sid: uuid.UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -40,8 +43,10 @@ class Session(BaseModel):
     username: str | None = None
     client_info: dict | None = None
     created_at: datetime | None = None
+    is_current: bool = False
 
 
 class ChangePasswordBody(BaseModel):
     password: str
     new_password: str
+    close_sessions: bool = False

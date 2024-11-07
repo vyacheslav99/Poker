@@ -51,7 +51,7 @@ class Security:
             user = await UserRepo.get_user(username=payload.sub)
 
             if not session:
-                raise UnauthorizedException(detail='Token has been revoked')
+                raise UnauthorizedException(detail='Session is closed')
 
             if not user or session.uid != user.uid:
                 raise UnauthorizedException(detail='Invalid token')
@@ -60,8 +60,10 @@ class Security:
                 raise UnauthorizedException(detail='User is blocked')
 
             if datetime.now(tz=timezone.utc) > datetime.fromtimestamp(payload.exp, tz=timezone.utc):
+                await UserRepo.delete_sessions([session.sid])
                 raise UnauthorizedException(detail='Session has expired')
 
+            user.curr_sid = session.sid
             return user
         except (InvalidTokenError, ValidationError) as e:
             logging.error('Cannot decode token!', exc_info=e)
@@ -150,10 +152,13 @@ class Security:
             fullname=user.username
         ))
 
-    async def change_password(self, user: User, old_pwd_encrypted: str, new_pwd_encrypted: str):
+    async def change_password(
+        self, user: User, old_pwd_encrypted: str, new_pwd_encrypted: str, close_sessions: bool = False
+    ):
         """
         Смена пароля пользователя.
-        Пароли передаем в зашифрованном виде
+        Пароли передаем в зашифрованном виде.
+        Завершает все прочие сеансы, кроме текущего, если указан флаг close_sessions
         """
 
         old_passwd = self.decrypt_password(old_pwd_encrypted)
@@ -162,3 +167,52 @@ class Security:
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
 
         await UserRepo.change_password(user.uid, self._pwd_context.hash(self.decrypt_password(new_pwd_encrypted)))
+
+        if close_sessions:
+            await self.close_another_sessions(user)
+
+    async def do_logout(self, user: User):
+        """ Выйти из текущего сеанса. Удаляет текущую сессию в таблице session """
+
+        if user.curr_sid:
+            await UserRepo.delete_sessions([user.curr_sid])
+
+    async def close_another_sessions(self, user: User) -> int:
+        """ Завершить все прочие сеансы пользователя кроме теущего """
+
+        another_sessions = [s.sid for s in await UserRepo.get_user_sessions(user.uid) if s.sid != user.curr_sid]
+
+        if another_sessions:
+            await UserRepo.delete_sessions(another_sessions)
+
+        return len(another_sessions)
+
+    async def close_session(self, user: User, session_id: uuid.UUID):
+        """ Завершить указанный сеанс. Проверяет, что сеанс принадлежит текущему пользователю """
+
+        session = await UserRepo.get_session(session_id)
+
+        if not session:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Session not exists')
+
+        if session.uid != user.uid:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Access denied')
+
+        if session.sid == user.curr_sid:
+            raise HTTPException(
+                status.HTTP_406_NOT_ACCEPTABLE,
+                detail='This is the current session. To close this, use the `logout`'
+            )
+
+        await UserRepo.delete_sessions([session_id])
+
+    async def get_sessions(self, user: User) -> list[Session]:
+        """ Получить все сессии пользователя """
+
+        sessions = await UserRepo.get_user_sessions(user.uid)
+
+        for session in sessions:
+            if session.sid == user.curr_sid:
+                session.is_current = True
+
+        return sessions

@@ -35,16 +35,28 @@ class UserRepo:
         return User(**res) if res else None
 
     @staticmethod
-    async def get_session(sid: uuid.UUID) -> Session | None:
+    async def get_session(session_id: uuid.UUID) -> Session | None:
         sql = """
         select s.*, u.username
         from session s
-            join users u on u.uid = s.uid 
+            join users u on u.uid = s.uid
         where s.sid = %(sid)s
         """
 
-        row = await db.fetchone(sql, sid=sid)
+        row = await db.fetchone(sql, sid=session_id)
         return Session(**dict(row, client_info=json.loads(row['client_info']))) if row else None
+
+    @staticmethod
+    async def get_user_sessions(user_id: uuid.UUID) -> list[Session]:
+        sql = """
+        select s.*, u.username
+        from session s
+            join users u on u.uid = s.uid
+        where s.uid = %(uid)s
+        """
+
+        data = await db.fetchall(sql, uid=user_id)
+        return [Session(**dict(row, client_info=json.loads(row['client_info']))) for row in data]
 
     @staticmethod
     async def create_session(session: Session):
@@ -62,3 +74,7 @@ class UserRepo:
         await db.execute(
             'update users set password = %(password)s where uid = %(uid)s', uid=user_id, password=new_password
         )
+
+    @staticmethod
+    async def delete_sessions(session_ids: list[uuid.UUID]):
+        await db.execute('delete from session where sid = any(%(session_ids)s)', session_ids=session_ids)

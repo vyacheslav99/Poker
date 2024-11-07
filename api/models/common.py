@@ -1,5 +1,9 @@
 from pydantic import BaseModel
 
 
-class DefaultResponse(BaseModel):
+class SuccessResponse(BaseModel):
     success: bool = True
+
+
+class DeletedResponse(SuccessResponse):
+    deleted: int
