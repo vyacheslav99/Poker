@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    token_type: str = 'bearer'
 
 
 class TokenPayload(BaseModel):
@@ -15,19 +15,19 @@ class TokenPayload(BaseModel):
     exp: int
 
 
-class Login(BaseModel):
+class LoginBody(BaseModel):
     username: str
     password: str
 
 
-class UserBase(BaseModel):
+class UserPublic(BaseModel):
     uid: uuid.UUID
     username: str
     fullname: str
     avatar: str | None = None
 
 
-class User(UserBase):
+class User(UserPublic):
     password: str
     disabled: bool = False
     curr_sid: uuid.UUID | None = None
@@ -48,3 +48,7 @@ class ChangePasswordBody(BaseModel):
     password: str
     new_password: str
     close_sessions: bool = False
+
+
+class ChangeUsernameBody(BaseModel):
+    new_username: str

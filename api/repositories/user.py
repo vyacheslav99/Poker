@@ -35,6 +35,27 @@ class UserRepo:
         return User(**res) if res else None
 
     @staticmethod
+    async def update_user(user_id: uuid.UUID, **data) -> User:
+        fields = db.expressions.set()
+
+        for k, v in data.items():
+            if k not in ('uid', 'password'):
+                fields.field(k, v)
+
+        if not fields.values:
+            raise Exception('Nothing to change')
+
+        sql = f"""
+        update users set
+        {fields}
+        where uid = %(uid)s
+        returning *
+        """
+
+        row = await db.fetchone(sql, uid=user_id, **fields.values)
+        return User(**row) if row else None
+
+    @staticmethod
     async def get_session(session_id: uuid.UUID) -> Session | None:
         sql = """
         select s.*, u.username
