@@ -18,11 +18,6 @@ def get_public_key():
     return Response(UserService.get_public_key(), media_type=ContentType.CONTENT_TYPE_PEM)
 
 
-@router.post('/signup', status_code=status.HTTP_201_CREATED)
-async def signup(body: LoginBody) -> UserPublic:
-    return await UserService().create_user(body)
-
-
 @router.post('/login')
 async def authorize(body: LoginBody, request: Request) -> Token:
     return await UserService().do_authorize_safe(body.username, body.password, request=request)
@@ -37,6 +32,11 @@ async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends(
 async def logout(curr_user: CheckAuthProvider):
     await UserService().do_logout(curr_user)
     return SuccessResponse()
+
+
+@router.post('/user', status_code=status.HTTP_201_CREATED)
+async def signup(body: LoginBody) -> UserPublic:
+    return await UserService().create_user(body)
 
 
 @router.get('/user', response_model=UserPublic)
