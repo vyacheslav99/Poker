@@ -8,7 +8,7 @@ from api.handlers import CheckAuthProvider
 from api.models.security import Session, Token, LoginBody
 from api.models.http import ContentType
 from api.models.common import SuccessResponse, DeletedResponse
-from api.services.user import Security
+from api.services.security import Security
 
 router = APIRouter(prefix='/api', tags=['security'])
 
