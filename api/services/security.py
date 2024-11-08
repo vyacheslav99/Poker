@@ -133,10 +133,7 @@ class Security:
         )
 
         await UserRepo.create_session(session)
-        token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
-        token = self.create_access_token(user.username, session.sid, expires_delta=token_expires)
-
-        return Token(access_token=token)
+        return Token(access_token=self.create_access_token(user.username, session.sid))
 
     async def create_user(self, user: LoginBody) -> User:
         """
@@ -189,10 +186,7 @@ class Security:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=f'Username <{new_username}> already exists')
 
         await self.close_another_sessions(user)
-        token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
-        token = self.create_access_token(_user.username, user.curr_sid, expires_delta=token_expires)
-
-        return Token(access_token=token)
+        return Token(access_token=self.create_access_token(_user.username, user.curr_sid))
 
     async def do_logout(self, user: User):
         """ Выйти из текущего сеанса. Удаляет текущую сессию в таблице session """
