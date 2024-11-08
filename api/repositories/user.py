@@ -4,9 +4,12 @@ import uuid
 from api import db
 from api.db.expressions import condition
 from api.models.security import User, Session
+from api.models.exceptions import NoChangesError
 
 
 class UserRepo:
+
+    _protected_user_fileds = ['uid']
 
     @staticmethod
     async def get_user(user_id: uuid.UUID | str = None, username: str = None) -> User | None:
@@ -33,6 +36,27 @@ class UserRepo:
 
         res = await db.fetchone(sql, **user.model_dump())
         return User(**res) if res else None
+
+    @staticmethod
+    async def update_user(user_id: uuid.UUID, **data) -> User:
+        fields = db.expressions.set()
+
+        for k, v in data.items():
+            if k not in UserRepo._protected_user_fileds:
+                fields.field(k, v)
+
+        if not fields.values:
+            raise NoChangesError('Nothing to change')
+
+        sql = f"""
+        update users set
+        {fields}
+        where uid = %(uid)s
+        returning *
+        """
+
+        row = await db.fetchone(sql, uid=user_id, **fields.values)
+        return User(**row) if row else None
 
     @staticmethod
     async def get_session(session_id: uuid.UUID) -> Session | None:
@@ -67,12 +91,6 @@ class UserRepo:
 
         await db.execute(
             sql, client_info=json.dumps(session.client_info), **session.model_dump(exclude={'client_info'})
-        )
-
-    @staticmethod
-    async def change_password(user_id: uuid.UUID, new_password: str):
-        await db.execute(
-            'update users set password = %(password)s where uid = %(uid)s', uid=user_id, password=new_password
         )
 
     @staticmethod

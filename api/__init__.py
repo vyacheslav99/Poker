@@ -11,6 +11,7 @@ from starlette.middleware.errors import ServerErrorMiddleware
 from api import db, config
 from .handlers.common import router as common_router
 from .handlers.security import router as security_router
+from .handlers.user import router as user_router
 
 
 @asynccontextmanager
@@ -31,10 +32,11 @@ async def setup_infrastructure(app: FastAPI):
     await db.shutdown()
 
 
-def get_api_router() -> APIRouter:
+def get_api_routers() -> APIRouter:
     router = APIRouter()
     router.include_router(common_router)
     router.include_router(security_router)
+    router.include_router(user_router)
     return router
 
 
@@ -45,7 +47,11 @@ async def handle_error(request: Request, exc: Exception) -> Response:
         if not isinstance(status_code, int):
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        message = getattr(exc, 'message', str(exc))
+        if config.DEBUG:
+            message = getattr(exc, 'message', str(exc))
+        else:
+            message = 'Oops, something went wrong'
+
         exc = HTTPException(status_code=status_code, detail=message)
 
     return await http_exception_handler(request, exc)
@@ -65,7 +71,7 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(ServerErrorMiddleware, handler=handle_error)
-    app.include_router(get_api_router())
+    app.include_router(get_api_routers())
     app.mount('/static/files', StaticFiles(directory=config.FILESTORE_DIR), name='static')
 
     return app

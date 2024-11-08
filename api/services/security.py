@@ -10,9 +10,10 @@ from fastapi import Request, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from pydantic import ValidationError
+from asyncpg.exceptions import UniqueViolationError
 
 from api import config
-from api.models.security import User, Token, Login, TokenPayload, Session
+from api.models.security import User, Token, LoginBody, TokenPayload, Session
 from api.models.exceptions import UnauthorizedException
 from api.repositories.user import UserRepo
 
@@ -132,12 +133,9 @@ class Security:
         )
 
         await UserRepo.create_session(session)
-        token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
-        token = self.create_access_token(user.username, session.sid, expires_delta=token_expires)
+        return Token(access_token=self.create_access_token(user.username, session.sid))
 
-        return Token(access_token=token, token_type='bearer')
-
-    async def create_user(self, user: Login) -> User:
+    async def create_user(self, user: LoginBody) -> User:
         """
         Создание нового пользователя.
         Пароль принимает в зашифрованном виде и закодированный в base64.
@@ -166,10 +164,29 @@ class Security:
         if not self._pwd_context.verify(old_passwd, user.password):
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
 
-        await UserRepo.change_password(user.uid, self._pwd_context.hash(self.decrypt_password(new_pwd_encrypted)))
+        await UserRepo.update_user(user.uid, password=self._pwd_context.hash(self.decrypt_password(new_pwd_encrypted)))
 
         if close_sessions:
             await self.close_another_sessions(user)
+
+    async def change_username(self, user: User, new_username: str) -> Token:
+        """
+        Изменение логина пользователя.
+
+        Так как логин зашит в авторизационном токне, то все существующие токены автоматически становятся
+        недействительными (при авторизации юзер не будет найден в БД). Поэтому:
+        1. Удалить все существующие сеансы, кроме текущего.
+        2. По текущему сеансу перевыпустить токен: создать новый с новым логином и текущим id сессии
+        3. Вернуь новый токен
+        """
+
+        try:
+            _user = await UserRepo.update_user(user.uid, username=new_username)
+        except UniqueViolationError:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=f'Username <{new_username}> already exists')
+
+        await self.close_another_sessions(user)
+        return Token(access_token=self.create_access_token(_user.username, user.curr_sid))
 
     async def do_logout(self, user: User):
         """ Выйти из текущего сеанса. Удаляет текущую сессию в таблице session """

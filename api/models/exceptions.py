@@ -10,3 +10,7 @@ class UnauthorizedException(HTTPException):
     def __init__(self, detail: Any = None):
         self.detail = detail or self.detail
         super().__init__(self.status_code, detail=self.detail, headers=self.headers)
+
+
+class NoChangesError(Exception):
+    pass
