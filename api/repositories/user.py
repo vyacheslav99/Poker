@@ -3,7 +3,8 @@ import uuid
 
 from api import db
 from api.db.expressions import condition
-from api.models.user import User, Session
+from api.models.user import User
+from api.models.security import Session
 from api.models.exceptions import NoChangesError
 
 

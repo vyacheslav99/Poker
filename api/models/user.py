@@ -4,22 +4,6 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str = 'bearer'
-
-
-class TokenPayload(BaseModel):
-    sid: str
-    sub: str
-    exp: int
-
-
-class LoginBody(BaseModel):
-    username: str
-    password: str
-
-
 class UserPublic(BaseModel):
     uid: uuid.UUID
     username: str
@@ -47,12 +31,3 @@ class ChangeUsernameBody(BaseModel):
 
 class UserPatchBody(BaseModel):
     fullname: str | None = None
-
-
-class Session(BaseModel):
-    sid: uuid.UUID
-    uid: uuid.UUID
-    username: str | None = None
-    client_info: dict | None = None
-    created_at: datetime | None = None
-    is_current: bool = False
