@@ -1,14 +1,14 @@
 import uuid
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.handlers import CheckAuthProvider
-from api.models.security import UserPublic, Session, Token, LoginBody, ChangePasswordBody, ChangeUsernameBody
+from api.models.security import Session, Token, LoginBody
 from api.models.http import ContentType
 from api.models.common import SuccessResponse, DeletedResponse
-from api.services.security import Security
+from api.services.user import Security
 
 router = APIRouter(prefix='/api', tags=['security'])
 
@@ -16,11 +16,6 @@ router = APIRouter(prefix='/api', tags=['security'])
 @router.get('/public-key', response_model=str)
 def get_public_key():
     return Response(Security.get_public_key(), media_type=ContentType.CONTENT_TYPE_PEM)
-
-
-@router.post('/signup', status_code=status.HTTP_201_CREATED)
-async def signup(body: LoginBody) -> UserPublic:
-    return await Security().create_user(body)
 
 
 @router.post('/login')
@@ -37,22 +32,6 @@ async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends(
 async def logout(curr_user: CheckAuthProvider):
     await Security().do_logout(curr_user)
     return SuccessResponse()
-
-
-@router.get('/me', response_model=UserPublic)
-async def get_current_user(curr_user: CheckAuthProvider):
-    return curr_user
-
-
-@router.patch('/user/passwd', response_model=SuccessResponse)
-async def change_password(body: ChangePasswordBody, curr_user: CheckAuthProvider):
-    await Security().change_password(curr_user, body.password, body.new_password, close_sessions=body.close_sessions)
-    return SuccessResponse()
-
-
-@router.patch('/user/username', response_model=Token)
-async def change_username(body: ChangeUsernameBody, curr_user: CheckAuthProvider):
-    return await Security().change_username(curr_user, body.new_username)
 
 
 @router.get('/user/sessions')
