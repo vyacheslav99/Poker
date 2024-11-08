@@ -34,6 +34,29 @@ class UserService:
             fullname=user.username
         ))
 
+    async def delete_user(self, user: User, passwd_encrypted: str):
+        """
+        Удаление пользователя
+
+        Полное физическое удаление пользователя из системы со всеми сопутствующими потрохами:
+        - сессиями
+        - статистикой
+        - файлами (аватаркой)
+        - играми, где он создатель/владелец
+        - удаление его как участника из игр, где он участник
+        - что-то еще?
+
+        На всякий случай при удалении проверяем текущий пароль
+        """
+
+        if not self._sec.verify_hash(self._sec.decrypt_password(passwd_encrypted), user.password):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
+
+        await self.clear_avatar(user)
+        # todo: Не забывать при появлении новых связей по пользователю добавлять сюда их удаление
+        #  (если они не каскадные)
+        await UserRepo.delete_user(user.uid)
+
     async def change_password(
         self, user: User, old_pwd_encrypted: str, new_pwd_encrypted: str, close_sessions: bool = False
     ):

@@ -51,13 +51,18 @@ class UserRepo:
 
         sql = f"""
         update users set
-        {fields}
+            updated_at = current_timestamp,
+            {fields}
         where uid = %(uid)s
         returning *
         """
 
         row = await db.fetchone(sql, uid=user_id, **fields.values)
         return User(**row) if row else None
+
+    @staticmethod
+    async def delete_user(user_id: uuid.UUID):
+        await db.execute('delete from users where uid = %(uid)s', uid=user_id)
 
     @staticmethod
     async def get_session(session_id: uuid.UUID) -> Session | None:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, UploadFile
 
 from api.handlers import CheckAuthProvider
-from api.models.user import UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody
+from api.models.user import UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody
 from api.models.security import Token, LoginBody
 from api.models.common import SuccessResponse
 from api.services.user import UserService
@@ -43,3 +43,9 @@ async def change_password(body: ChangePasswordBody, curr_user: CheckAuthProvider
 @router.patch('/user/username', response_model=Token)
 async def change_username(body: ChangeUsernameBody, curr_user: CheckAuthProvider):
     return await UserService().change_username(curr_user, body.new_username)
+
+
+@router.delete('/user', response_model=SuccessResponse)
+async def delete_user(body: DeleteUserBody, curr_user: CheckAuthProvider):
+    await UserService().delete_user(curr_user, body.password)
+    return SuccessResponse()

@@ -31,3 +31,7 @@ class ChangeUsernameBody(BaseModel):
 
 class UserPatchBody(BaseModel):
     fullname: str | None = None
+
+
+class DeleteUserBody(BaseModel):
+    password: str
