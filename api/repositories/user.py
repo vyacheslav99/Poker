@@ -4,6 +4,7 @@ import uuid
 from api import db
 from api.db.expressions import condition
 from api.models.security import User, Session
+from api.models.exceptions import NoChangesError
 
 
 class UserRepo:
@@ -45,7 +46,7 @@ class UserRepo:
                 fields.field(k, v)
 
         if not fields.values:
-            raise Exception('Nothing to change')
+            raise NoChangesError('Nothing to change')
 
         sql = f"""
         update users set
