@@ -10,7 +10,6 @@ from starlette.middleware.errors import ServerErrorMiddleware
 
 from api import db, config
 from .handlers.common import router as common_router
-from .handlers.security import router as security_router
 from .handlers.user import router as user_router
 
 
@@ -35,7 +34,6 @@ async def setup_infrastructure(app: FastAPI):
 def get_api_routers() -> APIRouter:
     router = APIRouter()
     router.include_router(common_router)
-    router.include_router(security_router)
     router.include_router(user_router)
     return router
 
