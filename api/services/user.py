@@ -142,6 +142,6 @@ class UserService:
         file_path = os.path.join(config.FILESTORE_DIR, user.avatar)
 
         if os.path.exists(file_path):
-            os.remove(file_path)
+            os.unlink(file_path)
 
         return await UserRepo.update_user(user.uid, avatar=None)

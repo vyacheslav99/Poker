@@ -211,7 +211,7 @@ class AgreementsDialog(QDialog):
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
 
-    def set_agreements(self, agreements: dict=None):
+    def set_agreements(self, agreements: dict = None):
         if agreements:
             self._agreements = agreements
 

@@ -69,7 +69,8 @@ class GameTableDialog(QDialog):
         j = 1
         for i in range(len(self.players)):
             for _ in range(4):
-                self.set_column_style(self.header, j, 0, 1, Qt.AlignHCenter, self.users_color[i], self.users_bg[i], 13, 75)
+                self.set_column_style(self.header, j, 0, 1, Qt.AlignHCenter, self.users_color[i],
+                                      self.users_bg[i], 13, 75)
                 j += 1
 
         # автоподбор ширины колонок по содержимому
@@ -141,12 +142,16 @@ class GameTableDialog(QDialog):
             item.setToolTip(item.text())
             self.table.setItem(r, i, item)
 
-        self.set_column_style(self.table, 0, r, r, Qt.AlignHCenter, colors[0], self.params.bg_buttons_2(), 13, 70)
+        self.set_column_style(
+            self.table, 0, r, r, Qt.AlignHCenter, colors[0], self.params.bg_buttons_2(), 13, 70
+        )
 
         j = 1
         for i in range(len(self.players)):
             for x in range(4):
-                self.set_column_style(self.table, j, r, r, Qt.AlignHCenter, colors[j], self.users_bg[i], 13, 70)
+                self.set_column_style(
+                    self.table, j, r, r, Qt.AlignHCenter, colors[j], self.users_bg[i], 13, 70
+                )
                 j += 1
 
         # self.table.resizeColumnsToContents()

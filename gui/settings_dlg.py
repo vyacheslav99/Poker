@@ -263,7 +263,7 @@ class SettingsDialog(QDialog):
     def allow_profile_change(self, allowed):
         self._current_profile.setEnabled(allowed)
 
-    def set_params(self, params: dict=None):
+    def set_params(self, params: dict = None):
         if params:
             self._params = params
 
