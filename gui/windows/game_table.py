@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from models.params import Params
-from gui import const
+from gui.common import const
 
 
 class GameTableDialog(QDialog):

@@ -4,9 +4,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import const, client
 from core import const as eng_const
 from models.params import Profiles
+from gui.common import client, const
 
 
 class SettingsDialog(QDialog):

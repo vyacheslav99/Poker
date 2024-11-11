@@ -1,25 +1,11 @@
 import os
-import random
-import pickle
-import json
-
-from datetime import datetime, timedelta
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from core import helpers, const as core_const, engine
-from models.params import Params, Options, Profiles, RobotStatItem
-from gui import const, utils
-from gui.graphics import QCard, Face, Lear, Area
-from gui.game_table import GameTableDialog
-from gui.service_info import ServiceInfoDialog
-from gui.players_dlg import PlayersDialog
-from gui.agreements_dlg import AgreementsDialog
-from gui.settings_dlg import SettingsDialog
-from gui.profiles_dlg import ProfilesDialog
-from gui.statistics_wnd import StatisticsWindow
+from models.params import Params, Options, Profiles
+from gui.common import const
 from gui.main_base import MainWnd
 
 

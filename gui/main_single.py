@@ -11,12 +11,12 @@ from PyQt5.QtWidgets import *
 from core import const as core_const, engine
 from models.params import Options, RobotStatItem
 
-from gui import const, utils
+from gui.common import const, utils
 from gui.main_base import MainWnd
-from gui.service_info import ServiceInfoDialog
-from gui.players_dlg import PlayersDialog
-from gui.agreements_dlg import AgreementsDialog
-from gui.profiles_dlg import ProfilesDialog
+from gui.windows.service_info import ServiceInfoDialog
+from gui.windows.players_dlg import PlayersDialog
+from gui.windows.agreements_dlg import AgreementsDialog
+from gui.windows.profiles_dlg import ProfilesDialog
 
 
 class SinglePlayerMainWnd(MainWnd):

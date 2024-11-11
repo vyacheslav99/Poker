@@ -10,12 +10,13 @@ from PyQt5.QtWidgets import *
 
 from core import helpers, const as core_const
 from models.params import Params, Options, Profiles
-from gui import const, utils
-from gui.graphics import QCard, Face, Lear, Area
-from gui.game_table import GameTableDialog
-from gui.agreements_dlg import AgreementsDialog
-from gui.settings_dlg import SettingsDialog
-from gui.statistics_wnd import StatisticsWindow
+
+from gui.common import const, utils
+from gui.common.graphics import QCard, Face, Lear, Area
+from gui.windows.game_table import GameTableDialog
+from gui.windows.agreements_dlg import AgreementsDialog
+from gui.windows.settings_dlg import SettingsDialog
+from gui.windows.statistics_wnd import StatisticsWindow
 
 
 class MainWnd(QMainWindow):

@@ -5,7 +5,7 @@ import random
 
 from models.base_model import BaseModel
 from models.player import Player
-from gui import const, utils
+from gui.common import const, utils
 from core import const as eng_const
 
 
