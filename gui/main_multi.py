@@ -6,7 +6,6 @@ from models.params import Options
 from gui.common import const
 from gui.common.client import GameServerClient, RequestException
 from gui.main_base import MainWnd
-from models.player import Player
 
 
 class MultiPlayerMainWnd(MainWnd):
@@ -26,12 +25,14 @@ class MultiPlayerMainWnd(MainWnd):
         self.show()
 
     def show_profiles_dlg(self):
-        pass
+        """ Форма авторизации / регистрации / управления пользователями """
 
-    def authorize(self, username: str, password: str) -> Player:
+        # todo: тут будет окно авторизации/регистрации, а пока закостылим так
         try:
-            self.game_server_cli.authorize_safe(username, password)
-            return self.game_server_cli.get_user()
+            self.game_server_cli.authorize_safe('vika', 'zadnitsa')
+            user = self.game_server_cli.get_user()
+            self.profiles.set_profile(user)
+            self.params.user = user.uid
         except RequestException as e:
             QMessageBox.warning(self, 'Ошибка', f'Ошибка авторизации:\n\n{str(e)}')
 
@@ -39,9 +40,7 @@ class MultiPlayerMainWnd(MainWnd):
         """ Инициализация текущего профиля """
 
         if self.profiles.count() == 0:
-            # todo: тут будет окно авторизации/регистрации, а пока закостылим так
-            self.profiles.set_profile(self.authorize('vika', 'zadnitsa'))
-            self.params.user = self.profiles.profiles[0].uid
+            self.show_profiles_dlg()
 
         if not self.params.user:
             self.params.user = self.profiles.profiles[0].uid
@@ -51,13 +50,13 @@ class MultiPlayerMainWnd(MainWnd):
     def set_profile(self, uid):
         """ Смена текущего профиля """
 
-        profile = self.profiles.get(uid)
+        user = self.profiles.get(uid)
 
-        if not profile:
+        if not user:
             return
 
         self.params.user = uid
-        self.game_server_cli.token = profile.password
+        self.game_server_cli.token = user.password
 
         if os.path.exists(f'{self.get_profile_dir()}/options.json'):
             self.options = Options(filename=f'{self.get_profile_dir()}/options.json')
@@ -65,9 +64,8 @@ class MultiPlayerMainWnd(MainWnd):
             self.options = Options()
 
         try:
-            profile = self.game_server_cli.get_user()
-            # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
-            # self.options = self.game_server_cli.get_game_agreements()
+            user = self.game_server_cli.get_user()
+            self.profiles.set_profile(user)
             self.load_params(remote=True)
         except RequestException as e:
             QMessageBox.warning(
@@ -76,34 +74,17 @@ class MultiPlayerMainWnd(MainWnd):
                 f'Был загружен профиль из локального кэша'
             )
 
-        self.curr_profile = profile
+        self.curr_profile = user
         self.set_status_message(self.curr_profile.name, 0)
-
-    def save_profile_options(self, local_only: bool = False):
-        """ Сохранение параметров текущего профиля """
-
-        super().save_profile_options()
-
-        if self.params.user and self.curr_profile:
-            if not local_only:
-                try:
-                    # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
-                    # self.game_server_cli.set_game_agreements(self.options)
-                    pass
-                except RequestException as e:
-                    QMessageBox.warning(
-                        self, 'Ошибка',
-                        f'Не удалось сохранить настройки на сервере! Ошибка:\n{str(e)}\n\n'
-                        f'Настройки сохранены в локальный кэш'
-                    )
 
     def load_params(self, remote: bool = False):
         """ Загрузка параметров """
 
         if remote:
             try:
-                # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
+                # todo: методы клиента пока не реализованы, чтоб все не херить, пока закомментировано
                 # self.params.set(**self.game_cli.get_params().as_dict())
+                # self.options = self.game_server_cli.get_game_agreements()
                 pass
             except RequestException as e:
                 QMessageBox.warning(
@@ -127,12 +108,13 @@ class MultiPlayerMainWnd(MainWnd):
 
         self.params.save(const.PARAMS_NET_FILE)
         self.profiles.save(const.PROFILES_NET_FILE)
-        self.save_profile_options(local_only=local_only)
+        self.save_profile_options()
 
         if not local_only:
             try:
                 # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
                 # self.game_server_cli.set_params(self.params)
+                # self.game_server_cli.set_game_agreements(self.options)
                 pass
             except RequestException as e:
                 QMessageBox.warning(
