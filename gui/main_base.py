@@ -1,6 +1,7 @@
 import random
 import json
 import abc
+import os
 
 from datetime import datetime, timedelta
 
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import *
 
 from core import helpers, const as core_const
 from models.params import Params, Options, Profiles
+from models.player import Player
 
 from gui.common import const, utils
 from gui.common.graphics import QCard, Face, Lear, Area
@@ -28,7 +30,7 @@ class MainWnd(QMainWindow):
         self.params: Params = Params()
         self.profiles: Profiles = Profiles()
         self.options: Options = Options()
-        self.curr_profile = None
+        self.curr_profile: Player | None = None
         self._bikes = []
         self.load_bikes()
 
@@ -37,7 +39,7 @@ class MainWnd(QMainWindow):
         self._start_time = None
         self._prv_game_time = None
         self._bike_timer = None
-        self.players = []
+        self.players: list[Player] = []
         self.table = {}
         self.game = None
         self.is_new_round = False
@@ -257,10 +259,14 @@ class MainWnd(QMainWindow):
                                 self.curr_profile.uid if self.curr_profile else None)
         self._stat_wnd.showMaximized()
 
-    @abc.abstractmethod
     def change_profile_action(self, action):
         """ Быстрая смена текущего профиля из главного меню """
-        raise NotImplemented
+
+        new_uid = action.data()
+
+        if self.curr_profile is not None and self.curr_profile.uid != new_uid:
+            self.set_profile(new_uid)
+            self.save_params()
 
     def set_status_message(self, message, index):
         """
@@ -349,6 +355,11 @@ class MainWnd(QMainWindow):
 
     def started(self):
         return self._started
+
+    def get_profile_dir(self):
+        """ возвращает путь к папке активного профиля """
+
+        return f'{const.PROFILES_DIR}/{self.params.user}'
 
     @abc.abstractmethod
     def init_profile(self):
@@ -1326,10 +1337,16 @@ class MainWnd(QMainWindow):
         """ Сохранение параметров """
         raise NotImplemented
 
-    @abc.abstractmethod
     def save_profile_options(self):
         """ Сохранение параметров текущего профиля """
-        raise NotImplemented
+
+        if self.params.user and self.curr_profile:
+            fn = f'{self.get_profile_dir()}/options.json'
+
+            if not os.path.isdir(os.path.split(fn)[0]):
+                os.makedirs(os.path.split(fn)[0])
+
+            self.options.save(fn)
 
     @abc.abstractmethod
     def on_reset_stat_click(self):

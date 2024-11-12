@@ -1,85 +1,158 @@
 import os
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from models.params import Params, Options, Profiles
+from models.params import Options
 from gui.common import const
+from gui.common.client import GameServerClient, RequestException
 from gui.main_base import MainWnd
+from models.player import Player
 
 
 class MultiPlayerMainWnd(MainWnd):
 
     def __init__(self, app, *args):
-        super().__init__()
+        super().__init__(app, *args)
 
-        self.app = app
-        self.__dev_mode = '--dev_mode' in args
-        self.params = Params(filename=const.PARAMS_FILE if os.path.exists(const.PARAMS_FILE) else None)
-        self.profiles = Profiles(filename=const.PROFILES_FILE if os.path.exists(const.PROFILES_FILE) else None)
-        self.options = Options()
-        self.curr_profile = None
-        self._bikes = []
-        self.load_bikes()
+        self.load_params()
+        self.game_server_cli: GameServerClient = GameServerClient(self.params.server)
 
-        self._started = False
-        self._timer = None
-        self._start_time = None
-        self._prv_game_time = None
-        self._bike_timer = None
-        self.players = []
-        self.table = {}
-        self.game = None
-        self.is_new_round = False
-        self.is_new_lap = False
-        self.order_dark = None
-        self.joker_walk_card = None
-        self.joker_selection = False
-        self.can_show_results = False
-
-        self.buttons = []
-        self.labels = []
-        self.table_label = None
-        self.next_button = None
-        self.deal_label = None
-        self.first_move_label = None
-        self.order_info_label = None
-        self.ja_take_btn = None
-        self.ja_take_by_btn = None
-        self.ja_give_btn = None
-        self.grid_stat_button = None
-        self.game_table = None
-        self.ja_lear_buttons = []
-        self.round_result_labels = []
-        self.service_wnd = None
-        self.sb_labels = (QLabel(), QLabel())
-        self.bike_area = None
-
-        for i, lb in enumerate(self.sb_labels):
-            self.statusBar().addPermanentWidget(lb, stretch=1 if i == 0 else -1)
-
-        self.start_actn = None
-        self.throw_actn = None
-        self.svc_actn = None
-        self.profiles_group = None
-
-        self._stat_wnd = None
+        if os.path.exists(const.PROFILES_NET_FILE):
+            self.profiles.load(const.PROFILES_NET_FILE)
 
         self.init_profile()
-        self.setWindowIcon(QIcon(const.MAIN_ICON))
-        self.setWindowTitle(const.MAIN_WINDOW_TITLE)
-
-        view = QGraphicsView()
-        self.scene = QGraphicsScene()
-        self.scene.setSceneRect(QRectF(0, 0, *const.AREA_SIZE))
-        view.setScene(self.scene)
         self.apply_decoration()
         self.init_menu_actions()
-
-        # view.setFocusPolicy(Qt.StrongFocus)
-        self.setCentralWidget(view)
-        self.setFixedSize(*const.WINDOW_SIZE)
-        self.resize(*const.WINDOW_SIZE)
-        self.center()
         self.show()
+
+    def show_profiles_dlg(self):
+        pass
+
+    def authorize(self, username: str, password: str) -> Player:
+        try:
+            self.game_server_cli.authorize_safe(username, password)
+            return self.game_server_cli.get_user()
+        except RequestException as e:
+            QMessageBox.warning(self, 'Ошибка', f'Ошибка авторизации:\n\n{str(e)}')
+
+    def init_profile(self):
+        """ Инициализация текущего профиля """
+
+        if self.profiles.count() == 0:
+            # todo: тут будет окно авторизации/регистрации, а пока закостылим так
+            self.profiles.set_profile(self.authorize('vika', 'zadnitsa'))
+            self.params.user = self.profiles.profiles[0].uid
+
+        if not self.params.user:
+            self.params.user = self.profiles.profiles[0].uid
+
+        self.set_profile(self.params.user)
+
+    def set_profile(self, uid):
+        """ Смена текущего профиля """
+
+        profile = self.profiles.get(uid)
+
+        if not profile:
+            return
+
+        self.params.user = uid
+        self.game_server_cli.token = profile.password
+
+        if os.path.exists(f'{self.get_profile_dir()}/options.json'):
+            self.options = Options(filename=f'{self.get_profile_dir()}/options.json')
+        else:
+            self.options = Options()
+
+        try:
+            profile = self.game_server_cli.get_user()
+            # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
+            # self.options = self.game_server_cli.get_game_agreements()
+            self.load_params(remote=True)
+        except RequestException as e:
+            QMessageBox.warning(
+                self, 'Ошибка',
+                f'Не удалось загрузить профиль с сервера! Ошибка:\n{str(e)}\n\n'
+                f'Был загружен профиль из локального кэша'
+            )
+
+        self.curr_profile = profile
+        self.set_status_message(self.curr_profile.name, 0)
+
+    def save_profile_options(self, local_only: bool = False):
+        """ Сохранение параметров текущего профиля """
+
+        super().save_profile_options()
+
+        if self.params.user and self.curr_profile:
+            if not local_only:
+                try:
+                    # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
+                    # self.game_server_cli.set_game_agreements(self.options)
+                    pass
+                except RequestException as e:
+                    QMessageBox.warning(
+                        self, 'Ошибка',
+                        f'Не удалось сохранить настройки на сервере! Ошибка:\n{str(e)}\n\n'
+                        f'Настройки сохранены в локальный кэш'
+                    )
+
+    def load_params(self, remote: bool = False):
+        """ Загрузка параметров """
+
+        if remote:
+            try:
+                # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
+                # self.params.set(**self.game_cli.get_params().as_dict())
+                pass
+            except RequestException as e:
+                QMessageBox.warning(
+                    self, 'Ошибка',
+                    f'Не удалось загрузить настройки с сервера! Ошибка:\n{str(e)}\n\n'
+                    f'Были загружены настройки из локального кэша'
+                )
+        else:
+            if os.path.exists(const.PARAMS_NET_FILE):
+                self.params.load(const.PARAMS_NET_FILE)
+            elif os.path.exists(const.PARAMS_FILE):
+                # сетевой модуль еще не инициализировался - скопируем настройки из синглплеера, если они есть
+                self.params.load(const.PARAMS_FILE)
+                self.params.user = None
+
+    def save_params(self, local_only: bool = False):
+        """ Сохранение параметров """
+
+        if not os.path.isdir(const.APP_DATA_DIR):
+            os.makedirs(const.APP_DATA_DIR)
+
+        self.params.save(const.PARAMS_NET_FILE)
+        self.profiles.save(const.PROFILES_NET_FILE)
+        self.save_profile_options(local_only=local_only)
+
+        if not local_only:
+            try:
+                # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
+                # self.game_server_cli.set_params(self.params)
+                pass
+            except RequestException as e:
+                QMessageBox.warning(
+                    self, 'Ошибка',
+                    f'Не удалось сохранить настройки на сервере! Ошибка:\n{str(e)}\n\n'
+                    f'Настройки сохранены в локальный кэш'
+                )
+
+    def on_throw_action(self):
+        pass
+
+    def start_game(self):
+        pass
+
+    def stop_game(self, flag=None):
+        pass
+
+    def next(self):
+        pass
+
+    def on_reset_stat_click(self):
+        # наверное тут будет обнуляться собственная статистика текущего игрока на сервере
+        pass

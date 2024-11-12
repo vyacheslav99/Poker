@@ -367,7 +367,7 @@ class SettingsDialog(QDialog):
             self._btn_connect.setEnabled(False)
             self._server_info.setText('Минуточку...')
 
-            res, mes = client.Client(self._server.text().strip()).is_alive()
+            res, mes = client.GameServerClient(self._server.text().strip()).is_alive()
             if res:
                 text = 'OK'
                 color = 'green'

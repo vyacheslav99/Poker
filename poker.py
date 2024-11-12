@@ -2,6 +2,7 @@ import sys
 # import argparse
 from PyQt5.QtWidgets import QApplication
 from gui.main_single import SinglePlayerMainWnd
+from gui.main_multi import MultiPlayerMainWnd
 
 
 def run():
@@ -13,7 +14,13 @@ def run():
 
     # не убирай переменную wnd!!! Без нее приложение не работает - процесс есть, а окно пропадает
     # т.е. просто main.MainWnd(app) не работает - надо обязательно присвоить его переменной
-    wnd = SinglePlayerMainWnd(app, *sys.argv)
+
+    if '--mp' in sys.argv:
+        cls = MultiPlayerMainWnd
+    else:
+        cls = SinglePlayerMainWnd
+
+    wnd = cls(app, *sys.argv)
     sys.exit(app.exec_())
 
 

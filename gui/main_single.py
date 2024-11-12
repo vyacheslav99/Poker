@@ -93,13 +93,6 @@ class SinglePlayerMainWnd(MainWnd):
         finally:
             dlg.destroy()
 
-    def change_profile_action(self, action):
-        new_uid = action.data()
-
-        if self.curr_profile is not None and self.curr_profile.uid != new_uid:
-            self.set_profile(new_uid)
-            self.save_params()
-
     def init_profile(self):
         """ Инициализация текущего профиля """
 
@@ -348,11 +341,6 @@ class SinglePlayerMainWnd(MainWnd):
 
         self.save_game()
 
-    def get_profile_dir(self):
-        """ возвращает путь к папке активного профиля """
-
-        return f'{const.PROFILES_DIR}/{self.params.user}'
-
     def load_save_file(self, filename):
         """
         Грузит файл сохранения, возвращает загруженные данные в виде 2-х блоков: состояние главного потока и дамп ядра
@@ -400,17 +388,6 @@ class SinglePlayerMainWnd(MainWnd):
         self.params.save(const.PARAMS_FILE)
         self.profiles.save(const.PROFILES_FILE)
         self.save_profile_options()
-
-    def save_profile_options(self):
-        """ Сохранение параметров текущего профиля """
-
-        if self.params.user and self.curr_profile:
-            fn = f'{self.get_profile_dir()}/options.json'
-
-            if not os.path.isdir(os.path.split(fn)[0]):
-                os.makedirs(os.path.split(fn)[0])
-
-            self.options.save(fn)
 
     def reset_statistics(self):
         self.params.robots_stat = {}

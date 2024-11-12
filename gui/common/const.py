@@ -1,9 +1,12 @@
 import os
 
+REQUEST_TIMEOUT = None
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
 PROFILES_DIR = f'{APP_DATA_DIR}/profile'
 PARAMS_FILE = f'{APP_DATA_DIR}/params.json'
 PROFILES_FILE = f'{APP_DATA_DIR}/profiles.json'
+PARAMS_NET_FILE = f'{APP_DATA_DIR}/params_net.json'
+PROFILES_NET_FILE = f'{APP_DATA_DIR}/profiles_net.json'
 RES_DIR = 'resources'
 MAIN_ICON = f'{RES_DIR}/app.ico'
 BG_DIR = f'{RES_DIR}/background'
