@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 
 from models.params import Options
 from gui.common import const
-from gui.common.client import GameServerClient, RequestException
+from gui.common.client import GameServerClient, ClientException, RequestException
 from gui.main_base import MainWnd
 
 
@@ -24,23 +24,51 @@ class MultiPlayerMainWnd(MainWnd):
         self.init_menu_actions()
         self.show()
 
+    def handle_client_exception(
+        self, err: Exception, before_msg: str = None, after_msg: str = None, goto_authorization: bool = True
+    ):
+        can_authorize = False
+
+        if isinstance(err, ClientException):
+            can_authorize = err.status_code == 401
+            msg = err.message
+        else:
+            msg = str(err)
+
+        parts = []
+
+        if before_msg:
+            parts.append(before_msg)
+        if msg:
+            parts.append(msg)
+        if after_msg:
+            parts.append(after_msg)
+
+        QMessageBox.critical(self, 'Ошибка', '\n'.join(parts))
+
+        if can_authorize and goto_authorization:
+            self.show_profiles_dlg()
+
     def show_profiles_dlg(self):
         """ Форма авторизации / регистрации / управления пользователями """
 
         # todo: тут будет окно авторизации/регистрации, а пока закостылим так
         try:
-            self.game_server_cli.authorize_safe('vika', 'zadnitsa')
+            self.game_server_cli.authorize_safe('vika', 'zadnitsa1')
             user = self.game_server_cli.get_user()
             self.profiles.set_profile(user)
             self.params.user = user.uid
-        except RequestException as e:
-            QMessageBox.warning(self, 'Ошибка', f'Ошибка авторизации:\n\n{str(e)}')
+        except Exception as e:
+            self.handle_client_exception(e, goto_authorization=False)
 
     def init_profile(self):
         """ Инициализация текущего профиля """
 
         if self.profiles.count() == 0:
             self.show_profiles_dlg()
+
+        if self.profiles.count() == 0:
+            return
 
         if not self.params.user:
             self.params.user = self.profiles.profiles[0].uid
@@ -53,6 +81,7 @@ class MultiPlayerMainWnd(MainWnd):
         user = self.profiles.get(uid)
 
         if not user:
+            self.params.user = None
             return
 
         self.params.user = uid
@@ -68,10 +97,10 @@ class MultiPlayerMainWnd(MainWnd):
             self.profiles.set_profile(user)
             self.load_params(remote=True)
         except RequestException as e:
-            QMessageBox.warning(
-                self, 'Ошибка',
-                f'Не удалось загрузить профиль с сервера! Ошибка:\n{str(e)}\n\n'
-                f'Был загружен профиль из локального кэша'
+            self.handle_client_exception(
+                e,
+                before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
+                after_msg='Восстановлен профиль из локального кэша'
             )
 
         self.curr_profile = user
@@ -87,10 +116,10 @@ class MultiPlayerMainWnd(MainWnd):
                 # self.options = self.game_server_cli.get_game_agreements()
                 pass
             except RequestException as e:
-                QMessageBox.warning(
-                    self, 'Ошибка',
-                    f'Не удалось загрузить настройки с сервера! Ошибка:\n{str(e)}\n\n'
-                    f'Были загружены настройки из локального кэша'
+                self.handle_client_exception(
+                    e,
+                    before_msg='Не удалось загрузить настройки с сервера! Ошибка:',
+                    after_msg='Восстановлены настройки из локального кэша'
                 )
         else:
             if os.path.exists(const.PARAMS_NET_FILE):
@@ -117,10 +146,10 @@ class MultiPlayerMainWnd(MainWnd):
                 # self.game_server_cli.set_game_agreements(self.options)
                 pass
             except RequestException as e:
-                QMessageBox.warning(
-                    self, 'Ошибка',
-                    f'Не удалось сохранить настройки на сервере! Ошибка:\n{str(e)}\n\n'
-                    f'Настройки сохранены в локальный кэш'
+                self.handle_client_exception(
+                    e,
+                    before_msg='Не удалось сохранить настройки на сервере! Ошибка:',
+                    after_msg='Настройки сохранены в локальный кэш'
                 )
 
     def on_throw_action(self):

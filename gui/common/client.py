@@ -10,6 +10,15 @@ from models.player import Player
 from gui.common import const
 
 
+class ClientException(RequestException):
+
+    def __init__(self, status: int, message: str, response: Response):
+        super().__init__(response=response)
+
+        self.status_code: int = status
+        self.message: str = message
+
+
 class BaseClient:
 
     def __init__(self, host):
@@ -41,6 +50,24 @@ class BaseClient:
 
         return headers
 
+    def raise_for_status(self, response: Response):
+        if response.status_code >= 400:
+            text = None
+
+            try:
+                body = response.json()
+                text = body.get('detail', body.get('message', body.get('error')))
+            except Exception:
+                pass
+
+            if not text:
+                text = response.text
+
+            if not text:
+                text = response.reason
+
+            raise ClientException(response.status_code, text, response=response)
+
     def _request(
         self, method: str, url: str, query: dict | None = None, json: dict | None = None, headers: dict | None = None
     ) -> Response:
@@ -48,7 +75,7 @@ class BaseClient:
             url, params=query, json=json, headers=dict(self.get_default_headers(), **(headers or {})),
             timeout=const.REQUEST_TIMEOUT
         )
-        resp.raise_for_status()
+        self.raise_for_status(resp)
         return resp
 
     def _make_api_url(self, endpoint: str) -> str:
