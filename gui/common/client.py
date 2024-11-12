@@ -116,6 +116,8 @@ class BaseClient:
 
 class GameServerClient(BaseClient):
 
+    FILES_BASE_PATH = 'static/files'
+
     def is_alive(self) -> tuple[bool, str]:
         try:
             resp = self.get(self._make_base_url('is_alive'))
@@ -168,3 +170,13 @@ class GameServerClient(BaseClient):
         data = resp.json()
         self.token = data.get('access_token')
         return self.token
+
+    def download_avatar(self, remote_path: str, save_to_path: str):
+        resp = self.get(self._make_base_url(f'{self.FILES_BASE_PATH}/{remote_path}'))
+        self.raise_for_status(resp)
+
+        if len(resp.content) > 0:
+            with open(save_to_path, 'wb') as f:
+                f.write(resp.content)
+        else:
+            raise ClientException(500, 'No content', response=resp)

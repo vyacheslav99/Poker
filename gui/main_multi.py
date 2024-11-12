@@ -54,7 +54,7 @@ class MultiPlayerMainWnd(MainWnd):
 
         # todo: тут будет окно авторизации/регистрации, а пока закостылим так
         try:
-            self.game_server_cli.authorize_safe('vika', 'zadnitsa1')
+            self.game_server_cli.authorize_safe('vika', 'zadnitsa')
             user = self.game_server_cli.get_user()
             self.profiles.set_profile(user)
             self.params.user = user.uid
@@ -94,6 +94,13 @@ class MultiPlayerMainWnd(MainWnd):
 
         try:
             user = self.game_server_cli.get_user()
+
+            if user.avatar:
+                try:
+                    self.game_server_cli.download_avatar(user.avatar, os.path.join(self.get_profile_dir(), user.avatar))
+                except RequestException:
+                    pass
+
             self.profiles.set_profile(user)
             self.load_params(remote=True)
         except RequestException as e:

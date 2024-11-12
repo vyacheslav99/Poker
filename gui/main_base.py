@@ -356,7 +356,7 @@ class MainWnd(QMainWindow):
     def started(self):
         return self._started
 
-    def get_profile_dir(self):
+    def get_profile_dir(self) -> str:
         """ возвращает путь к папке активного профиля """
 
         return f'{const.PROFILES_DIR}/{self.params.user}'
