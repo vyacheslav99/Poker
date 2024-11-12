@@ -58,8 +58,8 @@ class MultiPlayerMainWnd(MainWnd):
             user = self.game_server_cli.get_user()
             self.profiles.set_profile(user)
             self.params.user = user.uid
-        except Exception as e:
-            self.handle_client_exception(e, goto_authorization=False)
+        except Exception as err:
+            self.handle_client_exception(err, goto_authorization=False)
 
     def init_profile(self):
         """ Инициализация текущего профиля """
@@ -103,9 +103,9 @@ class MultiPlayerMainWnd(MainWnd):
 
             self.profiles.set_profile(user)
             self.load_params(remote=True)
-        except RequestException as e:
+        except RequestException as err:
             self.handle_client_exception(
-                e,
+                err,
                 before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
                 after_msg='Восстановлен профиль из локального кэша'
             )
@@ -118,13 +118,11 @@ class MultiPlayerMainWnd(MainWnd):
 
         if remote:
             try:
-                # todo: методы клиента пока не реализованы, чтоб все не херить, пока закомментировано
-                # self.params.set(**self.game_cli.get_params().as_dict())
-                # self.options = self.game_server_cli.get_game_agreements()
-                pass
-            except RequestException as e:
+                self.params.set(**self.game_server_cli.get_params())
+                self.options.set(**self.game_server_cli.get_game_options())
+            except RequestException as err:
                 self.handle_client_exception(
-                    e,
+                    err,
                     before_msg='Не удалось загрузить настройки с сервера! Ошибка:',
                     after_msg='Восстановлены настройки из локального кэша'
                 )
@@ -148,13 +146,11 @@ class MultiPlayerMainWnd(MainWnd):
 
         if not local_only:
             try:
-                # todo: метод клиента пока не реализован, чтоб все не херить, пока закомментировано
-                # self.game_server_cli.set_params(self.params)
-                # self.game_server_cli.set_game_agreements(self.options)
-                pass
-            except RequestException as e:
+                self.game_server_cli.set_params(self.params)
+                self.game_server_cli.set_game_options(self.options)
+            except RequestException as err:
                 self.handle_client_exception(
-                    e,
+                    err,
                     before_msg='Не удалось сохранить настройки на сервере! Ошибка:',
                     after_msg='Настройки сохранены в локальный кэш'
                 )

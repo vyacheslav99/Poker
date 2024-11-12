@@ -130,22 +130,6 @@ class GameServerClient(BaseClient):
         except RequestException as e:
             return False, str(e)
 
-    def get_params(self) -> Params:
-        # todo: Метод сервера пока не реализован, сделаю вместе с ним
-        pass
-
-    def set_params(self, params: Params):
-        # todo: Метод сервера пока не реализован, сделаю вместе с ним
-        pass
-
-    def get_game_agreements(self) -> Options:
-        # todo: Метод сервера пока не реализован, сделаю вместе с ним
-        pass
-
-    def set_game_agreements(self, options: Options):
-        # todo: Метод сервера пока не реализован, сделаю вместе с ним
-        pass
-
     def _make_player(self, data: dict) -> Player:
         return Player(
             uid=data['uid'],
@@ -170,6 +154,36 @@ class GameServerClient(BaseClient):
         data = resp.json()
         self.token = data.get('access_token')
         return self.token
+
+    def get_params(self) -> dict:
+        try:
+            resp = self.get(self._make_api_url('user/params'))
+        except ClientException as err:
+            if err.status_code != 404:
+                raise
+            else:
+                return {}
+
+        return resp.json()
+
+    def set_params(self, params: Params):
+        resp = self.put(self._make_api_url('user/params'), json=params.as_dict())
+        self.raise_for_status(resp)
+
+    def get_game_options(self) -> dict:
+        try:
+            resp = self.get(self._make_api_url('user/game_options'))
+        except ClientException as err:
+            if err.status_code != 404:
+                raise
+            else:
+                return {}
+
+        return resp.json()
+
+    def set_game_options(self, options: Options):
+        resp = self.put(self._make_api_url('user/game_options'), json=options.as_dict())
+        self.raise_for_status(resp)
 
     def download_avatar(self, remote_path: str, save_to_path: str):
         resp = self.get(self._make_base_url(f'{self.FILES_BASE_PATH}/{remote_path}'))
