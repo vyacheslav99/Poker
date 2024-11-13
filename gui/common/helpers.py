@@ -3,15 +3,15 @@ from PyQt5.QtWidgets import QMenuBar, QActionGroup, QAction
 
 class MenuActions:
 
-    menu_file: QMenuBar
-    start_actn: QAction
-    throw_actn: QAction
-    statistics_actn: QAction
-    svc_actn: QAction
+    menu_file: QMenuBar = None
+    start_actn: QAction = None
+    throw_actn: QAction = None
+    statistics_actn: QAction = None
+    svc_actn: QAction = None
 
-    menu_user: QMenuBar
-    login_actn: QAction
-    registration_actn: QAction
-    edit_users_actn: QAction
-    profiles_group: QActionGroup
-    logout_actn: QAction
+    menu_user: QMenuBar = None
+    login_actn: QAction = None
+    registration_actn: QAction = None
+    edit_users_actn: QAction = None
+    profiles_group: QActionGroup = None
+    logout_actn: QAction = None
