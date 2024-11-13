@@ -135,14 +135,23 @@ class GameServerClient(BaseClient):
         data = resp.json()
         return data.get('success', True)
 
-    def _make_player(self, data: dict) -> Player:
+    def _make_player(self, data: dict, set_current_token: bool = True) -> Player:
         return Player(
             uid=data['uid'],
             login=data['username'],
-            password=self.token,
+            password=self.token if set_current_token else None,
             name=data['fullname'],
             avatar=data['avatar']
         )
+
+    def registration(self, username: str, password: str) -> Player:
+        payload = {
+            'username': username,
+            'password': self.encrypt(password)
+        }
+
+        resp = self.post(self._make_api_url('user'), json=payload)
+        return self._make_player(resp.json(), set_current_token=False)
 
     def get_user(self) -> Player:
         resp = self.get(self._make_api_url('user'))

@@ -3,6 +3,7 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
+from gui.windows.registration_dlg import RegistrationDialog
 from models.params import Options
 from gui.common import const
 from gui.common.client import GameServerClient, ClientException, RequestException
@@ -84,7 +85,7 @@ class MultiPlayerMainWnd(MainWnd):
     def show_login_dlg(self):
         """ Форма авторизации """
 
-        login_dlg = LoginDialog(self, self.game_server_cli)
+        login_dlg = LoginDialog(self)
         result = login_dlg.exec()
         if result == 0:
             login_dlg.destroy()
@@ -109,8 +110,27 @@ class MultiPlayerMainWnd(MainWnd):
     def show_registration_dlg(self):
         """ Форма регистрации пользователя """
 
-        # todo: Реализовать
-        QMessageBox.information(self, 'Регистрация', 'Форма регистрации пока не реализована')
+        register_dlg = RegistrationDialog(self, self.game_server_cli)
+        result = register_dlg.exec()
+        if result == 0:
+            register_dlg.destroy()
+            return
+
+        login = register_dlg.get_login()
+        password = register_dlg.get_password()
+        register_dlg.destroy()
+
+        if not login or not password:
+            return
+
+        try:
+            user = self.game_server_cli.registration(login, password)
+            user.password = self.game_server_cli.authorize_safe(login, password)
+            self.profiles.set_profile(user)
+            self.set_profile(user.uid)
+            self.refresh_menu_actions()
+        except Exception as err:
+            self.handle_client_exception(err, goto_authorization=True)
 
     def show_profiles_dlg(self):
         """ Форма управления пользователями """
@@ -165,6 +185,9 @@ class MultiPlayerMainWnd(MainWnd):
         else:
             self.params.user = uid
             self.game_server_cli.token = user.password
+
+        if user and not os.path.exists(self.get_profile_dir()):
+            os.makedirs(self.get_profile_dir(), exist_ok=True)
 
         if user and os.path.exists(f'{self.get_profile_dir()}/options.json'):
             self.options = Options(filename=f'{self.get_profile_dir()}/options.json')

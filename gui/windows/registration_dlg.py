@@ -4,21 +4,24 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+from gui.common.client import GameServerClient
 from gui.common import const
 
 
-class LoginDialog(QDialog):
+class RegistrationDialog(QDialog):
 
-    def __init__(self, parent):
+    def __init__(self, parent, game_svc_cli: GameServerClient):
         super().__init__(parent)
 
+        self.game_svc_cli: GameServerClient = game_svc_cli
         self._login: QLineEdit | None = None
         self._password: QLineEdit | None = None
+        self._confirm_password: QLineEdit | None = None
         self._btn_ok: QPushButton | None = None
         self._info_lb: QLabel | None = None
 
-        self.setWindowIcon(QIcon(f'{const.RES_DIR}/login.png'))
-        self.setWindowTitle('Авторизация')
+        self.setWindowIcon(QIcon(f'{const.RES_DIR}/player.ico'))
+        self.setWindowTitle('Регистрация')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.init_ui()
 
@@ -59,8 +62,19 @@ class LoginDialog(QDialog):
         l2.addWidget(self._password)
         layout.addLayout(l2, 4, 1, Qt.AlignLeft)
 
+        # Еще пароль
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Повтор пароля'))
+        l2.addSpacing(30)
+        self._confirm_password = QLineEdit()
+        self._confirm_password.setFixedWidth(290)
+        self._confirm_password.setEchoMode(QLineEdit.Password)
+        self._confirm_password.textEdited.connect(self._validate)
+        l2.addWidget(self._confirm_password)
+        layout.addLayout(l2, 5, 1, Qt.AlignLeft)
+
         self._info_lb = QLabel()
-        layout.addWidget(self._info_lb, 5, 1, Qt.AlignBottom | Qt.AlignRight)
+        layout.addWidget(self._info_lb, 6, 1, Qt.AlignBottom | Qt.AlignRight)
 
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout)
@@ -81,6 +95,15 @@ class LoginDialog(QDialog):
             errs.append('Логин пустой')
         elif not set(login).issubset(set(const.LOGIN_ALLOW_LITERALS)):
             errs.append('Логин содержит недопустимые символы')
+        elif len(login) < 3:
+            errs.append('Логин слишком короткий')
+        else:
+            try:
+                is_free = self.game_svc_cli.username_is_free(login)
+                if not is_free:
+                    errs.append('Такой логин уже существует')
+            except Exception:
+                pass
 
         passwd = self._password.text()
 
@@ -88,6 +111,11 @@ class LoginDialog(QDialog):
             errs.append('Пароль пустой')
         elif not set(passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
             errs.append('Пароль содержит недопустимые символы')
+
+        passwd2 = self._confirm_password.text()
+
+        if passwd != passwd2:
+            errs.append('Пароль и повтор пароля не совпадают')
 
         if errs:
             self._btn_ok.setToolTip('<br>'.join(errs))
