@@ -194,6 +194,7 @@ class MultiPlayerMainWnd(MainWnd):
 
         self.curr_profile = user
         self.load_params(remote=True)
+        self.apply_decoration()
         self.set_status_message(self.curr_profile.name if self.curr_profile else '', 0)
 
     def load_params(self, remote: bool = False):

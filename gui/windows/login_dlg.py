@@ -71,9 +71,11 @@ class LoginDialog(QDialog):
 
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
-        self._validate(silent=True)
+        self._validate()
+        self._btn_ok.setToolTip('')
+        self._info_lb.setText(self._btn_ok.toolTip())
 
-    def _validate(self, silent: bool = False):
+    def _validate(self):
         is_valid = False
         errs = []
 
@@ -99,11 +101,8 @@ class LoginDialog(QDialog):
             errs.append('Пароль содержит неверные символы')
 
         if errs:
-            if silent:
-                self._btn_ok.setToolTip('')
-            else:
-                self._btn_ok.setToolTip('<br>'.join(errs))
-                self._info_lb.setStyleSheet('QLabel {color: maroon}')
+            self._btn_ok.setToolTip('<br>'.join(errs))
+            self._info_lb.setStyleSheet('QLabel {color: maroon}')
         else:
             is_valid = True
             self._btn_ok.setToolTip('')
