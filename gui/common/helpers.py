@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMenuBar, QActionGroup, QAction
+from PyQt5.QtWidgets import QMenuBar, QActionGroup, QAction, QMenu
 
 
 class MenuActions:
@@ -14,4 +14,5 @@ class MenuActions:
     registration_actn: QAction = None
     edit_users_actn: QAction = None
     profiles_group: QActionGroup = None
+    profiles_submenu: QMenu = None
     logout_actn: QAction = None

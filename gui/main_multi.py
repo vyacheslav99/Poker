@@ -23,10 +23,11 @@ class MultiPlayerMainWnd(MainWnd):
         self.init_profile()
         self.apply_decoration()
         self.init_menu_actions()
+        self.refresh_menu_actions()
         self.show()
 
     def handle_client_exception(
-        self, err: Exception, before_msg: str = None, after_msg: str = None, goto_authorization: bool = True
+        self, err: Exception, before_msg: str = None, after_msg: str = None, goto_authorization: bool = False
     ):
         can_authorize = False
 
@@ -48,7 +49,7 @@ class MultiPlayerMainWnd(MainWnd):
         QMessageBox.critical(self, 'Ошибка', '\n'.join(parts))
 
         if can_authorize and goto_authorization:
-            self.show_profiles_dlg()
+            self.show_login_dlg()
 
     def init_menu_actions(self):
         super().init_menu_actions()
@@ -71,6 +72,14 @@ class MultiPlayerMainWnd(MainWnd):
         self.menu_actions.logout_actn.triggered.connect(self.on_logout_action)
         self.menu_actions.menu_user.addAction(self.menu_actions.logout_actn)
 
+    def refresh_menu_actions(self):
+        """ Акуализация состояния игрового меню """
+
+        super().refresh_menu_actions()
+
+        self.menu_actions.edit_users_actn.setEnabled(self.curr_profile is not None)
+        self.menu_actions.logout_actn.setEnabled(self.curr_profile is not None)
+
     def show_login_dlg(self):
         """ Форма авторизации """
 
@@ -79,13 +88,19 @@ class MultiPlayerMainWnd(MainWnd):
             self, 'Вход', 'Форма входа пока не реализована, закостылен вход пользователем < vika >'
         )
 
+        user = None
+
         try:
             self.game_server_cli.authorize_safe('vika', 'zadnitsa')
             user = self.game_server_cli.get_user()
-            self.profiles.set_profile(user)
-            self.params.user = user.uid
         except Exception as err:
-            self.handle_client_exception(err, goto_authorization=False)
+            self.handle_client_exception(err)
+
+        if user:
+            self.profiles.set_profile(user)
+            self.set_profile(user.uid)
+
+        self.refresh_menu_actions()
 
     def show_registration_dlg(self):
         """ Форма регистрации пользователя """
@@ -104,26 +119,33 @@ class MultiPlayerMainWnd(MainWnd):
     def on_logout_action(self):
         """ Выход (разлогиниться) текущим пользователем """
 
+        if not self.curr_profile:
+            QMessageBox.information(self, 'Выход', 'Собственно ты и так не авторизован...')
+            return
+
         res = QMessageBox.question(
-            self, 'Выход', f'Действительно выйти пользователем < {self.curr_profile.login} > ?',
+            self,'Выход',
+            f'Выйти пользователем < {self.curr_profile.login} ({self.curr_profile.name}) > ?',
             QMessageBox.Yes | QMessageBox.No
         )
 
         if res == QMessageBox.No:
             return
 
-        # todo: Реализовать процесс выхода
+        try:
+            self.game_server_cli.logout()
+        except Exception as err:
+            self.handle_client_exception(err)
+
+        self.profiles.delete(self.params.user)
+        self.params.user = None
+        self.init_profile()
+        self.refresh_menu_actions()
 
     def init_profile(self):
         """ Инициализация текущего профиля """
 
-        if self.profiles.count() == 0:
-            self.show_profiles_dlg()
-
-        if self.profiles.count() == 0:
-            return
-
-        if not self.params.user:
+        if self.profiles.count() > 0 and not self.params.user:
             self.params.user = self.profiles.profiles[0].uid
 
         self.set_profile(self.params.user)
@@ -135,41 +157,45 @@ class MultiPlayerMainWnd(MainWnd):
 
         if not user:
             self.params.user = None
-            return
+            self.game_server_cli.token = None
+        else:
+            self.params.user = uid
+            self.game_server_cli.token = user.password
 
-        self.params.user = uid
-        self.game_server_cli.token = user.password
-
-        if os.path.exists(f'{self.get_profile_dir()}/options.json'):
+        if user and os.path.exists(f'{self.get_profile_dir()}/options.json'):
             self.options = Options(filename=f'{self.get_profile_dir()}/options.json')
         else:
             self.options = Options()
 
-        try:
-            user = self.game_server_cli.get_user()
+        if user:
+            try:
+                user = self.game_server_cli.get_user()
+                self.profiles.set_profile(user)
 
-            if user.avatar:
-                try:
-                    self.game_server_cli.download_avatar(user.avatar, os.path.join(self.get_profile_dir(), user.avatar))
-                except RequestException:
-                    pass
-
-            self.profiles.set_profile(user)
-            self.load_params(remote=True)
-        except RequestException as err:
-            self.handle_client_exception(
-                err,
-                before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
-                after_msg='Восстановлен профиль из локального кэша'
-            )
+                if user.avatar:
+                    try:
+                        self.game_server_cli.download_avatar(
+                            user.avatar, os.path.join(self.get_profile_dir(), user.avatar)
+                        )
+                    except RequestException:
+                        pass
+            except RequestException as err:
+                self.handle_client_exception(
+                    err,
+                    before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
+                    after_msg='Восстановлен профиль из локального кэша'
+                )
+        else:
+            self.save_params(local_only=True)
 
         self.curr_profile = user
-        self.set_status_message(self.curr_profile.name, 0)
+        self.load_params(remote=True)
+        self.set_status_message(self.curr_profile.name if self.curr_profile else '', 0)
 
     def load_params(self, remote: bool = False):
         """ Загрузка параметров """
 
-        if remote:
+        if remote and self.curr_profile:
             try:
                 self.params.set(**self.game_server_cli.get_params())
                 self.options.set(**self.game_server_cli.get_game_options())
@@ -197,7 +223,7 @@ class MultiPlayerMainWnd(MainWnd):
         self.profiles.save(const.PROFILES_NET_FILE)
         self.save_profile_options()
 
-        if not local_only:
+        if not local_only and self.curr_profile:
             try:
                 self.game_server_cli.set_params(self.params)
                 self.game_server_cli.set_game_options(self.options)

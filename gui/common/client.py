@@ -155,6 +155,10 @@ class GameServerClient(BaseClient):
         self.token = data.get('access_token')
         return self.token
 
+    def logout(self):
+        self.post(self._make_api_url('logout'))
+        self.token = None
+
     def get_params(self) -> dict:
         try:
             resp = self.get(self._make_api_url('user/params'))

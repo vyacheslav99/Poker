@@ -37,6 +37,7 @@ class SinglePlayerMainWnd(MainWnd):
         self.init_profile()
         self.apply_decoration()
         self.init_menu_actions()
+        self.refresh_menu_actions()
         self.show()
 
     def init_menu_actions(self):
@@ -91,6 +92,8 @@ class SinglePlayerMainWnd(MainWnd):
 
             if curr_changed and self.started():
                 self.restart_game()
+
+            self.refresh_menu_actions()
         finally:
             dlg.destroy()
 

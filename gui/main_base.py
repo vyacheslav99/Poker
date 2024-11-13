@@ -110,7 +110,6 @@ class MainWnd(QMainWindow):
 
         # Меню Файл
         self.menu_actions.menu_file = menubar.addMenu('Игра')
-        # toolbar = self.addToolBar('Выход')
         self.menu_actions.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
         self.menu_actions.start_actn.setShortcut('F2')
         self.menu_actions.start_actn.triggered.connect(self.on_start_action)
@@ -156,28 +155,34 @@ class MainWnd(QMainWindow):
         self.menu_actions.menu_user.addAction(self.menu_actions.edit_users_actn)
 
         self.menu_actions.menu_user.addSeparator()
-        submenu = self.menu_actions.menu_user.addMenu('Сменить пользователя')
-        submenu.setStatusTip('Сменить текущего пользователя')
+        self.menu_actions.profiles_submenu = self.menu_actions.menu_user.addMenu('Сменить пользователя')
+        self.menu_actions.profiles_submenu.setStatusTip('Сменить текущего пользователя')
         self.menu_actions.profiles_group = QActionGroup(self)
         self.menu_actions.profiles_group.setExclusive(True)
         self.menu_actions.profiles_group.triggered.connect(self.change_profile_action)
+        self.fill_profile_change_menu()
+
+    def fill_profile_change_menu(self):
+        for a in self.menu_actions.profiles_group.actions():
+            self.menu_actions.profiles_group.removeAction(a)
+            self.menu_actions.profiles_submenu.removeAction(a)
+            a.deleteLater()
 
         for p in self.profiles.profiles:
             item = QAction(p.name, self)
             item.setCheckable(True)
             item.setChecked(p.uid == self.curr_profile.uid if self.curr_profile else False)
             item.setData(p.uid)
-            # item.triggered.connect(self.change_profile)
             self.menu_actions.profiles_group.addAction(item)
-            submenu.addAction(item)
-
-        self.refresh_menu_actions()
-        # toolbar.addAction(exit_actn)
+            self.menu_actions.profiles_submenu.addAction(item)
 
     def refresh_menu_actions(self):
         """ Акуализация состояния игрового меню """
 
+        self.fill_profile_change_menu()
+
         self.menu_actions.profiles_group.setEnabled(not self.started())
+        self.menu_actions.start_actn.setEnabled(self.curr_profile is not None)
         self.menu_actions.throw_actn.setEnabled(self.started())
 
         if self.started():
@@ -265,7 +270,7 @@ class MainWnd(QMainWindow):
 
         new_uid = action.data()
 
-        if self.curr_profile is not None and self.curr_profile.uid != new_uid:
+        if self.curr_profile is None or (self.curr_profile is not None and self.curr_profile.uid != new_uid):
             self.set_profile(new_uid)
             self.save_params()
 
