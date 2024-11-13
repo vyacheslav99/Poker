@@ -204,12 +204,15 @@ class MainWnd(QMainWindow):
         self.save_params()
         super(MainWnd, self).closeEvent(event)
 
+    def allow_change_profile_in_settings(self) -> bool:
+        return not self.started()
+
     def show_settings_dlg(self):
         """ Показ окна настроек """
 
         prv_user = self.params.user
         dlg = SettingsDialog(self, self.params.as_dict(), self.profiles)
-        dlg.allow_profile_change(not self.started())
+        dlg.allow_profile_change(self.allow_change_profile_in_settings())
 
         try:
             result = dlg.exec()

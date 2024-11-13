@@ -7,6 +7,7 @@ from models.params import Options
 from gui.common import const
 from gui.common.client import GameServerClient, ClientException, RequestException
 from gui.main_base import MainWnd
+from gui.windows.login_dlg import LoginDialog
 
 
 class MultiPlayerMainWnd(MainWnd):
@@ -83,24 +84,27 @@ class MultiPlayerMainWnd(MainWnd):
     def show_login_dlg(self):
         """ Форма авторизации """
 
-        # todo: тут будет окно авторизации/регистрации, а пока закостылим так
-        QMessageBox.information(
-            self, 'Вход', 'Форма входа пока не реализована, закостылен вход пользователем < vika >'
-        )
+        login_dlg = LoginDialog(self, self.game_server_cli)
+        result = login_dlg.exec()
+        if result == 0:
+            login_dlg.destroy()
+            return
 
-        user = None
+        login = login_dlg.get_login()
+        password = login_dlg.get_password()
+        login_dlg.destroy()
+
+        if not login or not password:
+            return
 
         try:
-            self.game_server_cli.authorize_safe('vika', 'zadnitsa')
+            self.game_server_cli.authorize_safe(login, password)
             user = self.game_server_cli.get_user()
-        except Exception as err:
-            self.handle_client_exception(err)
-
-        if user:
             self.profiles.set_profile(user)
             self.set_profile(user.uid)
-
-        self.refresh_menu_actions()
+            self.refresh_menu_actions()
+        except Exception as err:
+            self.handle_client_exception(err, goto_authorization=True)
 
     def show_registration_dlg(self):
         """ Форма регистрации пользователя """
@@ -249,3 +253,6 @@ class MultiPlayerMainWnd(MainWnd):
     def on_reset_stat_click(self):
         # наверное тут будет обнуляться собственная статистика текущего игрока на сервере
         pass
+
+    def allow_change_profile_in_settings(self) -> bool:
+        return False

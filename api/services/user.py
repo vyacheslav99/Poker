@@ -167,3 +167,7 @@ class UserService:
 
     async def set_user_game_options(self, user: User, options: GameOptions):
         await UserRepo.set_user_game_options(user.uid, options)
+
+    async def username_is_free(self, username: str) -> bool:
+        user = await UserRepo.get_user(username=username)
+        return False if user else True

@@ -130,6 +130,11 @@ class GameServerClient(BaseClient):
         except RequestException as e:
             return False, str(e)
 
+    def username_is_free(self, username: str) -> bool:
+        resp = self.get(self._make_api_url('is_free_username'), query={'username': username})
+        data = resp.json()
+        return data.get('success', True)
+
     def _make_player(self, data: dict) -> Player:
         return Player(
             uid=data['uid'],

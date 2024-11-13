@@ -246,8 +246,10 @@ class ProfilesDialog(QDialog):
         uid = self._selected_profile.currentData()
 
         if uid == self._curr_profile:
-            QMessageBox.warning(self, 'Ошибка', 'Невозможно удалить текущий профиль!\nСначала смените текущий профиль '
-                                                'в настройках программы.')
+            QMessageBox.warning(
+                self, 'Ошибка',
+                'Невозможно удалить текущий профиль!\nСначала смените текущий профиль в настройках программы.'
+            )
             return
 
         res = QMessageBox.question(self, 'Подтверждение',
@@ -303,7 +305,9 @@ class ProfilesDialog(QDialog):
         self._info_lb.setText('Изменения сохранены')
 
     def _select_avatar(self):
-        filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.bmp *.jpg *.jpeg *.png *.ico)')[0]
+        filename = QFileDialog.getOpenFileName(
+            self, 'Выбери картинку', '', 'Изображения (*.bmp *.jpg *.jpeg *.png *.ico)'
+        )[0]
 
         if filename:
             self._avatar.setText(filename)

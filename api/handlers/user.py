@@ -72,3 +72,9 @@ async def set_user_params(body: ClientParams, curr_user: CheckAuthProvider):
 async def set_user_game_options(body: GameOptions, curr_user: CheckAuthProvider):
     await UserService().set_user_game_options(curr_user, body)
     return SuccessResponse()
+
+
+@router.get('/is_free_username', response_model=SuccessResponse)
+async def username_is_free(username: str):
+    is_free = await UserService().username_is_free(username)
+    return SuccessResponse(success=is_free)
