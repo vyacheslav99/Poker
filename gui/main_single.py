@@ -32,8 +32,7 @@ class SinglePlayerMainWnd(MainWnd):
         if os.path.exists(const.PROFILES_FILE):
             self.profiles.load(const.PROFILES_FILE)
 
-        self.svc_actn = None
-        self.service_wnd = None
+        self._service_wnd = None
 
         self.init_profile()
         self.apply_decoration()
@@ -44,36 +43,38 @@ class SinglePlayerMainWnd(MainWnd):
         super().init_menu_actions()
 
         if self.__dev_mode:
-            self.svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
-            self.svc_actn.setShortcut('F9')
-            self.svc_actn.setStatusTip('Показать окно со служебной информацией')
-            self.svc_actn.triggered.connect(self.show_service_window)
-            self.file_menu.insertAction(self.file_menu.actions()[5], self.svc_actn)
+            self.menu_actions.svc_actn = QAction(QIcon(f'{const.RES_DIR}/svc.ico'), 'Служебная информация', self)
+            self.menu_actions.svc_actn.setShortcut('F9')
+            self.menu_actions.svc_actn.setStatusTip('Показать окно со служебной информацией')
+            self.menu_actions.svc_actn.triggered.connect(self.show_service_window)
+            self.menu_actions.menu_file.insertAction(
+                self.menu_actions.menu_file.actions()[-2], self.menu_actions.svc_actn
+            )
 
     def refresh_menu_actions(self):
         super().refresh_menu_actions()
 
-        if self.svc_actn:
-            self.svc_actn.setEnabled(self.started())
+        if self.menu_actions.svc_actn:
+            self.menu_actions.svc_actn.setEnabled(self.started())
 
         if self.started():
-            self.start_actn.setText('Отложить партию')
-            self.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
+            self.menu_actions.start_actn.setText('Отложить партию')
+            self.menu_actions.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
         else:
             if self.save_exists()[0]:
-                self.start_actn.setText('Продолжить партию')
-                self.start_actn.setStatusTip('Вернуться к отложенной партии')
+                self.menu_actions.start_actn.setText('Продолжить партию')
+                self.menu_actions.start_actn.setStatusTip('Вернуться к отложенной партии')
             else:
-                self.start_actn.setText('Новая партия')
-                self.start_actn.setStatusTip('Начать новую партию')
+                self.menu_actions.start_actn.setText('Новая партия')
+                self.menu_actions.start_actn.setStatusTip('Начать новую партию')
 
     def show_service_window(self):
         if self.__dev_mode and self.started():
-            if not self.service_wnd:
-                self.service_wnd = ServiceInfoDialog(self)
+            if not self._service_wnd:
+                self._service_wnd = ServiceInfoDialog(self)
 
-            self.service_wnd.players = self.players
-            self.service_wnd.show()
+            self._service_wnd.players = self.players
+            self._service_wnd.show()
 
     def show_profiles_dlg(self):
         dlg = ProfilesDialog(self, self.profiles, self.params.user)
@@ -255,8 +256,8 @@ class SinglePlayerMainWnd(MainWnd):
     def stop_game(self, flag=None):
         """ Остановить игру, очистить игровое поле """
 
-        if self.service_wnd:
-            self.service_wnd.hide()
+        if self._service_wnd:
+            self._service_wnd.hide()
 
         if self.game and self.game.started():
             self.game.stop(flag)
@@ -336,8 +337,8 @@ class SinglePlayerMainWnd(MainWnd):
             self.clear_table()
             self.show_round_results()
 
-        if self.service_wnd and self.service_wnd.isVisible():
-            self.service_wnd.refresh()
+        if self._service_wnd and self._service_wnd.isVisible():
+            self._service_wnd.refresh()
 
         self.save_game()
 

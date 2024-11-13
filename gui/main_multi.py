@@ -1,6 +1,7 @@
 import os
 
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 
 from models.params import Options
 from gui.common import const
@@ -49,10 +50,35 @@ class MultiPlayerMainWnd(MainWnd):
         if can_authorize and goto_authorization:
             self.show_profiles_dlg()
 
-    def show_profiles_dlg(self):
-        """ Форма авторизации / регистрации / управления пользователями """
+    def init_menu_actions(self):
+        super().init_menu_actions()
+
+        self.menu_actions.registration_actn = QAction(QIcon(f'{const.RES_DIR}/player.ico'), 'Регистрация', self)
+        self.menu_actions.registration_actn.setStatusTip('Регистрация нового пользователя')
+        self.menu_actions.registration_actn.triggered.connect(self.show_registration_dlg)
+        self.menu_actions.menu_user.insertAction(
+            self.menu_actions.menu_user.actions()[0], self.menu_actions.registration_actn
+        )
+
+        self.menu_actions.login_actn = QAction(QIcon(f'{const.RES_DIR}/login.png'), 'Вход', self)
+        self.menu_actions.login_actn.setStatusTip('Авторизация')
+        self.menu_actions.login_actn.triggered.connect(self.show_login_dlg)
+        self.menu_actions.menu_user.insertAction(self.menu_actions.registration_actn, self.menu_actions.login_actn)
+
+        self.menu_actions.menu_user.addSeparator()
+        self.menu_actions.logout_actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
+        self.menu_actions.logout_actn.setStatusTip('Разлогиниться текущим пользователем')
+        self.menu_actions.logout_actn.triggered.connect(self.on_logout_action)
+        self.menu_actions.menu_user.addAction(self.menu_actions.logout_actn)
+
+    def show_login_dlg(self):
+        """ Форма авторизации """
 
         # todo: тут будет окно авторизации/регистрации, а пока закостылим так
+        QMessageBox.information(
+            self, 'Вход', 'Форма входа пока не реализована, закостылен вход пользователем < vika >'
+        )
+
         try:
             self.game_server_cli.authorize_safe('vika', 'zadnitsa')
             user = self.game_server_cli.get_user()
@@ -60,6 +86,33 @@ class MultiPlayerMainWnd(MainWnd):
             self.params.user = user.uid
         except Exception as err:
             self.handle_client_exception(err, goto_authorization=False)
+
+    def show_registration_dlg(self):
+        """ Форма регистрации пользователя """
+
+        # todo: Реализовать
+        QMessageBox.information(self, 'Регистрация', 'Форма регистрации пока не реализована')
+
+    def show_profiles_dlg(self):
+        """ Форма управления пользователями """
+
+        # todo: Реализовать, тут будет отдельная форма, не та, что в синглплеере
+        QMessageBox.information(
+            self, 'Профиль', 'Форма редактирования профиля для мультиплеера пока не реализована'
+        )
+
+    def on_logout_action(self):
+        """ Выход (разлогиниться) текущим пользователем """
+
+        res = QMessageBox.question(
+            self, 'Выход', f'Действительно выйти пользователем < {self.curr_profile.login} > ?',
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if res == QMessageBox.No:
+            return
+
+        # todo: Реализовать процесс выхода
 
     def init_profile(self):
         """ Инициализация текущего профиля """

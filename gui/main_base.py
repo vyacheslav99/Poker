@@ -14,6 +14,7 @@ from models.params import Params, Options, Profiles
 from models.player import Player
 
 from gui.common import const, utils
+from gui.common.helpers import MenuActions
 from gui.common.graphics import QCard, Face, Lear, Area
 from gui.windows.game_table import GameTableDialog
 from gui.windows.agreements_dlg import AgreementsDialog
@@ -69,11 +70,8 @@ class MainWnd(QMainWindow):
         for i, lb in enumerate(self.sb_labels):
             self.statusBar().addPermanentWidget(lb, stretch=1 if i == 0 else -1)
 
-        self.start_actn = None
-        self.throw_actn = None
-        self.profiles_group = None
         self._stat_wnd = None
-        self.file_menu = None
+        self.menu_actions: MenuActions = MenuActions()
 
         self.setWindowIcon(QIcon(const.MAIN_ICON))
         self.setWindowTitle(const.MAIN_WINDOW_TITLE)
@@ -111,47 +109,31 @@ class MainWnd(QMainWindow):
         menubar = self.menuBar()
 
         # Меню Файл
-        self.file_menu = menubar.addMenu('Игра')
+        self.menu_actions.menu_file = menubar.addMenu('Игра')
         # toolbar = self.addToolBar('Выход')
-        self.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
-        self.start_actn.setShortcut('F2')
-        self.start_actn.triggered.connect(self.on_start_action)
-        self.file_menu.addAction(self.start_actn)
+        self.menu_actions.start_actn = QAction(QIcon(const.MAIN_ICON), 'Начать', self)
+        self.menu_actions.start_actn.setShortcut('F2')
+        self.menu_actions.start_actn.triggered.connect(self.on_start_action)
+        self.menu_actions.menu_file.addAction(self.menu_actions.start_actn)
 
-        self.throw_actn = QAction('Бросить партию', self)
-        self.throw_actn.setStatusTip('Отказаться от текущей партии')
-        self.throw_actn.triggered.connect(self.on_throw_action)
-        self.file_menu.addAction(self.throw_actn)
+        self.menu_actions.throw_actn = QAction('Бросить партию', self)
+        self.menu_actions.throw_actn.setStatusTip('Отказаться от текущей партии')
+        self.menu_actions.throw_actn.triggered.connect(self.on_throw_action)
+        self.menu_actions.menu_file.addAction(self.menu_actions.throw_actn)
 
-        self.file_menu.addSeparator()
-        actn = QAction('Таблица результатов', self)
-        actn.setShortcut('F8')
-        actn.setStatusTip('Таблица результатов по игрокам')
-        actn.triggered.connect(self.show_statistics_dlg)
-        self.file_menu.addAction(actn)
+        self.menu_actions.menu_file.addSeparator()
+        self.menu_actions.statistics_actn = QAction('Таблица результатов', self)
+        self.menu_actions.statistics_actn.setShortcut('F8')
+        self.menu_actions.statistics_actn.setStatusTip('Таблица результатов по игрокам')
+        self.menu_actions.statistics_actn.triggered.connect(self.show_statistics_dlg)
+        self.menu_actions.menu_file.addAction(self.menu_actions.statistics_actn)
 
-        # Профиль (выбор текущего профиля)
-        submenu = self.file_menu.addMenu('Профиль')
-        submenu.setStatusTip('Сменить текущий профиль')
-        self.profiles_group = QActionGroup(self)
-        self.profiles_group.setExclusive(True)
-        self.profiles_group.triggered.connect(self.change_profile_action)
-
-        for p in self.profiles.profiles:
-            item = QAction(p.name, self)
-            item.setCheckable(True)
-            item.setChecked(p.uid == self.curr_profile.uid if self.curr_profile else False)
-            item.setData(p.uid)
-            # item.triggered.connect(self.change_profile)
-            self.profiles_group.addAction(item)
-            submenu.addAction(item)
-
-        self.file_menu.addSeparator()
-        actn = QAction(QIcon(f'{const.RES_DIR}/exit.ico'), 'Выход', self)
+        self.menu_actions.menu_file.addSeparator()
+        actn = QAction(QIcon(f'{const.RES_DIR}/close.ico'), 'Закрыть', self)
         actn.setShortcut('Esc')
-        actn.setStatusTip('Выход из игры')
+        actn.setStatusTip('Закрыть игру')
         actn.triggered.connect(self.close)
-        self.file_menu.addAction(actn)
+        self.menu_actions.menu_file.addAction(actn)
 
         # Меню Настройка
         menu = menubar.addMenu('Настройки')
@@ -165,10 +147,29 @@ class MainWnd(QMainWindow):
         actn.triggered.connect(self.show_agreements_dlg)
         menu.addAction(actn)
 
-        actn = QAction(QIcon(f'{const.RES_DIR}/player.ico'), 'Профили', self)
-        actn.setShortcut('F6')
-        actn.triggered.connect(self.show_profiles_dlg)
-        menu.addAction(actn)
+        # Пользователь
+        self.menu_actions.menu_user = menubar.addMenu('Пользователь')
+        self.menu_actions.edit_users_actn = QAction(QIcon(f'{const.RES_DIR}/profile.ico'), 'Профиль', self)
+        self.menu_actions.edit_users_actn.setShortcut('F6')
+        self.menu_actions.edit_users_actn.setStatusTip('Редактировать профиль')
+        self.menu_actions.edit_users_actn.triggered.connect(self.show_profiles_dlg)
+        self.menu_actions.menu_user.addAction(self.menu_actions.edit_users_actn)
+
+        self.menu_actions.menu_user.addSeparator()
+        submenu = self.menu_actions.menu_user.addMenu('Сменить пользователя')
+        submenu.setStatusTip('Сменить текущего пользователя')
+        self.menu_actions.profiles_group = QActionGroup(self)
+        self.menu_actions.profiles_group.setExclusive(True)
+        self.menu_actions.profiles_group.triggered.connect(self.change_profile_action)
+
+        for p in self.profiles.profiles:
+            item = QAction(p.name, self)
+            item.setCheckable(True)
+            item.setChecked(p.uid == self.curr_profile.uid if self.curr_profile else False)
+            item.setData(p.uid)
+            # item.triggered.connect(self.change_profile)
+            self.menu_actions.profiles_group.addAction(item)
+            submenu.addAction(item)
 
         self.refresh_menu_actions()
         # toolbar.addAction(exit_actn)
@@ -176,15 +177,15 @@ class MainWnd(QMainWindow):
     def refresh_menu_actions(self):
         """ Акуализация состояния игрового меню """
 
-        self.profiles_group.setEnabled(not self.started())
-        self.throw_actn.setEnabled(self.started())
+        self.menu_actions.profiles_group.setEnabled(not self.started())
+        self.menu_actions.throw_actn.setEnabled(self.started())
 
         if self.started():
-            self.start_actn.setText('Отложить партию')
-            self.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
+            self.menu_actions.start_actn.setText('Отложить партию')
+            self.menu_actions.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
         else:
-            self.start_actn.setText('Новая партия')
-            self.start_actn.setStatusTip('Начать новую партию')
+            self.menu_actions.start_actn.setText('Новая партия')
+            self.menu_actions.start_actn.setStatusTip('Начать новую партию')
 
     def center(self):
         screen = QDesktopWidget().screenGeometry()
