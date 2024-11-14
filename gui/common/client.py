@@ -39,9 +39,10 @@ class BaseClient:
     def get_user_agent(self) -> str:
         plat_info = platform.uname()
 
-        return (f'Poker game client/1.0.0 {plat_info.node} ('
-                f'{plat_info.system}; {plat_info.release}; {plat_info.version}; '
-                f'{plat_info.machine}; {plat_info.processor})')
+        return (f'Poker game client/{const.VERSION}\n'
+                f'{plat_info.node}\n'
+                f'{plat_info.system}; {plat_info.version}\n'
+                f'{plat_info.machine}; {plat_info.processor}')
 
     def get_default_headers(self) -> dict:
         headers = {'User-Agent': self._user_agent}

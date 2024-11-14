@@ -4,6 +4,7 @@ import string
 REQUEST_TIMEOUT = None
 LOGIN_ALLOW_LITERALS = string.ascii_letters + string.digits
 PASSWORD_ALLOW_LITERALS = LOGIN_ALLOW_LITERALS + string.punctuation
+VERSION = '2.0.0'
 
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
 PROFILES_DIR = f'{APP_DATA_DIR}/profile'

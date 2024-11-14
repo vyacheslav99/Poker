@@ -61,8 +61,10 @@ def handle_client_exception(parent, err: Exception, before_msg: str = None, afte
     """
 
     from gui.common.client import ClientException
+    res = False
 
     if isinstance(err, ClientException):
+        res = err.status_code == 401
         msg = f'{err.status_code} :: {err.message}'
     else:
         msg = str(err)
@@ -77,7 +79,7 @@ def handle_client_exception(parent, err: Exception, before_msg: str = None, afte
         parts.append(after_msg)
 
     QMessageBox.critical(parent, 'Ошибка', '\n'.join(parts))
-    return err.status_code == 401
+    return res
 
 
 class IntervalTimer:
