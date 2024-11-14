@@ -39,9 +39,9 @@ class BaseClient:
     def get_user_agent(self) -> str:
         plat_info = platform.uname()
 
-        return (f'Poker game client/{const.VERSION}\n'
-                f'{plat_info.node}\n'
-                f'{plat_info.system}; {plat_info.version}\n'
+        return (f'Poker game client/{const.VERSION}|'
+                f'{plat_info.node}|'
+                f'{plat_info.system}; {plat_info.version}|'
                 f'{plat_info.machine}; {plat_info.processor}')
 
     def get_default_headers(self) -> dict:
@@ -183,6 +183,14 @@ class GameServerClient(BaseClient):
 
     def logout(self):
         self.post(self._make_api_url('logout'))
+        self.token = None
+
+    def delete_user(self, password: str):
+        payload = {
+            'password': self.encrypt(password)
+        }
+
+        self.delete(self._make_api_url('user'), json=payload)
         self.token = None
 
     def change_username(self, new_username: str) -> str:

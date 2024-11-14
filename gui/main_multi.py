@@ -124,7 +124,11 @@ class MultiPlayerMainWnd(MainWnd):
             dlg.exec()
             self.profiles.save(const.PROFILES_NET_FILE)
 
-            # На случай, если у текущего пользователя поменялось Имя или логин
+            if not self.profiles.get(self.params.user):
+                # если текущий профиль удален (из списка ну и вобще, в данном случае не важно)
+                self.params.user = None
+                self.init_profile()
+
             self.refresh_menu_actions()
             self.set_status_message(self.curr_profile.name if self.curr_profile else '', 0)
         finally:

@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -20,7 +21,7 @@ class ProfilesNetDialog(QDialog):
         self._profiles = profiles
 
         # элементы управления
-        self._selected_profile = None
+        self._selected_profile: QComboBox | None = None
         self._uid_edit = None
         self._username = None
         self._login = None
@@ -163,11 +164,22 @@ class ProfilesNetDialog(QDialog):
 
         # кнопка Сохранить
         row += 1
+        l2 = QHBoxLayout()
         self._save_btn = QPushButton(QIcon(f'{const.RES_DIR}/save.ico'), '  Сохранить')
-        self._save_btn.setFixedWidth(140)
+        # self._save_btn.setFixedWidth(140)
         self._save_btn.setToolTip('Сохранить изменения в профиле')
         self._save_btn.clicked.connect(self._save_profile)
-        layout.addWidget(self._save_btn, row, 1, Qt.AlignBottom)
+        l2.addWidget(self._save_btn)
+        l2.addSpacing(10)
+
+        # кнопка Удалить
+        btn = QPushButton(QIcon(f'{const.RES_DIR}/cancel.png'), '  Удалить пользователя')
+        btn.setStyleSheet('QPushButton {color: darkRed}')
+        # btn.setFixedWidth(140)
+        btn.setToolTip('Удалить пользователя с сервера')
+        btn.clicked.connect(self._delete_profile)
+        l2.addWidget(btn)
+        layout.addLayout(l2, row, 1, Qt.AlignBottom)
 
         # аватарка
         menu = QMenu()
@@ -195,18 +207,18 @@ class ProfilesNetDialog(QDialog):
         self.setLayout(main_layout)
 
     def _on_profile_change(self):
-        p = self._profiles.get(self._selected_profile.currentData())
+        curr_player = self._profiles.get(self._selected_profile.currentData())
         self._info_lb.setText('')
 
-        if p:
-            self._uid_edit.setText(p.uid)
-            self._username.setText(p.name)
-            self._login.setText(p.login)
+        if curr_player:
+            self._uid_edit.setText(curr_player.uid)
+            self._username.setText(curr_player.name)
+            self._login.setText(curr_player.login)
             self._curr_password.setText('')
             self._new_password.setText('')
             self._confirm_password.setText('')
-            self._avatar.setText(p.avatar)
-            self._avatar_btn.setIcon(QIcon(Face2(p)))
+            self._avatar.setText(curr_player.avatar)
+            self._avatar_btn.setIcon(QIcon(Face2(curr_player)))
         else:
             self._clear()
 
@@ -215,17 +227,17 @@ class ProfilesNetDialog(QDialog):
     def _highlight_changes(self):
         curr_player = self._profiles.get(self._selected_profile.currentData())
 
-        if self._username.text() != curr_player.name:
+        if curr_player and self._username.text() != curr_player.name:
             self._lb_username.setStyleSheet('QLabel {color: navy}')
         else:
             self._lb_username.setStyleSheet('QLabel {color: black}')
 
-        if self._login.text() != curr_player.login:
+        if curr_player and self._login.text() != curr_player.login:
             self._lb_login.setStyleSheet('QLabel {color: navy}')
         else:
             self._lb_login.setStyleSheet('QLabel {color: black}')
 
-        if self._new_password.text():
+        if curr_player and self._new_password.text():
             self._lb_new_password.setStyleSheet('QLabel {color: navy}')
         else:
             self._lb_new_password.setStyleSheet('QLabel {color: black}')
@@ -236,40 +248,41 @@ class ProfilesNetDialog(QDialog):
         curr_player = self._profiles.get(self._selected_profile.currentData())
         self._highlight_changes()
 
-        if not self._username.text():
-            errs.append('Имя пользователя пустое')
+        if curr_player:
+            if not self._username.text():
+                errs.append('Имя пользователя пустое')
 
-        login = self._login.text()
+            login = self._login.text()
 
-        if not login:
-            errs.append('Логин пустой')
-        elif not set(login).issubset(set(const.LOGIN_ALLOW_LITERALS)):
-            errs.append('Логин содержит недопустимые символы')
-        elif len(login) < 3:
-            errs.append('Логин слишком короткий')
-        else:
-            try:
-                if curr_player.login != login:
-                    is_free = self.game_svc_cli.username_is_free(login)
-                    if not is_free:
-                        errs.append('Такой логин уже существует')
-            except Exception:
-                pass
+            if not login:
+                errs.append('Логин пустой')
+            elif not set(login).issubset(set(const.LOGIN_ALLOW_LITERALS)):
+                errs.append('Логин содержит недопустимые символы')
+            elif len(login) < 3:
+                errs.append('Логин слишком короткий')
+            else:
+                try:
+                    if curr_player.login != login:
+                        is_free = self.game_svc_cli.username_is_free(login)
+                        if not is_free:
+                            errs.append('Такой логин уже существует')
+                except Exception:
+                    pass
 
-        curr_passwd = self._curr_password.text()
-        new_passwd = self._new_password.text()
-        confirm_passwd = self._confirm_password.text()
+            curr_passwd = self._curr_password.text()
+            new_passwd = self._new_password.text()
+            confirm_passwd = self._confirm_password.text()
 
-        if new_passwd:
-            if not curr_passwd:
-                errs.append('Текущий пароль пустой')
-            if not set(curr_passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
-                errs.append('Текущий пароль содержит недопустимые символы')
-            if not set(new_passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
-                errs.append('Новый пароль содержит недопустимые символы')
+            if new_passwd:
+                if not curr_passwd:
+                    errs.append('Текущий пароль пустой')
+                if not set(curr_passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
+                    errs.append('Текущий пароль содержит недопустимые символы')
+                if not set(new_passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
+                    errs.append('Новый пароль содержит недопустимые символы')
 
-            if new_passwd != confirm_passwd:
-                errs.append('Пароль и повтор пароля не совпадают')
+                if new_passwd != confirm_passwd:
+                    errs.append('Пароль и повтор пароля не совпадают')
 
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
@@ -279,7 +292,7 @@ class ProfilesNetDialog(QDialog):
             self._save_btn.setToolTip('')
 
         self._info_lb.setText(self._save_btn.toolTip())
-        self._save_btn.setEnabled(is_valid)
+        self._save_btn.setEnabled(is_valid and curr_player is not None)
         return is_valid
 
     def _clear(self):
@@ -300,6 +313,9 @@ class ProfilesNetDialog(QDialog):
         has_errors = False
         uid = self._selected_profile.currentData()
         user = self._profiles.get(uid)
+
+        if not user:
+            return
 
         if self._username.text() != user.name:
             has_changes = True
@@ -335,7 +351,7 @@ class ProfilesNetDialog(QDialog):
                     self, err, before_msg=f'Не удалось сохранить {self._lb_new_password.text()}'
                 )
 
-        if self._avatar.text() != user.avatar:
+        if self._avatar.text() != (user.avatar or ''):
             has_changes = True
             new_avatar = self._avatar.text()
 
@@ -344,8 +360,12 @@ class ProfilesNetDialog(QDialog):
                 if not os.path.isdir(fldr):
                     os.makedirs(fldr)
 
+                tmp_file = os.path.join(fldr, os.path.split(new_avatar)[0])
+                pixmap = self._load_image(new_avatar)
+                pixmap.save(tmp_file, None, -1)
+
                 try:
-                    res = self.game_svc_cli.save_avatar(new_avatar)
+                    res = self.game_svc_cli.save_avatar(tmp_file)
                     user.avatar = res.avatar
                     self.game_svc_cli.download_avatar(user.avatar, os.path.join(fldr, user.avatar))
                 except Exception as err:
@@ -369,6 +389,40 @@ class ProfilesNetDialog(QDialog):
                 self._info_lb.setText('Изменения сохранены')
 
             self._highlight_changes()
+
+    def _delete_profile(self):
+        """ Удалить текущего пользователя """
+
+        uid = self._selected_profile.currentData()
+        user = self._profiles.get(uid)
+
+        if not user:
+            return
+
+        password, ok = QInputDialog.getText(
+            self,'Подтверждение',
+            f'Ты собираешься удалить пользователя < {user.login} ({user.name}) > с игрового сервера!\n\n'
+            'Ты больше не сможешь авторизоваться этим пользователем!\n'
+            'Это приведет к уничтожению всех игровых данных пользователя!\nЭто действие невозможно отменить!\n\n'
+            'Для удаления пользователя нужно ввести его пароль',
+            echo=QLineEdit.Password
+        )
+
+        if not ok or not password:
+            return
+
+        try:
+            self.game_svc_cli.delete_user(password)
+        except Exception as err:
+            handle_client_exception(self, err)
+            return
+
+        fldr = f'{const.PROFILES_DIR}/{uid}'
+        if os.path.isdir(fldr):
+            shutil.rmtree(fldr)
+
+        self._profiles.delete(uid)
+        self._selected_profile.removeItem(self._selected_profile.currentIndex())
 
     def _select_avatar(self):
         filename = QFileDialog.getOpenFileName(
