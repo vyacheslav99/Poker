@@ -17,7 +17,7 @@ class ProfilesNetDialog(QDialog):
     def __init__(self, parent, profiles: Profiles, curr_profile):
         super().__init__(parent)
 
-        self.game_svc_cli: GameServerClient = parent.game_server_cli
+        self.game_svc_cli: GameServerClient = GameServerClient(parent.params.server)
         self._profiles = profiles
 
         # элементы управления
@@ -211,6 +211,7 @@ class ProfilesNetDialog(QDialog):
         self._info_lb.setText('')
 
         if curr_player:
+            self.game_svc_cli.token = curr_player.password
             self._uid_edit.setText(curr_player.uid)
             self._username.setText(curr_player.name)
             self._login.setText(curr_player.login)
@@ -360,7 +361,7 @@ class ProfilesNetDialog(QDialog):
                 if not os.path.isdir(fldr):
                     os.makedirs(fldr)
 
-                tmp_file = os.path.join(fldr, os.path.split(new_avatar)[0])
+                tmp_file = os.path.join(fldr, os.path.split(new_avatar)[1])
                 pixmap = self._load_image(new_avatar)
                 pixmap.save(tmp_file, None, -1)
 
