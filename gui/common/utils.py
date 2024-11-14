@@ -4,6 +4,8 @@ import random
 import threading
 import time
 
+from PyQt5.QtWidgets import QMessageBox
+
 from core import const
 
 
@@ -49,6 +51,33 @@ def gen_passwd(length=9):
     random.shuffle(password)
     password = ''.join(password)
     return password
+
+
+def handle_client_exception(parent, err: Exception, before_msg: str = None, after_msg: str = None) -> bool:
+    """
+    Обработка ошибок вызова апи методов сервера.
+    Покажет модалку с сообщением ошибки
+    Вернет True если была ошибка Unauthorized иначе False
+    """
+
+    from gui.common.client import ClientException
+
+    if isinstance(err, ClientException):
+        msg = f'{err.status_code} :: {err.message}'
+    else:
+        msg = str(err)
+
+    parts = []
+
+    if before_msg:
+        parts.append(before_msg)
+    if msg:
+        parts.append(msg)
+    if after_msg:
+        parts.append(after_msg)
+
+    QMessageBox.critical(parent, 'Ошибка', '\n'.join(parts))
+    return err.status_code == 401
 
 
 class IntervalTimer:

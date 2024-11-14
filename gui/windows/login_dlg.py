@@ -7,7 +7,7 @@ from gui.common import const
 
 class LoginDialog(QDialog):
 
-    def __init__(self, parent):
+    def __init__(self, parent, login: str = None):
         super().__init__(parent)
 
         self._login: QLineEdit | None = None
@@ -19,6 +19,9 @@ class LoginDialog(QDialog):
         self.setWindowTitle('Авторизация')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.init_ui()
+
+        if login:
+            self._login.setText(login)
 
     def init_ui(self):
         self._btn_ok = QPushButton(QIcon(f'{const.RES_DIR}/ok.png'), 'OK')

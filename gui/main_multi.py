@@ -6,7 +6,8 @@ from PyQt5.QtGui import *
 
 from models.params import Options
 from gui.common import const
-from gui.common.client import GameServerClient, ClientException, RequestException
+from gui.common.utils import handle_client_exception
+from gui.common.client import GameServerClient, RequestException
 from gui.main_base import MainWnd
 from gui.windows.login_dlg import LoginDialog
 from gui.windows.registration_dlg import RegistrationDialog
@@ -29,31 +30,6 @@ class MultiPlayerMainWnd(MainWnd):
         self.init_menu_actions()
         self.refresh_menu_actions()
         self.show()
-
-    def handle_client_exception(
-        self, err: Exception, before_msg: str = None, after_msg: str = None, goto_authorization: bool = False
-    ):
-        can_authorize = False
-
-        if isinstance(err, ClientException):
-            can_authorize = err.status_code == 401
-            msg = err.message
-        else:
-            msg = str(err)
-
-        parts = []
-
-        if before_msg:
-            parts.append(before_msg)
-        if msg:
-            parts.append(msg)
-        if after_msg:
-            parts.append(after_msg)
-
-        QMessageBox.critical(self, 'Ошибка', '\n'.join(parts))
-
-        if can_authorize and goto_authorization:
-            self.show_login_dlg()
 
     def init_menu_actions(self):
         super().init_menu_actions()
@@ -85,10 +61,10 @@ class MultiPlayerMainWnd(MainWnd):
         self.menu_actions.logout_actn.setEnabled(self.curr_profile is not None)
         self.menu_actions.edit_users_actn.setEnabled(not self.started() and self.profiles.count() > 0)
 
-    def show_login_dlg(self):
+    def show_login_dlg(self, set_login: str = None):
         """ Форма авторизации """
 
-        login_dlg = LoginDialog(self)
+        login_dlg = LoginDialog(self, login=set_login)
         result = login_dlg.exec()
         if result == 0:
             login_dlg.destroy()
@@ -108,7 +84,8 @@ class MultiPlayerMainWnd(MainWnd):
             self.set_profile(user.uid)
             self.refresh_menu_actions()
         except Exception as err:
-            self.handle_client_exception(err, goto_authorization=True)
+            if handle_client_exception(self, err):
+                self.show_login_dlg(set_login=login)
 
     def show_registration_dlg(self):
         """ Форма регистрации пользователя """
@@ -133,7 +110,7 @@ class MultiPlayerMainWnd(MainWnd):
             self.set_profile(user.uid)
             self.refresh_menu_actions()
         except Exception as err:
-            self.handle_client_exception(err)
+            handle_client_exception(self, err)
 
     def show_profiles_dlg(self):
         """ Форма изменения профиля пользователя """
@@ -172,7 +149,7 @@ class MultiPlayerMainWnd(MainWnd):
         try:
             self.game_server_cli.logout()
         except Exception as err:
-            self.handle_client_exception(err)
+            handle_client_exception(self, err)
 
         fldr = self.get_profile_dir()
         if os.path.isdir(fldr):
@@ -224,8 +201,8 @@ class MultiPlayerMainWnd(MainWnd):
                     except RequestException:
                         pass
             except RequestException as err:
-                self.handle_client_exception(
-                    err,
+                handle_client_exception(
+                    self, err,
                     before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
                     after_msg='Восстановлен профиль из локального кэша'
                 )
@@ -245,8 +222,8 @@ class MultiPlayerMainWnd(MainWnd):
                 self.params.set(**self.game_server_cli.get_params())
                 self.options.set(**self.game_server_cli.get_game_options())
             except RequestException as err:
-                self.handle_client_exception(
-                    err,
+                handle_client_exception(
+                    self, err,
                     before_msg='Не удалось загрузить настройки с сервера! Ошибка:',
                     after_msg='Восстановлены настройки из локального кэша'
                 )
@@ -273,8 +250,8 @@ class MultiPlayerMainWnd(MainWnd):
                 self.game_server_cli.set_params(self.params)
                 self.game_server_cli.set_game_options(self.options)
             except RequestException as err:
-                self.handle_client_exception(
-                    err,
+                handle_client_exception(
+                    self, err,
                     before_msg='Не удалось сохранить настройки на сервере! Ошибка:',
                     after_msg='Настройки сохранены в локальный кэш'
                 )

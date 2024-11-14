@@ -144,6 +144,15 @@ class GameServerClient(BaseClient):
             avatar=data['avatar']
         )
 
+    def _dump_player(self, player: Player, only_patch_fields: bool = True) -> dict:
+        fields_map = {'uid': 'uid', 'login': 'username', 'name': 'fullname', 'avatar': 'avatar'}
+        patch_fields = {'name'}
+
+        if only_patch_fields:
+            return {fields_map[k]: v for k, v in player.as_dict().items() if k in patch_fields}
+        else:
+            return {fields_map[k]: v for k, v in player.as_dict().items() if k in fields_map.keys()}
+
     def registration(self, username: str, password: str) -> Player:
         payload = {
             'username': username,
@@ -158,7 +167,6 @@ class GameServerClient(BaseClient):
         return self._make_player(resp.json())
 
     def authorize_safe(self, username: str, password: str) -> str:
-        self.token = None
         payload = {
             'username': username,
             'password': self.encrypt(password)
@@ -172,6 +180,10 @@ class GameServerClient(BaseClient):
     def logout(self):
         self.post(self._make_api_url('logout'))
         self.token = None
+
+    def save_user_data(self, user: Player) -> Player:
+        resp = self.patch(self._make_api_url('user'), json=self._dump_player(user))
+        return self._make_player(resp.json())
 
     def get_params(self) -> dict:
         try:

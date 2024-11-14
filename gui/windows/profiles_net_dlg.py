@@ -6,6 +6,7 @@ from PyQt5.QtCore import *
 
 from models.params import Profiles
 from gui.common import const
+from gui.common.utils import handle_client_exception
 from gui.common.client import GameServerClient
 from gui.common.graphics import Face2
 
@@ -30,6 +31,9 @@ class ProfilesNetDialog(QDialog):
         self._avatar_btn = None
         self._save_btn = None
         self._info_lb = None
+        self._lb_username = None
+        self._lb_login = None
+        self._lb_new_password = None
 
         self.setWindowIcon(QIcon(f'{const.RES_DIR}/profile.ico'))
         self.setWindowTitle('Профили пользователей')
@@ -86,7 +90,8 @@ class ProfilesNetDialog(QDialog):
         # Имя игрока
         row += 1
         l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Имя игрока'))
+        self._lb_username = QLabel('Имя игрока')
+        l2.addWidget(self._lb_username)
         l2.addSpacing(10)
         self._username = QLineEdit()
         self._username.setFixedWidth(290)
@@ -97,7 +102,8 @@ class ProfilesNetDialog(QDialog):
         # Логин
         row += 1
         l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Логин'))
+        self._lb_login = QLabel('Логин')
+        l2.addWidget(self._lb_login)
         l2.addSpacing(10)
         self._login = QLineEdit()
         self._login.setFixedWidth(290)
@@ -129,7 +135,8 @@ class ProfilesNetDialog(QDialog):
         # Новый пароль
         row += 1
         l2 = QHBoxLayout()
-        l2.addWidget(QLabel('Новый пароль'))
+        self._lb_new_password = QLabel('Новый пароль')
+        l2.addWidget(self._lb_new_password)
         l2.addSpacing(10)
         self._new_password = QLineEdit()
         self._new_password.setFixedWidth(290)
@@ -203,10 +210,31 @@ class ProfilesNetDialog(QDialog):
         else:
             self._clear()
 
+        self._validate()
+
+    def _highlight_changes(self):
+        curr_player = self._profiles.get(self._selected_profile.currentData())
+
+        if self._username.text() != curr_player.name:
+            self._lb_username.setStyleSheet('QLabel {color: navy}')
+        else:
+            self._lb_username.setStyleSheet('QLabel {color: black}')
+
+        if self._login.text() != curr_player.login:
+            self._lb_login.setStyleSheet('QLabel {color: navy}')
+        else:
+            self._lb_login.setStyleSheet('QLabel {color: black}')
+
+        if self._new_password.text():
+            self._lb_new_password.setStyleSheet('QLabel {color: navy}')
+        else:
+            self._lb_new_password.setStyleSheet('QLabel {color: black}')
+
     def _validate(self):
         is_valid = False
         errs = []
         curr_player = self._profiles.get(self._selected_profile.currentData())
+        self._highlight_changes()
 
         if not self._username.text():
             errs.append('Имя пользователя пустое')
@@ -265,34 +293,49 @@ class ProfilesNetDialog(QDialog):
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
 
     def _save_profile(self):
-        # todo: Пока ничего не сохраняем
-        return
-
         if not self._validate():
             return
 
+        has_changes = False
+        has_errors = False
         uid = self._selected_profile.currentData()
         avatar = self._avatar.text()
         user = self._profiles.get(uid)
-        self._selected_profile.setItemText(self._selected_profile.currentIndex(), self._username.text())
 
-        user.login = self._login.text()
-        user.password = self._new_password.text()
-        user.name = self._username.text()
-        user.avatar = os.path.split(avatar)[1] if avatar else None
+        if self._username.text() != user.name:
+            has_changes = True
+            self._selected_profile.setItemText(self._selected_profile.currentIndex(), self._username.text())
+            user.name = self._username.text()
 
-        self._profiles.set_profile(user)
+            try:
+                self.game_svc_cli.save_user_data(user)
+            except Exception as err:
+                has_errors = True
+                handle_client_exception(self, err, before_msg=f'Не удалось сохранить < {self._lb_username.text()} >')
 
-        if avatar:
-            fldr = f'{const.PROFILES_DIR}/{uid}'
-            if not os.path.isdir(fldr):
-                os.makedirs(fldr)
+        # user.login = self._login.text()
+        # user.password = self._new_password.text()
+        # user.avatar = os.path.split(avatar)[1] if avatar else None
+        #
+        # self._profiles.set_profile(user)
+        #
+        # if avatar:
+        #     fldr = f'{const.PROFILES_DIR}/{uid}'
+        #     if not os.path.isdir(fldr):
+        #         os.makedirs(fldr)
+        #
+        #     pixmap = self._load_image(avatar)
+        #     pixmap.save(os.path.join(fldr, user.avatar), None, -1)
 
-            pixmap = self._load_image(avatar)
-            pixmap.save(os.path.join(fldr, user.avatar), None, -1)
+        if has_changes:
+            if has_errors:
+                self._info_lb.setStyleSheet('QLabel {color: maroon}')
+                self._info_lb.setText('Изменения сохранены с ошибками')
+            else:
+                self._info_lb.setStyleSheet('QLabel {color: navy}')
+                self._info_lb.setText('Изменения сохранены')
 
-        self._info_lb.setStyleSheet('QLabel {color: navy}')
-        self._info_lb.setText('Изменения сохранены')
+            self._highlight_changes()
 
     def _select_avatar(self):
         filename = QFileDialog.getOpenFileName(
