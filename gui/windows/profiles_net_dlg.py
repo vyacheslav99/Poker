@@ -23,7 +23,9 @@ class ProfilesNetDialog(QDialog):
         self._uid_edit = None
         self._username = None
         self._login = None
+        self._curr_password = None
         self._new_password = None
+        self._confirm_password = None
         self._avatar = None
         self._avatar_btn = None
         self._save_btn = None
@@ -51,41 +53,26 @@ class ProfilesNetDialog(QDialog):
         l2 = QHBoxLayout()
         l2.setAlignment(Qt.AlignLeft)
         l2.addWidget(QLabel('Профиль'))
-        l2.addSpacing(45)
+        l2.addSpacing(70)
         self._selected_profile = QComboBox()
         self._selected_profile.setEditable(False)
-        self._selected_profile.setFixedWidth(205)
+        self._selected_profile.setFixedWidth(290)
 
         for p in self._profiles.profiles:
             self._selected_profile.addItem(p.name, QVariant(p.uid))
 
         self._selected_profile.currentIndexChanged.connect(self._on_profile_change)
         l2.addWidget(self._selected_profile)
-
-        # Кнопка добавления профиля
-        # btn_add = QToolButton()
-        # btn_add.setIcon(QIcon(f'{const.RES_DIR}/plus.ico'))
-        # btn_add.setFixedWidth(35)
-        # btn_add.setToolTip('Добавить новый профиль')
-        # btn_add.clicked.connect(self._add_profile)
-        # l2.addWidget(btn_add)
-
-        # Кнопка удаления профиля
-        # btn_del = QToolButton()
-        # btn_del.setIcon(QIcon(f'{const.RES_DIR}/minus.ico'))
-        # btn_del.setFixedWidth(35)
-        # btn_del.setToolTip('Удалить выбранный профиль')
-        # btn_del.clicked.connect(self._del_profile)
-        # l2.addWidget(btn_del)
-
         main_layout.addLayout(l2)
 
         # Настройки выбранного профиля
         group = QGroupBox()
         layout = QGridLayout()
         layout.setHorizontalSpacing(20)
+        row = 0
 
         # uid профиля
+        row += 1
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('uid профиля'))
         l2.addSpacing(10)
@@ -94,58 +81,86 @@ class ProfilesNetDialog(QDialog):
         self._uid_edit.setFixedWidth(290)
         self._uid_edit.setPlaceholderText('< пользователь не выбран >')
         l2.addWidget(self._uid_edit)
-        layout.addLayout(l2, 1, 1, Qt.AlignLeft)
+        layout.addLayout(l2, row, 1, Qt.AlignLeft | Qt.AlignTop)
 
         # Имя игрока
+        row += 1
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Имя игрока'))
-        l2.addSpacing(20)
+        l2.addSpacing(10)
         self._username = QLineEdit()
         self._username.setFixedWidth(290)
-        self._username.editingFinished.connect(self._name_edited)
+        self._username.textEdited.connect(self._validate)
         l2.addWidget(self._username)
-        layout.addLayout(l2, 2, 1, Qt.AlignLeft)
+        layout.addLayout(l2, row, 1, Qt.AlignLeft)
 
         # Логин
+        row += 1
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Логин'))
-        l2.addSpacing(30)
+        l2.addSpacing(10)
         self._login = QLineEdit()
         self._login.setFixedWidth(290)
         self._login.textEdited.connect(self._validate)
         l2.addWidget(self._login)
-        layout.addLayout(l2, 3, 1, Qt.AlignLeft)
+        layout.addLayout(l2, row, 1, Qt.AlignLeft)
 
         # Изменение пароля
-        lb = QLabel()
-        lb.setText('<b>Смена пароля</b>')
-        layout.addWidget(lb, 4, 1, Qt.AlignLeft)
+        row += 1
+        layout.addWidget(QLabel('<b>Смена пароля</b>'), row, 1, Qt.AlignLeft)
         line = QFrame()
         line.setFixedWidth(290)
         line.setFrameShape(QFrame.HLine)
         line.setFrameShadow(QFrame.Sunken)
-        layout.addWidget(line, 4, 1, Qt.AlignHCenter | Qt.AlignJustify | Qt.AlignRight)
+        layout.addWidget(line, row, 1, Qt.AlignHCenter | Qt.AlignRight)
+
+        # Текущий пароль
+        row += 1
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Текущий пароль'))
+        l2.addSpacing(20)
+        self._curr_password = QLineEdit()
+        self._curr_password.setFixedWidth(290)
+        self._curr_password.setEchoMode(QLineEdit.Password)
+        self._curr_password.textEdited.connect(self._validate)
+        l2.addWidget(self._curr_password)
+        layout.addLayout(l2, row, 1, Qt.AlignLeft)
 
         # Новый пароль
+        row += 1
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Новый пароль'))
-        l2.addSpacing(30)
+        l2.addSpacing(10)
         self._new_password = QLineEdit()
         self._new_password.setFixedWidth(290)
         self._new_password.setEchoMode(QLineEdit.Password)
         self._new_password.textEdited.connect(self._validate)
         l2.addWidget(self._new_password)
-        layout.addLayout(l2, 5, 1, Qt.AlignLeft)
+        layout.addLayout(l2, row, 1, Qt.AlignLeft)
 
+        # Повтор пароля
+        row += 1
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Повтор пароля'))
+        l2.addSpacing(10)
+        self._confirm_password = QLineEdit()
+        self._confirm_password.setFixedWidth(290)
+        self._confirm_password.setEchoMode(QLineEdit.Password)
+        self._confirm_password.textEdited.connect(self._validate)
+        l2.addWidget(self._confirm_password)
+        layout.addLayout(l2, row, 1, Qt.AlignLeft)
+
+        row += 1
         self._info_lb = QLabel()
-        layout.addWidget(self._info_lb, 6, 1, Qt.AlignLeft)
+        layout.addWidget(self._info_lb, row, 1, Qt.AlignLeft)
 
         # кнопка Сохранить
+        row += 1
         self._save_btn = QPushButton(QIcon(f'{const.RES_DIR}/save.ico'), '  Сохранить')
         self._save_btn.setFixedWidth(140)
         self._save_btn.setToolTip('Сохранить изменения в профиле')
         self._save_btn.clicked.connect(self._save_profile)
-        layout.addWidget(self._save_btn, 7, 1, Qt.AlignBottom)
+        layout.addWidget(self._save_btn, row, 1, Qt.AlignBottom)
 
         # аватарка
         menu = QMenu()
@@ -165,7 +180,7 @@ class ProfilesNetDialog(QDialog):
         self._avatar_btn.setMenu(menu)
         self._avatar = QLabel()
         l2.addWidget(self._avatar_btn)
-        layout.addLayout(l2, 1, 2, 5, 1, Qt.AlignBaseline)
+        layout.addLayout(l2, 1, 2, row, 1, Qt.AlignTop)
 
         group.setLayout(layout)
         main_layout.addWidget(group)
@@ -180,15 +195,13 @@ class ProfilesNetDialog(QDialog):
             self._uid_edit.setText(p.uid)
             self._username.setText(p.name)
             self._login.setText(p.login)
+            self._curr_password.setText('')
             self._new_password.setText('')
+            self._confirm_password.setText('')
             self._avatar.setText(p.avatar)
             self._avatar_btn.setIcon(QIcon(Face2(p)))
         else:
             self._clear()
-
-    def _name_edited(self):
-        self._selected_profile.setItemText(self._selected_profile.currentIndex(), self._username.text())
-        self._validate()
 
     def _validate(self):
         is_valid = False
@@ -215,24 +228,29 @@ class ProfilesNetDialog(QDialog):
             except Exception:
                 pass
 
-        passwd = self._new_password.text()
+        curr_passwd = self._curr_password.text()
+        new_passwd = self._new_password.text()
+        confirm_passwd = self._confirm_password.text()
 
-        if not set(passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
-            errs.append('Пароль содержит недопустимые символы')
+        if new_passwd:
+            if not curr_passwd:
+                errs.append('Текущий пароль пустой')
+            if not set(curr_passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
+                errs.append('Текущий пароль содержит недопустимые символы')
+            if not set(new_passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
+                errs.append('Новый пароль содержит недопустимые символы')
 
-        # passwd2 = self._confirm_password.text()
-        #
-        # if passwd != passwd2:
-        #     errs.append('Пароль и повтор пароля не совпадают')
+            if new_passwd != confirm_passwd:
+                errs.append('Пароль и повтор пароля не совпадают')
 
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
             self._info_lb.setStyleSheet('QLabel {color: maroon}')
-            self._info_lb.setText(self._save_btn.toolTip())
         else:
             is_valid = True
             self._save_btn.setToolTip('')
 
+        self._info_lb.setText(self._save_btn.toolTip())
         self._save_btn.setEnabled(is_valid)
         return is_valid
 
@@ -240,7 +258,9 @@ class ProfilesNetDialog(QDialog):
         self._uid_edit.setText('')
         self._username.setText('')
         self._login.setText('')
+        self._curr_password.setText('')
         self._new_password.setText('')
+        self._confirm_password.setText('')
         self._avatar.setText('')
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
 
@@ -254,6 +274,7 @@ class ProfilesNetDialog(QDialog):
         uid = self._selected_profile.currentData()
         avatar = self._avatar.text()
         user = self._profiles.get(uid)
+        self._selected_profile.setItemText(self._selected_profile.currentIndex(), self._username.text())
 
         user.login = self._login.text()
         user.password = self._new_password.text()

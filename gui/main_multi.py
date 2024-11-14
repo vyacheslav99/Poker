@@ -136,7 +136,7 @@ class MultiPlayerMainWnd(MainWnd):
             self.handle_client_exception(err)
 
     def show_profiles_dlg(self):
-        """ Форма управления пользователями """
+        """ Форма изменения профиля пользователя """
 
         dlg = ProfilesNetDialog(self, self.profiles, self.params.user)
 

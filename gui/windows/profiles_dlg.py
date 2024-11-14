@@ -213,11 +213,11 @@ class ProfilesDialog(QDialog):
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
             self._info_lb.setStyleSheet('QLabel {color: maroon}')
-            self._info_lb.setText(self._save_btn.toolTip())
         else:
             is_valid = True
             self._save_btn.setToolTip('')
 
+        self._info_lb.setText(self._save_btn.toolTip())
         self._save_btn.setEnabled(is_valid)
         return is_valid
 
