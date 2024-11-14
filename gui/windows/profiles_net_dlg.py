@@ -299,7 +299,6 @@ class ProfilesNetDialog(QDialog):
         has_changes = False
         has_errors = False
         uid = self._selected_profile.currentData()
-        avatar = self._avatar.text()
         user = self._profiles.get(uid)
 
         if self._username.text() != user.name:
@@ -311,23 +310,57 @@ class ProfilesNetDialog(QDialog):
                 self.game_svc_cli.save_user_data(user)
             except Exception as err:
                 has_errors = True
-                handle_client_exception(self, err, before_msg=f'Не удалось сохранить < {self._lb_username.text()} >')
+                handle_client_exception(self, err, before_msg=f'Не удалось сохранить {self._lb_username.text()}')
 
-        # user.login = self._login.text()
-        # user.password = self._new_password.text()
-        # user.avatar = os.path.split(avatar)[1] if avatar else None
-        #
-        # self._profiles.set_profile(user)
-        #
-        # if avatar:
-        #     fldr = f'{const.PROFILES_DIR}/{uid}'
-        #     if not os.path.isdir(fldr):
-        #         os.makedirs(fldr)
-        #
-        #     pixmap = self._load_image(avatar)
-        #     pixmap.save(os.path.join(fldr, user.avatar), None, -1)
+        if self._login.text() != user.login:
+            has_changes = True
+            user.login = self._login.text()
+
+            try:
+                user.password = self.game_svc_cli.change_username(user.login)
+            except Exception as err:
+                has_errors = True
+                handle_client_exception(self, err, before_msg=f'Не удалось сохранить {self._lb_login.text()}')
+
+        if self._new_password.text():
+            has_changes = True
+            curr_password = self._curr_password.text()
+            new_password = self._new_password.text()
+
+            try:
+                self.game_svc_cli.change_password(curr_password, new_password, close_sessions=True)
+            except Exception as err:
+                has_errors = True
+                handle_client_exception(
+                    self, err, before_msg=f'Не удалось сохранить {self._lb_new_password.text()}'
+                )
+
+        if self._avatar.text() != user.avatar:
+            has_changes = True
+            new_avatar = self._avatar.text()
+
+            if new_avatar:
+                fldr = f'{const.PROFILES_DIR}/{uid}'
+                if not os.path.isdir(fldr):
+                    os.makedirs(fldr)
+
+                try:
+                    res = self.game_svc_cli.save_avatar(new_avatar)
+                    user.avatar = res.avatar
+                    self.game_svc_cli.download_avatar(user.avatar, os.path.join(fldr, user.avatar))
+                except Exception as err:
+                    has_errors = True
+                    handle_client_exception(self, err, before_msg=f'Не удалось сохранить Аватарку')
+            else:
+                try:
+                    res = self.game_svc_cli.clear_avatar()
+                    user.avatar = res.avatar
+                except Exception as err:
+                    has_errors = True
+                    handle_client_exception(self, err, before_msg=f'Не удалось удалить Аватарку')
 
         if has_changes:
+            self._profiles.set_profile(user)
             if has_errors:
                 self._info_lb.setStyleSheet('QLabel {color: maroon}')
                 self._info_lb.setText('Изменения сохранены с ошибками')

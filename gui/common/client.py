@@ -1,3 +1,4 @@
+import os.path
 import platform
 import rsa
 import base64
@@ -69,10 +70,11 @@ class BaseClient:
             raise ClientException(response.status_code, text, response=response)
 
     def _request(
-        self, method: str, url: str, query: dict | None = None, json: dict | None = None, headers: dict | None = None
+        self, method: str, url: str, query: dict | None = None, json: dict | None = None, files = None,
+        headers: dict | None = None
     ) -> Response:
         resp = getattr(requests, method)(
-            url, params=query, json=json, headers=dict(self.get_default_headers(), **(headers or {})),
+            url, params=query, json=json, files=files, headers=dict(self.get_default_headers(), **(headers or {})),
             timeout=const.REQUEST_TIMEOUT
         )
         self.raise_for_status(resp)
@@ -87,17 +89,18 @@ class BaseClient:
     def get(self, url: str, query: dict | None = None, headers: dict | None = None) -> Response:
         return self._request('get', url, query=query, headers=headers)
 
-    def post(self, url: str, json: dict | None = None, headers: dict | None = None) -> Response:
-        return self._request('post', url, json=json, headers=headers)
+    def post(self, url: str, json: dict | None = None, files = None, headers: dict | None = None) -> Response:
+        return self._request('post', url, json=json, files=files, headers=headers)
 
-    def put(self, url: str, json: dict | None = None, headers: dict | None = None) -> Response:
-        return self._request('put', url, json=json, headers=headers)
+    def put(self, url: str, json: dict | None = None, files = None, headers: dict | None = None) -> Response:
+        return self._request('put', url, json=json, files=files, headers=headers)
 
-    def patch(self, url: str, json: dict | None = None, headers: dict | None = None) -> Response:
-        return self._request('patch', url, json=json, headers=headers)
+    def patch(self, url: str, json: dict | None = None, files = None, headers: dict | None = None) -> Response:
+        return self._request('patch', url, json=json, files=files, headers=headers)
 
-    def delete(self, url: str, query: dict | None = None, json: dict | None = None,
-               headers: dict | None = None) -> Response:
+    def delete(
+        self, url: str, query: dict | None = None, json: dict | None = None, headers: dict | None = None
+    ) -> Response:
         return self._request('delete', url, query=query, json=json, headers=headers)
 
     def encrypt(self, plain_value: str) -> str:
@@ -133,7 +136,7 @@ class GameServerClient(BaseClient):
     def username_is_free(self, username: str) -> bool:
         resp = self.get(self._make_api_url('is_free_username'), query={'username': username})
         data = resp.json()
-        return data.get('success', True)
+        return data['success']
 
     def _make_player(self, data: dict, set_current_token: bool = True) -> Player:
         return Player(
@@ -181,8 +184,43 @@ class GameServerClient(BaseClient):
         self.post(self._make_api_url('logout'))
         self.token = None
 
+    def change_username(self, new_username: str) -> str:
+        """
+        Смена имени пользователя (логина)
+        При этом происходит завершение всех активных сеансов, кроме текущего
+        По текущему сеансу будет перевыпущен токен, текущий токен станет недействительным.
+        Новый токен вернет этот метод
+        """
+
+        payload = {'new_username': new_username}
+        resp = self.patch(self._make_api_url('user/username'), json=payload)
+        data = resp.json()
+        self.token = data.get('access_token')
+        return self.token
+
+    def change_password(self, curr_password: str, new_password: str, close_sessions: bool = False):
+        payload = {
+            'password': self.encrypt(curr_password),
+            'new_password': self.encrypt(new_password),
+            'close_sessions': close_sessions
+        }
+
+        self.patch(self._make_api_url('user/passwd'), json=payload)
+
     def save_user_data(self, user: Player) -> Player:
         resp = self.patch(self._make_api_url('user'), json=self._dump_player(user))
+        return self._make_player(resp.json())
+
+    def save_avatar(self, file_path: str) -> Player:
+        files = {
+            'file': (os.path.split(file_path)[1], open(file_path, 'rb'))
+        }
+
+        resp = self.put(self._make_api_url('user/avatar'), files=files)
+        return self._make_player(resp.json())
+
+    def clear_avatar(self) -> Player:
+        resp = self.delete(self._make_api_url('user/avatar'))
         return self._make_player(resp.json())
 
     def get_params(self) -> dict:
