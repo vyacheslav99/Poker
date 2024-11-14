@@ -1,5 +1,3 @@
-import string
-
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -10,10 +8,10 @@ from gui.common import const
 
 class RegistrationDialog(QDialog):
 
-    def __init__(self, parent, game_svc_cli: GameServerClient):
+    def __init__(self, parent):
         super().__init__(parent)
 
-        self.game_svc_cli: GameServerClient = game_svc_cli
+        self.game_svc_cli: GameServerClient = parent.game_server_cli
         self._login: QLineEdit | None = None
         self._password: QLineEdit | None = None
         self._confirm_password: QLineEdit | None = None

@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -7,23 +6,24 @@ from PyQt5.QtCore import *
 
 from models.params import Profiles
 from gui.common import const
+from gui.common.client import GameServerClient
 from gui.common.graphics import Face2
 
 
-class ProfilesDialog(QDialog):
+class ProfilesNetDialog(QDialog):
 
     def __init__(self, parent, profiles: Profiles, curr_profile):
         super().__init__(parent)
+
+        self.game_svc_cli: GameServerClient = parent.game_server_cli
         self._profiles = profiles
-        self._curr_profile = curr_profile
-        self._curr_changed = False
 
         # элементы управления
         self._selected_profile = None
         self._uid_edit = None
         self._username = None
         self._login = None
-        # self._password = None
+        self._new_password = None
         self._avatar = None
         self._avatar_btn = None
         self._save_btn = None
@@ -36,21 +36,13 @@ class ProfilesDialog(QDialog):
         self._selected_profile.setCurrentIndex(self._profiles.get_item(curr_profile)[0])
         self._on_profile_change()
 
-    def close(self) -> bool:
-        if self._curr_changed:
-            self.accept()
-        else:
-            self.reject()
-        
-        return super(ProfilesDialog, self).close()
-
     def init_ui(self):
         # Кнопка Закрыть
         main_layout = QVBoxLayout()
         btn_close = QPushButton('Закрыть')
         btn_close.setDefault(True)
         btn_close.setFixedWidth(140)
-        btn_close.clicked.connect(self.close)
+        btn_close.clicked.connect(self.accept)
         buttons_box = QHBoxLayout()
         buttons_box.setAlignment(Qt.AlignRight)
         buttons_box.addWidget(btn_close)
@@ -71,20 +63,20 @@ class ProfilesDialog(QDialog):
         l2.addWidget(self._selected_profile)
 
         # Кнопка добавления профиля
-        btn_add = QToolButton()
-        btn_add.setIcon(QIcon(f'{const.RES_DIR}/plus.ico'))
-        btn_add.setFixedWidth(35)
-        btn_add.setToolTip('Добавить новый профиль')
-        btn_add.clicked.connect(self._add_profile)
-        l2.addWidget(btn_add)
+        # btn_add = QToolButton()
+        # btn_add.setIcon(QIcon(f'{const.RES_DIR}/plus.ico'))
+        # btn_add.setFixedWidth(35)
+        # btn_add.setToolTip('Добавить новый профиль')
+        # btn_add.clicked.connect(self._add_profile)
+        # l2.addWidget(btn_add)
 
         # Кнопка удаления профиля
-        btn_del = QToolButton()
-        btn_del.setIcon(QIcon(f'{const.RES_DIR}/minus.ico'))
-        btn_del.setFixedWidth(35)
-        btn_del.setToolTip('Удалить выбранный профиль')
-        btn_del.clicked.connect(self._del_profile)
-        l2.addWidget(btn_del)
+        # btn_del = QToolButton()
+        # btn_del.setIcon(QIcon(f'{const.RES_DIR}/minus.ico'))
+        # btn_del.setFixedWidth(35)
+        # btn_del.setToolTip('Удалить выбранный профиль')
+        # btn_del.clicked.connect(self._del_profile)
+        # l2.addWidget(btn_del)
 
         main_layout.addLayout(l2)
 
@@ -120,30 +112,40 @@ class ProfilesDialog(QDialog):
         l2.addSpacing(30)
         self._login = QLineEdit()
         self._login.setFixedWidth(290)
-        self._login.editingFinished.connect(self._validate)
+        self._login.textEdited.connect(self._validate)
         l2.addWidget(self._login)
         layout.addLayout(l2, 3, 1, Qt.AlignLeft)
 
-        # Пароль
-        # l2 = QHBoxLayout()
-        # l2.addWidget(QLabel('Пароль'))
-        # l2.addSpacing(30)
-        # self._password = QLineEdit()
-        # self._password.setFixedWidth(290)
-        # self._password.setEchoMode(QLineEdit.PasswordEchoOnEdit)
-        # # self._password.setEnabled(False)
-        # self._password.editingFinished.connect(self._validate)
-        # l2.addWidget(self._password)
-        # layout.addLayout(l2, 4, 1, Qt.AlignLeft)
+        # Изменение пароля
+        lb = QLabel()
+        lb.setText('<b>Смена пароля</b>')
+        layout.addWidget(lb, 4, 1, Qt.AlignLeft)
+        line = QFrame()
+        line.setFixedWidth(290)
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(line, 4, 1, Qt.AlignHCenter | Qt.AlignJustify | Qt.AlignRight)
+
+        # Новый пароль
+        l2 = QHBoxLayout()
+        l2.addWidget(QLabel('Новый пароль'))
+        l2.addSpacing(30)
+        self._new_password = QLineEdit()
+        self._new_password.setFixedWidth(290)
+        self._new_password.setEchoMode(QLineEdit.Password)
+        self._new_password.textEdited.connect(self._validate)
+        l2.addWidget(self._new_password)
+        layout.addLayout(l2, 5, 1, Qt.AlignLeft)
+
+        self._info_lb = QLabel()
+        layout.addWidget(self._info_lb, 6, 1, Qt.AlignLeft)
 
         # кнопка Сохранить
-        self._info_lb = QLabel()
-        layout.addWidget(self._info_lb, 4, 1, Qt.AlignBottom)
         self._save_btn = QPushButton(QIcon(f'{const.RES_DIR}/save.ico'), '  Сохранить')
         self._save_btn.setFixedWidth(140)
         self._save_btn.setToolTip('Сохранить изменения в профиле')
         self._save_btn.clicked.connect(self._save_profile)
-        layout.addWidget(self._save_btn, 5, 1, Qt.AlignBottom)
+        layout.addWidget(self._save_btn, 7, 1, Qt.AlignBottom)
 
         # аватарка
         menu = QMenu()
@@ -160,12 +162,9 @@ class ProfilesDialog(QDialog):
         self._avatar_btn.setIconSize(QSize(*const.USER_FACE_SIZE))
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
         self._avatar_btn.setPopupMode(QToolButton.InstantPopup)
-        # self._avatar_btn.clicked.connect(self._select_avatar)
         self._avatar_btn.setMenu(menu)
         self._avatar = QLabel()
         l2.addWidget(self._avatar_btn)
-        # l2.addSpacing(5)
-        # l2.addWidget(self._avatar)
         layout.addLayout(l2, 1, 2, 5, 1, Qt.AlignBaseline)
 
         group.setLayout(layout)
@@ -181,7 +180,7 @@ class ProfilesDialog(QDialog):
             self._uid_edit.setText(p.uid)
             self._username.setText(p.name)
             self._login.setText(p.login)
-            # self._password.setText(p.password)
+            self._new_password.setText('')
             self._avatar.setText(p.avatar)
             self._avatar_btn.setIcon(QIcon(Face2(p)))
         else:
@@ -194,21 +193,37 @@ class ProfilesDialog(QDialog):
     def _validate(self):
         is_valid = False
         errs = []
+        curr_player = self._profiles.get(self._selected_profile.currentData())
 
         if not self._username.text():
             errs.append('Имя пользователя пустое')
 
-        s = self._login.text()
-        if not s:
-            errs.append('Логин пустой')
-        elif not set(s).issubset(set(const.LOGIN_ALLOW_LITERALS)):
-            errs.append('Логин содержит неверные символы. Вводи логин в английской раскладке')
-        elif [x for x in self._profiles.filter('login', s) if x.uid != self._uid_edit.text()]:
-            errs.append('Такой логин уже существует. Придумай другой')
+        login = self._login.text()
 
-        # s = self._password.text()
-        # if s and not set(s).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
-        #     errs.append('Пароль содержит неверные символы. Вводи пароль в английской раскладке')
+        if not login:
+            errs.append('Логин пустой')
+        elif not set(login).issubset(set(const.LOGIN_ALLOW_LITERALS)):
+            errs.append('Логин содержит недопустимые символы')
+        elif len(login) < 3:
+            errs.append('Логин слишком короткий')
+        else:
+            try:
+                if curr_player.login != login:
+                    is_free = self.game_svc_cli.username_is_free(login)
+                    if not is_free:
+                        errs.append('Такой логин уже существует')
+            except Exception:
+                pass
+
+        passwd = self._new_password.text()
+
+        if not set(passwd).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
+            errs.append('Пароль содержит недопустимые символы')
+
+        # passwd2 = self._confirm_password.text()
+        #
+        # if passwd != passwd2:
+        #     errs.append('Пароль и повтор пароля не совпадают')
 
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
@@ -225,72 +240,27 @@ class ProfilesDialog(QDialog):
         self._uid_edit.setText('')
         self._username.setText('')
         self._login.setText('')
-        # self._password.setText('')
+        self._new_password.setText('')
         self._avatar.setText('')
         self._avatar_btn.setIcon(QIcon(QPixmap(f'{const.FACE_DIR}/noImage.png')))
 
-    def _add_profile(self):
-        user = self._profiles.generate()
-        self._selected_profile.addItem(user.name, QVariant(user.uid))
-        self._selected_profile.setCurrentIndex(self._selected_profile.count() - 1)
-        self._uid_edit.setText(user.uid)
-        self._username.setText(user.name)
-        self._login.setText(user.login)
-        # self._password.setText(user.password)
-        self._avatar.setText(user.avatar)
-        self._avatar_btn.setIcon(QIcon(Face2(user)))
-
-    def _del_profile(self):
-        i = self._selected_profile.currentIndex()
-        uid = self._selected_profile.currentData()
-
-        if uid == self._curr_profile:
-            QMessageBox.warning(
-                self, 'Ошибка',
-                'Невозможно удалить текущий профиль!\nСначала смените текущий профиль в настройках программы.'
-            )
-            return
-
-        res = QMessageBox.question(self, 'Подтверждение',
-                                   f'Хотите удалить этот профиль?\nЭто действие будет невозможно отменить!',
-                                   QMessageBox.Yes | QMessageBox.No)
-
-        if res == QMessageBox.No:
-            return
-
-        self._profiles.delete(uid)
-        self._selected_profile.removeItem(i)
-
-        fldr = f'{const.PROFILES_DIR}/{uid}'
-        if os.path.isdir(fldr):
-            shutil.rmtree(fldr)
-
     def _save_profile(self):
+        # todo: Пока ничего не сохраняем
+        return
+
         if not self._validate():
             return
 
         uid = self._selected_profile.currentData()
-        user = self._profiles.get(self._selected_profile.currentData())
         avatar = self._avatar.text()
+        user = self._profiles.get(uid)
 
-        if not user:
-            user = self._profiles.generate(**{
-                'uid': uid,
-                'login': self._login.text(),
-                # 'password': self._password.text(),
-                'name': self._username.text(),
-                'avatar': os.path.split(avatar)[1] if avatar else None
-            })
-        else:
-            user.login = self._login.text()
-            # user.password = self._password.text()
-            user.name = self._username.text()
-            user.avatar = os.path.split(avatar)[1] if avatar else None
+        user.login = self._login.text()
+        user.password = self._new_password.text()
+        user.name = self._username.text()
+        user.avatar = os.path.split(avatar)[1] if avatar else None
 
         self._profiles.set_profile(user)
-
-        if uid == self._curr_profile:
-            self._curr_changed = True
 
         if avatar:
             fldr = f'{const.PROFILES_DIR}/{uid}'

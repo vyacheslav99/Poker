@@ -1,14 +1,16 @@
 import os
+import shutil
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
-from gui.windows.registration_dlg import RegistrationDialog
 from models.params import Options
 from gui.common import const
 from gui.common.client import GameServerClient, ClientException, RequestException
 from gui.main_base import MainWnd
 from gui.windows.login_dlg import LoginDialog
+from gui.windows.registration_dlg import RegistrationDialog
+from gui.windows.profiles_net_dlg import ProfilesNetDialog
 
 
 class MultiPlayerMainWnd(MainWnd):
@@ -81,6 +83,7 @@ class MultiPlayerMainWnd(MainWnd):
 
         self.menu_actions.edit_users_actn.setEnabled(self.curr_profile is not None)
         self.menu_actions.logout_actn.setEnabled(self.curr_profile is not None)
+        self.menu_actions.edit_users_actn.setEnabled(not self.started() and self.profiles.count() > 0)
 
     def show_login_dlg(self):
         """ Форма авторизации """
@@ -110,7 +113,7 @@ class MultiPlayerMainWnd(MainWnd):
     def show_registration_dlg(self):
         """ Форма регистрации пользователя """
 
-        register_dlg = RegistrationDialog(self, self.game_server_cli)
+        register_dlg = RegistrationDialog(self)
         result = register_dlg.exec()
         if result == 0:
             register_dlg.destroy()
@@ -130,15 +133,25 @@ class MultiPlayerMainWnd(MainWnd):
             self.set_profile(user.uid)
             self.refresh_menu_actions()
         except Exception as err:
-            self.handle_client_exception(err, goto_authorization=True)
+            self.handle_client_exception(err)
 
     def show_profiles_dlg(self):
         """ Форма управления пользователями """
 
-        # todo: Реализовать, тут будет отдельная форма, не та, что в синглплеере
-        QMessageBox.information(
-            self, 'Профиль', 'Форма редактирования профиля для мультиплеера пока не реализована'
-        )
+        dlg = ProfilesNetDialog(self, self.profiles, self.params.user)
+
+        try:
+            # Изменения на сервер отправляем сразу из формы
+            # Локально изменения сохраняются сразу в объекте Profiles
+            # поэтому после закрытия диалога в профилях уже все изменения есть, остается только сохранить в файл
+            dlg.exec()
+            self.profiles.save(const.PROFILES_NET_FILE)
+
+            # На случай, если у текущего пользователя поменялось Имя или логин
+            self.refresh_menu_actions()
+            self.set_status_message(self.curr_profile.name if self.curr_profile else '', 0)
+        finally:
+            dlg.destroy()
 
     def on_logout_action(self):
         """ Выход (разлогиниться) текущим пользователем """
@@ -160,6 +173,10 @@ class MultiPlayerMainWnd(MainWnd):
             self.game_server_cli.logout()
         except Exception as err:
             self.handle_client_exception(err)
+
+        fldr = self.get_profile_dir()
+        if os.path.isdir(fldr):
+            shutil.rmtree(fldr)
 
         self.profiles.delete(self.params.user)
         self.params.user = None
