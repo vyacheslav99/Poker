@@ -1,4 +1,4 @@
-import os.path
+import os
 import platform
 import rsa
 import base64
@@ -244,8 +244,7 @@ class GameServerClient(BaseClient):
         return resp.json()
 
     def set_params(self, params: Params):
-        resp = self.put(self._make_api_url('user/params'), json=params.as_dict())
-        self.raise_for_status(resp)
+        self.put(self._make_api_url('user/params'), json=params.as_dict())
 
     def get_game_options(self) -> dict:
         try:
@@ -259,12 +258,10 @@ class GameServerClient(BaseClient):
         return resp.json()
 
     def set_game_options(self, options: Options):
-        resp = self.put(self._make_api_url('user/game_options'), json=options.as_dict())
-        self.raise_for_status(resp)
+        self.put(self._make_api_url('user/game_options'), json=options.as_dict())
 
     def download_avatar(self, remote_path: str, save_to_path: str):
         resp = self.get(self._make_base_url(f'{self.FILES_BASE_PATH}/{remote_path}'))
-        self.raise_for_status(resp)
 
         if len(resp.content) > 0:
             with open(save_to_path, 'wb') as f:

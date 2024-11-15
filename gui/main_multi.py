@@ -142,7 +142,7 @@ class MultiPlayerMainWnd(MainWnd):
             return
 
         res = QMessageBox.question(
-            self,'Выход',
+            self, 'Выход',
             f'Выйти пользователем < {self.curr_profile.login} ({self.curr_profile.name}) > ?',
             QMessageBox.Yes | QMessageBox.No
         )
