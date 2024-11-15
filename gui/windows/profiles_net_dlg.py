@@ -369,6 +369,7 @@ class ProfilesNetDialog(QDialog):
                     res = self.game_svc_cli.save_avatar(tmp_file)
                     user.avatar = res.avatar
                     self.game_svc_cli.download_avatar(user.avatar, os.path.join(fldr, user.avatar))
+                    os.unlink(tmp_file)
                 except Exception as err:
                     has_errors = True
                     handle_client_exception(self, err, before_msg=f'Не удалось сохранить Аватарку')
