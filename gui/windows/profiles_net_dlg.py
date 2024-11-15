@@ -407,7 +407,8 @@ class ProfilesNetDialog(QDialog):
             'Ты больше не сможешь авторизоваться этим пользователем!\n'
             'Это приведет к уничтожению всех игровых данных пользователя!\nЭто действие невозможно отменить!\n\n'
             'Для удаления пользователя нужно ввести его пароль',
-            echo=QLineEdit.Password
+            echo=QLineEdit.Password,
+            flags=self.windowFlags() & ~Qt.WindowContextHelpButtonHint
         )
 
         if not ok or not password:
