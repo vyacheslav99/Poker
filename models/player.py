@@ -6,9 +6,9 @@ from models.base_model import BaseModel
 
 class Player(BaseModel):
 
-    __dump_keys = ['uid', 'login', 'name', 'avatar', 'is_robot', 'started', 'completed', 'thrown', 'winned', 'lost',
-                   'summary', 'total_money', 'last_scores', 'last_money', 'best_scores', 'best_money', 'worse_scores',
-                   'worse_money']
+    __dump_keys = ['uid', 'login', 'password', 'name', 'avatar', 'is_robot', 'started', 'completed', 'thrown', 'winned',
+                   'lost', 'summary', 'total_money', 'last_scores', 'last_money', 'best_scores', 'best_money',
+                   'worse_scores', 'worse_money']
 
     def __init__(self, filename=None, **kwargs):
         self.uid = None

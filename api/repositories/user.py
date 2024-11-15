@@ -3,7 +3,7 @@ import uuid
 
 from api import db
 from api.db.expressions import condition
-from api.models.user import User
+from api.models.user import User, ClientParams, GameOptions
 from api.models.security import Session
 from api.models.exceptions import NoChangesError
 
@@ -102,3 +102,76 @@ class UserRepo:
     @staticmethod
     async def delete_sessions(session_ids: list[uuid.UUID]):
         await db.execute('delete from session where sid = any(%(session_ids)s)', session_ids=session_ids)
+
+    @staticmethod
+    async def get_user_params(user_id: uuid.UUID) -> ClientParams | None:
+        sql = 'select * from user_params where uid = %(uid)s'
+
+        row = await db.fetchone(sql, uid=user_id)
+        return ClientParams(**dict(row, custom_decoration=json.loads(row['custom_decoration']))) if row else None
+
+    @staticmethod
+    async def set_user_params(user_id: uuid.UUID, params: ClientParams):
+        sql = """
+        insert into user_params (uid, color_theme, style, deck_type, back_type, sort_order, lear_order, start_type,
+            custom_decoration, show_bikes)
+        values (%(uid)s, %(color_theme)s, %(style)s, %(deck_type)s, %(back_type)s, %(sort_order)s, %(lear_order)s,
+            %(start_type)s, %(custom_decoration)s, %(show_bikes)s)
+        on conflict on constraint user_params_pk do update set
+            color_theme = excluded.color_theme,
+            style = excluded.style,
+            deck_type = excluded.deck_type,
+            back_type = excluded.back_type,
+            sort_order = excluded.sort_order,
+            lear_order = excluded.lear_order,
+            start_type = excluded.start_type,
+            custom_decoration = excluded.custom_decoration,
+            show_bikes = excluded.show_bikes,
+            updated_at = current_timestamp
+        """
+
+        await db.execute(
+            sql, uid=user_id, custom_decoration=json.dumps(params.custom_decoration),
+            **params.model_dump(exclude={'custom_decoration'})
+        )
+
+    @staticmethod
+    async def get_user_game_options(user_id: uuid.UUID) -> GameOptions | None:
+        sql = 'select * from user_game_options where uid = %(uid)s'
+
+        row = await db.fetchone(sql, uid=user_id)
+        return GameOptions(**row) if row else None
+
+    @staticmethod
+    async def set_user_game_options(user_id: uuid.UUID, options: GameOptions):
+        sql = """
+        insert into user_game_options (uid, game_sum_by_diff, dark_allowed, third_pass_limit, fail_subtract_all,
+            no_joker, joker_give_at_par, joker_demand_peak, pass_factor, gold_mizer_factor, dark_notrump_factor,
+            brow_factor, dark_mult, gold_mizer_on_null, on_all_order, take_block_bonus, bet, players_cnt, deal_types)
+        values (%(uid)s, %(game_sum_by_diff)s, %(dark_allowed)s, %(third_pass_limit)s, %(fail_subtract_all)s,
+            %(no_joker)s, %(joker_give_at_par)s, %(joker_demand_peak)s, %(pass_factor)s, %(gold_mizer_factor)s,
+            %(dark_notrump_factor)s, %(brow_factor)s, %(dark_mult)s, %(gold_mizer_on_null)s, %(on_all_order)s,
+            %(take_block_bonus)s, %(bet)s, %(players_cnt)s, %(deal_types)s)
+        on conflict on constraint user_game_options_pk do update set
+            game_sum_by_diff = excluded.game_sum_by_diff,
+            dark_allowed = excluded.dark_allowed,
+            third_pass_limit = excluded.third_pass_limit,
+            fail_subtract_all = excluded.fail_subtract_all,
+            no_joker = excluded.no_joker,
+            joker_give_at_par = excluded.joker_give_at_par,
+            joker_demand_peak = excluded.joker_demand_peak,
+            pass_factor = excluded.pass_factor,
+            gold_mizer_factor = excluded.gold_mizer_factor,
+            dark_notrump_factor = excluded.dark_notrump_factor,
+            brow_factor = excluded.brow_factor,
+            dark_mult = excluded.dark_mult,
+            gold_mizer_on_null = excluded.gold_mizer_on_null,
+            on_all_order = excluded.on_all_order,
+            take_block_bonus = excluded.take_block_bonus,
+            bet = excluded.bet,
+            players_cnt = excluded.players_cnt,
+            deal_types = excluded.deal_types,
+            updated_at = current_timestamp
+        """
+
+        await db.execute(sql, uid=user_id, **options.model_dump())

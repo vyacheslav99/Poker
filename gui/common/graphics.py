@@ -4,8 +4,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from gui import const
 from core import const as core_const
+from gui.common import const
 
 
 class QCard(QGraphicsPixmapItem):
@@ -33,7 +33,9 @@ class QCard(QGraphicsPixmapItem):
         if card.joker:
             self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/j.bmp')
         else:
-            self.face = QPixmap(f'{const.CARD_DECK_DIR}/{self.deck}/{const.CARDS[self.card.value]}{const.LEARS[self.card.lear]}.bmp')
+            self.face = QPixmap(
+                f'{const.CARD_DECK_DIR}/{self.deck}/{const.CARDS[self.card.value]}{const.LEARS[self.card.lear]}.bmp'
+            )
 
     def turn_face_up(self):
         self.side = const.CARD_SIDE_FACE
@@ -57,7 +59,8 @@ class QCard(QGraphicsPixmapItem):
             val = self._tooltip
         else:
             c = 'red' if self.card.lear > 1 else 'navy'
-            val = f'{core_const.CARD_NAMES[self.card.value]} <span style="color:{c}">{core_const.LEAR_SYMBOLS[self.card.lear]}</span>'
+            val = (f'{core_const.CARD_NAMES[self.card.value]} <span style="color:{c}">'
+                   f'{core_const.LEAR_SYMBOLS[self.card.lear]}</span>')
             if self.card.joker:
                 val = f'Джокер ({val})'
             if self._tooltip:
@@ -190,7 +193,9 @@ class GridMoneyItemDelegate(QItemDelegate):
         if value is not None and isinstance(value, (int, float)):
             if self._bg_color:
                 painter.setBrush(QBrush(QColor(self._bg_color), Qt.SolidPattern))
-                painter.drawRect(option.rect.x() - 1, option.rect.y() - 1, option.rect.width() + 1, option.rect.height() + 1)
+                painter.drawRect(
+                    option.rect.x() - 1, option.rect.y() - 1, option.rect.width() + 1, option.rect.height() + 1
+                )
 
             curr_uid = self.get_uid()
             uid = index.siblingAtColumn(0).data(Qt.WhatsThisRole)

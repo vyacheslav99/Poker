@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from asyncpg.exceptions import UniqueViolationError
 
 from api import config
-from api.models.user import User, UserPatchBody
+from api.models.user import User, UserPatchBody, ClientParams, GameOptions
 from api.models.security import Token, LoginBody
 from api.models.exceptions import NoChangesError
 from api.models.http import AVAILABLE_IMAGE_TYPES
@@ -142,6 +142,32 @@ class UserService:
         file_path = os.path.join(config.FILESTORE_DIR, user.avatar)
 
         if os.path.exists(file_path):
-            os.remove(file_path)
+            os.unlink(file_path)
 
         return await UserRepo.update_user(user.uid, avatar=None)
+
+    async def get_user_params(self, user: User) -> ClientParams:
+        params = await UserRepo.get_user_params(user.uid)
+
+        if not params:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No saved params found')
+
+        return params
+
+    async def set_user_params(self, user: User, params: ClientParams):
+        await UserRepo.set_user_params(user.uid, params)
+
+    async def get_user_game_options(self, user: User) -> GameOptions:
+        opts = await UserRepo.get_user_game_options(user.uid)
+
+        if not opts:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No saved game options found')
+
+        return opts
+
+    async def set_user_game_options(self, user: User, options: GameOptions):
+        await UserRepo.set_user_game_options(user.uid, options)
+
+    async def username_is_free(self, username: str) -> bool:
+        user = await UserRepo.get_user(username=username)
+        return False if user else True

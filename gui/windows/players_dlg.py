@@ -5,8 +5,8 @@ from PyQt5.QtCore import *
 
 from core import const as eng_const
 from models.player import Player
-from gui import const
-from gui.graphics import Face2
+from gui.common import const
+from gui.common.graphics import Face2
 
 
 class PlayersDialog(QDialog):

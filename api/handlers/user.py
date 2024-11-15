@@ -1,7 +1,8 @@
 from fastapi import APIRouter, status, UploadFile
 
 from api.handlers import CheckAuthProvider
-from api.models.user import UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody
+from api.models.user import (UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody,
+                             ClientParams, GameOptions)
 from api.models.security import Token, LoginBody
 from api.models.common import SuccessResponse
 from api.services.user import UserService
@@ -49,3 +50,31 @@ async def change_username(body: ChangeUsernameBody, curr_user: CheckAuthProvider
 async def delete_user(body: DeleteUserBody, curr_user: CheckAuthProvider):
     await UserService().delete_user(curr_user, body.password)
     return SuccessResponse()
+
+
+@router.get('/user/params', response_model=ClientParams)
+async def get_user_params(curr_user: CheckAuthProvider):
+    return await UserService().get_user_params(curr_user)
+
+
+@router.get('/user/game_options', response_model=GameOptions)
+async def get_user_game_options(curr_user: CheckAuthProvider):
+    return await UserService().get_user_game_options(curr_user)
+
+
+@router.put('/user/params', response_model=SuccessResponse)
+async def set_user_params(body: ClientParams, curr_user: CheckAuthProvider):
+    await UserService().set_user_params(curr_user, body)
+    return SuccessResponse()
+
+
+@router.put('/user/game_options', response_model=SuccessResponse)
+async def set_user_game_options(body: GameOptions, curr_user: CheckAuthProvider):
+    await UserService().set_user_game_options(curr_user, body)
+    return SuccessResponse()
+
+
+@router.get('/is_free_username', response_model=SuccessResponse)
+async def username_is_free(username: str):
+    is_free = await UserService().username_is_free(username)
+    return SuccessResponse(success=is_free)

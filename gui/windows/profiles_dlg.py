@@ -1,14 +1,13 @@
 import os
 import shutil
-import string
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import const
-from gui.graphics import Face2
 from models.params import Profiles
+from gui.common import const
+from gui.common.graphics import Face2
 
 
 class ProfilesDialog(QDialog):
@@ -30,7 +29,7 @@ class ProfilesDialog(QDialog):
         self._save_btn = None
         self._info_lb = None
 
-        self.setWindowIcon(QIcon(f'{const.RES_DIR}/player.ico'))
+        self.setWindowIcon(QIcon(f'{const.RES_DIR}/profile.ico'))
         self.setWindowTitle('Профили пользователей')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.init_ui()
@@ -202,23 +201,23 @@ class ProfilesDialog(QDialog):
         s = self._login.text()
         if not s:
             errs.append('Логин пустой')
-        elif not set(s).issubset(set(string.printable)):
+        elif not set(s).issubset(set(const.LOGIN_ALLOW_LITERALS)):
             errs.append('Логин содержит неверные символы. Вводи логин в английской раскладке')
         elif [x for x in self._profiles.filter('login', s) if x.uid != self._uid_edit.text()]:
             errs.append('Такой логин уже существует. Придумай другой')
 
         # s = self._password.text()
-        # if s and not set(s).issubset(set(string.printable)):
+        # if s and not set(s).issubset(set(const.PASSWORD_ALLOW_LITERALS)):
         #     errs.append('Пароль содержит неверные символы. Вводи пароль в английской раскладке')
 
         if errs:
             self._save_btn.setToolTip('<br>'.join(errs))
             self._info_lb.setStyleSheet('QLabel {color: maroon}')
-            self._info_lb.setText(self._save_btn.toolTip())
         else:
             is_valid = True
             self._save_btn.setToolTip('')
 
+        self._info_lb.setText(self._save_btn.toolTip())
         self._save_btn.setEnabled(is_valid)
         return is_valid
 
@@ -246,8 +245,10 @@ class ProfilesDialog(QDialog):
         uid = self._selected_profile.currentData()
 
         if uid == self._curr_profile:
-            QMessageBox.warning(self, 'Ошибка', 'Невозможно удалить текущий профиль!\nСначала смените текущий профиль '
-                                                'в настройках программы.')
+            QMessageBox.warning(
+                self, 'Ошибка',
+                'Невозможно удалить текущий профиль!\nСначала смените текущий профиль в настройках программы.'
+            )
             return
 
         res = QMessageBox.question(self, 'Подтверждение',
@@ -278,13 +279,13 @@ class ProfilesDialog(QDialog):
                 'login': self._login.text(),
                 # 'password': self._password.text(),
                 'name': self._username.text(),
-                'avatar': os.path.split(avatar)[1]
+                'avatar': os.path.split(avatar)[1] if avatar else None
             })
         else:
             user.login = self._login.text()
             # user.password = self._password.text()
             user.name = self._username.text()
-            user.avatar = os.path.split(avatar)[1]
+            user.avatar = os.path.split(avatar)[1] if avatar else None
 
         self._profiles.set_profile(user)
 
@@ -303,7 +304,9 @@ class ProfilesDialog(QDialog):
         self._info_lb.setText('Изменения сохранены')
 
     def _select_avatar(self):
-        filename = QFileDialog.getOpenFileName(self, 'Выбери картинку', '', 'Изображения (*.bmp *.jpg *.jpeg *.png *.ico)')[0]
+        filename = QFileDialog.getOpenFileName(
+            self, 'Выбери картинку', '', 'Изображения (*.bmp *.jpg *.jpeg *.png *.ico)'
+        )[0]
 
         if filename:
             self._avatar.setText(filename)

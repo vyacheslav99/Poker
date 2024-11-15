@@ -2,7 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import const
+from gui.common import const
 from core import const as eng_const
 
 
@@ -211,7 +211,7 @@ class AgreementsDialog(QDialog):
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
 
-    def set_agreements(self, agreements: dict=None):
+    def set_agreements(self, agreements: dict = None):
         if agreements:
             self._agreements = agreements
 

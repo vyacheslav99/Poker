@@ -4,9 +4,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from gui import const, client
 from core import const as eng_const
 from models.params import Profiles
+from gui.common import client, const
 
 
 class SettingsDialog(QDialog):
@@ -263,7 +263,7 @@ class SettingsDialog(QDialog):
     def allow_profile_change(self, allowed):
         self._current_profile.setEnabled(allowed)
 
-    def set_params(self, params: dict=None):
+    def set_params(self, params: dict = None):
         if params:
             self._params = params
 
@@ -367,7 +367,7 @@ class SettingsDialog(QDialog):
             self._btn_connect.setEnabled(False)
             self._server_info.setText('Минуточку...')
 
-            res, mes = client.Client(self._server.text().strip()).is_alive()
+            res, mes = client.GameServerClient(self._server.text().strip()).is_alive()
             if res:
                 text = 'OK'
                 color = 'green'
