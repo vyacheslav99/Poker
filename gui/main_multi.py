@@ -61,6 +61,12 @@ class MultiPlayerMainWnd(MainWnd):
         self.menu_actions.logout_actn.setEnabled(self.curr_profile is not None)
         self.menu_actions.edit_users_actn.setEnabled(not self.started() and self.profiles.count() > 0)
 
+    def show_settings_dlg(self):
+        super().show_settings_dlg()
+
+        if self.params.server != self.game_server_cli.base_host:
+            self.game_server_cli.base_host = self.params.server
+
     def show_login_dlg(self, set_login: str = None):
         """ Форма авторизации """
 

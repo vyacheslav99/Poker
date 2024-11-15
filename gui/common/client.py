@@ -3,6 +3,7 @@ import platform
 import rsa
 import base64
 import requests
+
 from requests import Response
 from requests.exceptions import RequestException
 
@@ -22,7 +23,7 @@ class ClientException(RequestException):
 
 class BaseClient:
 
-    def __init__(self, host):
+    def __init__(self, host: str | None):
         self._host = host
         self._token: str | None = None
         self._user_agent: str = self.get_user_agent()
@@ -35,6 +36,14 @@ class BaseClient:
     @token.setter
     def token(self, value: str):
         self._token = value
+
+    @property
+    def base_host(self) -> str | None:
+        return self._host
+
+    @base_host.setter
+    def base_host(self, value: str | None):
+        self._host = value
 
     def get_user_agent(self) -> str:
         plat_info = platform.uname()
