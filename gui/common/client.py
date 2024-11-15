@@ -139,9 +139,9 @@ class GameServerClient(BaseClient):
             if {'server', 'version', 'status'} == set(data.keys()):
                 return True, '\n'.join([data[k] for k in data])
             else:
-                return False, 'Bad response format'
+                return False, 'Incompatible server'
         except RequestException as e:
-            return False, str(e)
+            return False, 'Server unavailable'
 
     def username_is_free(self, username: str) -> bool:
         resp = self.get(self._make_api_url('is_free_username'), query={'username': username})

@@ -82,6 +82,7 @@ class SettingsDialog(QDialog):
         l2 = QHBoxLayout()
         l2.addWidget(QLabel('Сервер'))
         self._server = QLineEdit()
+        self._server.setToolTip('Строка подключения к игровому серверу')
 
         l2.addWidget(self._server)
         layout.addLayout(l2, 1, 2, alignment=Qt.AlignRight)

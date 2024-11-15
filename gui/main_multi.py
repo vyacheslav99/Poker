@@ -29,6 +29,7 @@ class MultiPlayerMainWnd(MainWnd):
         self.apply_decoration()
         self.init_menu_actions()
         self.refresh_menu_actions()
+        self.check_server_availability()
         self.show()
 
     def init_menu_actions(self):
@@ -266,6 +267,21 @@ class MultiPlayerMainWnd(MainWnd):
                     after_msg='Настройки сохранены в локальный кэш'
                 )
 
+    def on_reset_stat_click(self):
+        # наверное тут будет обнуляться собственная статистика текущего игрока на сервере
+        pass
+
+    def allow_change_profile_in_settings(self) -> bool:
+        return False
+
+    def check_server_availability(self):
+        res, mes = self.game_server_cli.is_alive()
+
+        ico = f'{const.RES_DIR}/connected.png' if res else f'{const.RES_DIR}/disconnected.png'
+        text = f'<html><img src="{ico}"></html>'
+        self.sb_labels[2].setToolTip(mes)
+        self.set_status_message(text, 2)
+
     def on_throw_action(self):
         pass
 
@@ -277,10 +293,3 @@ class MultiPlayerMainWnd(MainWnd):
 
     def next(self):
         pass
-
-    def on_reset_stat_click(self):
-        # наверное тут будет обнуляться собственная статистика текущего игрока на сервере
-        pass
-
-    def allow_change_profile_in_settings(self) -> bool:
-        return False

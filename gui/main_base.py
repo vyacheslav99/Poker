@@ -64,7 +64,7 @@ class MainWnd(QMainWindow):
         self.game_table = None
         self.ja_lear_buttons = []
         self.round_result_labels = []
-        self.sb_labels = (QLabel(), QLabel())
+        self.sb_labels = (QLabel(), QLabel(), QLabel())
         self.bike_area = None
 
         for i, lb in enumerate(self.sb_labels):
@@ -284,6 +284,9 @@ class MainWnd(QMainWindow):
         :param message: str: Строка сообщения.
         :param index: int: Индекс панели статусбара, куда записать сообщение
         """
+
+        if index == 0:
+            message = f' {message}'
 
         self.sb_labels[index].setText(message)
 
