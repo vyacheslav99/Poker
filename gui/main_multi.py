@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 
 from models.params import Options
 from gui.common import const
-from gui.common.utils import handle_client_exception
+from gui.common.utils import handle_client_exception, IntervalTimer
 from gui.common.client import GameServerClient, RequestException
 from gui.main_base import MainWnd
 from gui.windows.login_dlg import LoginDialog
@@ -25,11 +25,23 @@ class MultiPlayerMainWnd(MainWnd):
         if os.path.exists(const.PROFILES_NET_FILE):
             self.profiles.load(const.PROFILES_NET_FILE)
 
+        self._keep_alive_timer = None
+        self._connected: bool = False
+        self.check_server_availability(restart_timer=True)
+
         self.init_profile()
         self.apply_decoration()
         self.init_menu_actions()
         self.refresh_menu_actions()
         self.show()
+
+    @property
+    def connected(self) -> bool:
+        return self._connected
+
+    @connected.setter
+    def connected(self, value: bool):
+        self._connected = value
 
     def init_menu_actions(self):
         super().init_menu_actions()
@@ -57,12 +69,22 @@ class MultiPlayerMainWnd(MainWnd):
 
         super().refresh_menu_actions()
 
-        self.menu_actions.edit_users_actn.setEnabled(self.curr_profile is not None)
+        self.menu_actions.menu_user.setEnabled(self.connected)
         self.menu_actions.logout_actn.setEnabled(self.curr_profile is not None)
         self.menu_actions.edit_users_actn.setEnabled(not self.started() and self.profiles.count() > 0)
 
+    def show_settings_dlg(self):
+        super().show_settings_dlg()
+
+        if self.params.server != self.game_server_cli.base_host:
+            self.game_server_cli.base_host = self.params.server
+
     def show_login_dlg(self, set_login: str = None):
         """ Форма авторизации """
+
+        if not self.connected:
+            QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
+            return
 
         login_dlg = LoginDialog(self, login=set_login)
         result = login_dlg.exec()
@@ -90,6 +112,10 @@ class MultiPlayerMainWnd(MainWnd):
     def show_registration_dlg(self):
         """ Форма регистрации пользователя """
 
+        if not self.connected:
+            QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
+            return
+
         register_dlg = RegistrationDialog(self)
         result = register_dlg.exec()
         if result == 0:
@@ -115,6 +141,10 @@ class MultiPlayerMainWnd(MainWnd):
     def show_profiles_dlg(self):
         """ Форма изменения профиля пользователя """
 
+        if not self.connected:
+            QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
+            return
+
         dlg = ProfilesNetDialog(self, self.profiles, self.params.user)
 
         try:
@@ -136,6 +166,10 @@ class MultiPlayerMainWnd(MainWnd):
 
     def on_logout_action(self):
         """ Выход (разлогиниться) текущим пользователем """
+
+        if not self.connected:
+            QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
+            return
 
         if not self.curr_profile:
             QMessageBox.information(self, 'Выход', 'Собственно ты и так не авторизован...')
@@ -193,23 +227,24 @@ class MultiPlayerMainWnd(MainWnd):
             self.options = Options()
 
         if user:
-            try:
-                user = self.game_server_cli.get_user()
-                self.profiles.set_profile(user)
+            if self.connected:
+                try:
+                    user = self.game_server_cli.get_user()
+                    self.profiles.set_profile(user)
 
-                if user.avatar:
-                    try:
-                        self.game_server_cli.download_avatar(
-                            user.avatar, os.path.join(self.get_profile_dir(), user.avatar)
-                        )
-                    except RequestException:
-                        pass
-            except RequestException as err:
-                handle_client_exception(
-                    self, err,
-                    before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
-                    after_msg='Восстановлен профиль из локального кэша'
-                )
+                    if user.avatar:
+                        try:
+                            self.game_server_cli.download_avatar(
+                                user.avatar, os.path.join(self.get_profile_dir(), user.avatar)
+                            )
+                        except RequestException:
+                            pass
+                except RequestException as err:
+                    handle_client_exception(
+                        self, err,
+                        before_msg='Не удалось загрузить профиль с сервера! Ошибка:',
+                        after_msg='Восстановлен профиль из локального кэша'
+                    )
         else:
             self.save_params(local_only=True)
 
@@ -221,7 +256,7 @@ class MultiPlayerMainWnd(MainWnd):
     def load_params(self, remote: bool = False):
         """ Загрузка параметров """
 
-        if remote and self.curr_profile:
+        if remote and self.curr_profile and self.connected:
             try:
                 self.params.set(**self.game_server_cli.get_params())
                 self.options.set(**self.game_server_cli.get_game_options())
@@ -249,7 +284,7 @@ class MultiPlayerMainWnd(MainWnd):
         self.profiles.save(const.PROFILES_NET_FILE)
         self.save_profile_options()
 
-        if not local_only and self.curr_profile:
+        if not local_only and self.curr_profile and self.connected:
             try:
                 self.game_server_cli.set_params(self.params)
                 self.game_server_cli.set_game_options(self.options)
@@ -259,6 +294,30 @@ class MultiPlayerMainWnd(MainWnd):
                     before_msg='Не удалось сохранить настройки на сервере! Ошибка:',
                     after_msg='Настройки сохранены в локальный кэш'
                 )
+
+    def on_reset_stat_click(self):
+        # тут будет обнуляться собственная статистика текущего игрока на сервере
+        pass
+
+    def allow_change_profile_in_settings(self) -> bool:
+        return False
+
+    def check_server_availability(self, restart_timer: bool = False):
+        self.connected, mes = self.game_server_cli.is_alive()
+
+        ico = f'{const.RES_DIR}/connected.png' if self.connected else f'{const.RES_DIR}/disconnected.png'
+        text = f'<html><img src="{ico}"></html>'
+        self.sb_labels[2].setToolTip(mes)
+        self.set_status_message(text, 2)
+
+        if self.menu_actions.menu_user:
+            self.menu_actions.menu_user.setEnabled(self.connected)
+
+        if restart_timer:
+            if self._keep_alive_timer:
+                self._keep_alive_timer.stop()
+
+            self._keep_alive_timer = IntervalTimer(const.KEEP_ALIVE_INTERVAL, self.check_server_availability)
 
     def on_throw_action(self):
         pass
@@ -271,10 +330,3 @@ class MultiPlayerMainWnd(MainWnd):
 
     def next(self):
         pass
-
-    def on_reset_stat_click(self):
-        # наверное тут будет обнуляться собственная статистика текущего игрока на сервере
-        pass
-
-    def allow_change_profile_in_settings(self) -> bool:
-        return False
