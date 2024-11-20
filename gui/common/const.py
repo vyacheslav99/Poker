@@ -1,5 +1,8 @@
 import os
 import string
+import logging
+
+from logging.handlers import RotatingFileHandler
 
 REQUEST_TIMEOUT = None
 LOGIN_ALLOW_LITERALS = string.ascii_letters + string.digits
@@ -7,6 +10,7 @@ PASSWORD_ALLOW_LITERALS = LOGIN_ALLOW_LITERALS + string.punctuation
 VERSION = '2.0.0'
 
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
+LOGS_DIR = f'{APP_DATA_DIR}/logs'
 PROFILES_DIR = f'{APP_DATA_DIR}/profile'
 PARAMS_FILE = f'{APP_DATA_DIR}/params.json'
 PROFILES_FILE = f'{APP_DATA_DIR}/profiles.json'
@@ -20,6 +24,21 @@ CARD_DECK_DIR = f'{RES_DIR}/deck'
 FACE_DIR = f'{RES_DIR}/face'
 SUITS_DIR = f'{RES_DIR}/suits'
 BIKES_FILE = f'{RES_DIR}/bikes.json'
+
+if not os.path.isdir(LOGS_DIR):
+    os.makedirs(LOGS_DIR, exist_ok=True)
+
+LOGGING = {
+    # 'filename': f'{APP_DATA_DIR}/poker.log',
+    'level': logging.DEBUG,
+    'format': '[%(asctime)s] %(levelname).1s  ::  %(message)s',
+    'datefmt': '%Y.%m.%d %H:%M:%S',
+    'handlers': [RotatingFileHandler(
+        f'{LOGS_DIR}/poker.log',
+        maxBytes=1024 * 1024 * 5,
+        backupCount=5
+    )]
+}
 
 DECK_TYPE = ('eng', 'rus', 'slav', 'sol', 'souv')  # типы внешних видов колод (так же называются папки с соотв. картинками)
 DECK_NAMES = ('Буржуйская', 'Русская', 'Славянская', 'Пасьянсовая', 'Сувенирная')

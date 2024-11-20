@@ -359,7 +359,7 @@ class ProfilesNetDialog(QDialog):
             if new_avatar:
                 fldr = f'{const.PROFILES_DIR}/{uid}'
                 if not os.path.isdir(fldr):
-                    os.makedirs(fldr)
+                    os.makedirs(fldr, exist_ok=True)
 
                 tmp_file = os.path.join(fldr, os.path.split(new_avatar)[1])
                 pixmap = self._load_image(new_avatar)

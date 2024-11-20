@@ -277,9 +277,6 @@ class MultiPlayerMainWnd(MainWnd):
     def save_params(self, local_only: bool = False):
         """ Сохранение параметров """
 
-        if not os.path.isdir(const.APP_DATA_DIR):
-            os.makedirs(const.APP_DATA_DIR)
-
         self.params.save(const.PARAMS_NET_FILE)
         self.profiles.save(const.PROFILES_NET_FILE)
         self.save_profile_options()

@@ -1,11 +1,30 @@
 import sys
 # import argparse
+import logging
+
 from PyQt5.QtWidgets import QApplication
+
+from gui.common import const
 from gui.main_single import SinglePlayerMainWnd
 from gui.main_multi import MultiPlayerMainWnd
 
 
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logging.error('Uncaught exception', exc_info=(exc_type, exc_value, exc_traceback))
+
+
 def run():
+    logging.basicConfig(**const.LOGGING)
+    sys.excepthook = handle_exception
+
+    logging.info('-' * 120)
+    logging.info('-= Start poker application =-')
+    logging.debug('Enabled DEDUG mode logging level!')
+
     # ap = argparse.ArgumentParser()
 
     # ap.add_argument('--cheats_on', action='store_true', help='Включить режим читов')

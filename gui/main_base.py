@@ -1356,7 +1356,7 @@ class MainWnd(QMainWindow):
             fn = f'{self.get_profile_dir()}/options.json'
 
             if not os.path.isdir(os.path.split(fn)[0]):
-                os.makedirs(os.path.split(fn)[0])
+                os.makedirs(os.path.split(fn)[0], exist_ok=True)
 
             self.options.save(fn)
 
