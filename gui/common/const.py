@@ -48,6 +48,7 @@ PLAYER_AREA_SIZE = 300, 200
 INFO_AREA_SIZE = 500, 200
 TABLE_AREA_SIZE = 500, 450
 BIKE_TIMER_INTERVAL = 30, 180
+KEEP_ALIVE_INTERVAL = 10
 
 # Варианты начала игры:
 #   0 - быстрый: без диалогов: игроки случайно; договоренности сохраненные/дефолтные
