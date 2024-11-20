@@ -1,9 +1,11 @@
 import sys
+import os
 # import argparse
 import logging
 
 from PyQt5.QtWidgets import QApplication
 
+from gui import config
 from gui.common import const
 from gui.main_single import SinglePlayerMainWnd
 from gui.main_multi import MultiPlayerMainWnd
@@ -18,7 +20,10 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 
 def run():
-    logging.basicConfig(**const.LOGGING)
+    if not os.path.isdir(const.APP_DATA_DIR):
+        os.makedirs(const.APP_DATA_DIR, exist_ok=True)
+
+    logging.basicConfig(**config.logging_config())
     sys.excepthook = handle_exception
 
     logging.info('-' * 120)

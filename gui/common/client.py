@@ -8,9 +8,10 @@ import logging
 from requests import Response
 from requests.exceptions import RequestException
 
+from gui import config
+from gui.common import const
 from models.params import Params, Options
 from models.player import Player
-from gui.common import const
 
 
 class ClientException(RequestException):
@@ -87,7 +88,7 @@ class BaseClient:
         try:
             resp = getattr(requests, method)(
                 url, params=query, json=json, files=files, headers=dict(self.get_default_headers(), **(headers or {})),
-                timeout=const.REQUEST_TIMEOUT
+                timeout=config.REQUEST_TIMEOUT
             )
             self.raise_for_status(resp)
             return resp

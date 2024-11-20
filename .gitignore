@@ -1,4 +1,4 @@
-config.py
+/api/config.py
 *.pyc
 __pycache__/
 .idea/
@@ -8,3 +8,4 @@ dist/
 poker.spec
 *.log
 *.pem
+*.ini
