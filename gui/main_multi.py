@@ -1,6 +1,5 @@
 import os
 import shutil
-from venv import logger
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
