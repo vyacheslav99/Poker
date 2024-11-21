@@ -1,8 +1,9 @@
-from fastapi import APIRouter, status, UploadFile
+from typing import Annotated
+from fastapi import APIRouter, status, UploadFile, Query
 
 from api.handlers import CheckAuthProvider
 from api.models.user import (UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody,
-                             ClientParams, GameOptions)
+                             ClientParams, GameOptions, OverallStatisticsResponse, StatisticsSortFields)
 from api.models.security import Token, LoginBody
 from api.models.common import SuccessResponse
 from api.services.user import UserService
@@ -78,3 +79,21 @@ async def set_user_game_options(body: GameOptions, curr_user: CheckAuthProvider)
 async def username_is_free(username: str):
     is_free = await UserService().username_is_free(username)
     return SuccessResponse(success=is_free)
+
+
+@router.get('/statistics', response_model=OverallStatisticsResponse)
+async def get_overall_statistics(
+    curr_user: CheckAuthProvider, include_user_ids: Annotated[list[str] | None, Query()] = None,
+    sort_field: StatisticsSortFields = None, sort_desc: bool = None, limit: int = None
+):
+    data = await UserService().get_statistics(
+        curr_user, include_user_ids=include_user_ids, sort_field=sort_field, sord_desc=sort_desc, limit=limit
+    )
+
+    return OverallStatisticsResponse(items=data, total=len(data))
+
+
+@router.delete('/user/statistics', response_model=SuccessResponse)
+async def reset_user_statistics(curr_user: CheckAuthProvider):
+    await UserService().reset_user_statistics(curr_user)
+    return SuccessResponse()
