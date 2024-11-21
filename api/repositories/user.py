@@ -178,8 +178,7 @@ class UserRepo:
 
     @staticmethod
     async def get_statistics(
-        include_user_ids: list[uuid.UUID] = None, sort_field: str = 'summary', sord_desc: bool = True,
-        limit: int = 20
+        include_user_ids: list[uuid.UUID] = None, sort_field: str = 'summary', sord_desc: bool = True, limit: int = 20
     ) -> list[UserStatistics]:
         sql = f"""
         with stat1 as (
@@ -196,8 +195,9 @@ class UserRepo:
                 s.worse_scores, s.worse_money
             from statistics s
                 join users u on u.uid = s.uid
+            where not u.disabled
             order by {sort_field} {'desc' if sord_desc else 'asc'}
-            limit {limit or 20}
+            limit {(limit or 20) - len(include_user_ids or [])}
         )
         select * from stat1
         union
