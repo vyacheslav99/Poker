@@ -74,7 +74,10 @@ class BaseClient:
                 pass
 
             if not text:
-                text = response.text
+                try:
+                    text = response.text
+                except:
+                    pass
 
             if not text:
                 text = response.reason
@@ -90,13 +93,15 @@ class BaseClient:
                 url, params=query, json=json, files=files, headers=dict(self.get_default_headers(), **(headers or {})),
                 timeout=config.REQUEST_TIMEOUT
             )
+
+            logging.debug(f'client request: {method.upper()} {url} - {resp.status_code} {len(resp.content)}')
             self.raise_for_status(resp)
             return resp
         except ClientException as e:
-            logging.error(f'Client error: {method.upper()} {url} - {e.status_code} {e.message}')
+            logging.error(f'client error: {method.upper()} {url} - {e.status_code} {e.message}')
             raise e
         except Exception as e:
-            logging.error('Network error', exc_info=e)
+            logging.error('server error', exc_info=e)
             raise e
 
     def _make_api_url(self, endpoint: str) -> str:

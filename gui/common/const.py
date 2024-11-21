@@ -7,8 +7,8 @@ VERSION = '2.0.0'
 
 APP_DATA_DIR = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'app'))
 CONFIG_FILE = 'poker.ini'
-LOGS_DIR = f'{APP_DATA_DIR}/logs'
-LOG_FILE = f'{LOGS_DIR}/poker.log'
+DEFAULT_LOGS_DIR = f'{APP_DATA_DIR}/logs'
+DEFAULT_LOG_FILE = f'{DEFAULT_LOGS_DIR}/poker.log'
 PROFILES_DIR = f'{APP_DATA_DIR}/profile'
 PARAMS_FILE = f'{APP_DATA_DIR}/params.json'
 PROFILES_FILE = f'{APP_DATA_DIR}/profiles.json'

@@ -2,6 +2,7 @@ import sys
 import os
 # import argparse
 import logging
+import logging.config
 
 from PyQt5.QtWidgets import QApplication
 
@@ -23,7 +24,8 @@ def run():
     if not os.path.isdir(const.APP_DATA_DIR):
         os.makedirs(const.APP_DATA_DIR, exist_ok=True)
 
-    logging.basicConfig(**config.logging_config())
+    # logging.basicConfig(**config.logging_basic_config())
+    logging.config.dictConfig(config.logging_dict_config())
     sys.excepthook = handle_exception
 
     logging.info('-' * 120)
