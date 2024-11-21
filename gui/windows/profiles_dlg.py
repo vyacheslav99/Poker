@@ -295,7 +295,7 @@ class ProfilesDialog(QDialog):
         if avatar:
             fldr = f'{const.PROFILES_DIR}/{uid}'
             if not os.path.isdir(fldr):
-                os.makedirs(fldr)
+                os.makedirs(fldr, exist_ok=True)
 
             pixmap = self._load_image(avatar)
             pixmap.save(os.path.join(fldr, user.avatar), None, -1)

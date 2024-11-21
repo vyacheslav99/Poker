@@ -3,13 +3,15 @@ import platform
 import rsa
 import base64
 import requests
+import logging
 
 from requests import Response
 from requests.exceptions import RequestException
 
+from gui import config
+from gui.common import const
 from models.params import Params, Options
 from models.player import Player
-from gui.common import const
 
 
 class ClientException(RequestException):
@@ -72,7 +74,10 @@ class BaseClient:
                 pass
 
             if not text:
-                text = response.text
+                try:
+                    text = response.text
+                except:
+                    pass
 
             if not text:
                 text = response.reason
@@ -83,12 +88,21 @@ class BaseClient:
         self, method: str, url: str, query: dict | None = None, json: dict | None = None, files = None,
         headers: dict | None = None
     ) -> Response:
-        resp = getattr(requests, method)(
-            url, params=query, json=json, files=files, headers=dict(self.get_default_headers(), **(headers or {})),
-            timeout=const.REQUEST_TIMEOUT
-        )
-        self.raise_for_status(resp)
-        return resp
+        try:
+            resp = getattr(requests, method)(
+                url, params=query, json=json, files=files, headers=dict(self.get_default_headers(), **(headers or {})),
+                timeout=config.REQUEST_TIMEOUT
+            )
+
+            logging.debug(f'client request: {method.upper()} {url} - {resp.status_code} {len(resp.content)}')
+            self.raise_for_status(resp)
+            return resp
+        except ClientException as e:
+            logging.error(f'client error: {method.upper()} {url} - {e.status_code} {e.message}')
+            raise e
+        except Exception as e:
+            logging.error('server error', exc_info=e)
+            raise e
 
     def _make_api_url(self, endpoint: str) -> str:
         return f'{self._host}/api/{endpoint}'

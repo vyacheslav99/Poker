@@ -368,7 +368,7 @@ class SinglePlayerMainWnd(MainWnd):
         raw = b'\0x4'.join((t, e))
 
         if not os.path.isdir(os.path.split(filename)[0]):
-            os.makedirs(os.path.split(filename)[0])
+            os.makedirs(os.path.split(filename)[0], exist_ok=True)
 
         with open(filename, 'wb') as f:
             f.write(raw)
@@ -385,9 +385,6 @@ class SinglePlayerMainWnd(MainWnd):
 
     def save_params(self):
         """ Сохранение параметров """
-
-        if not os.path.isdir(const.APP_DATA_DIR):
-            os.makedirs(const.APP_DATA_DIR)
 
         self.params.save(const.PARAMS_FILE)
         self.profiles.save(const.PROFILES_FILE)
