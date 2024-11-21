@@ -4,7 +4,7 @@ import shutil
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
-from models.params import Options
+from models.params import Options, Profiles
 from gui.common import const
 from gui.common.utils import handle_client_exception, IntervalTimer
 from gui.common.client import GameServerClient, RequestException
@@ -12,6 +12,7 @@ from gui.main_base import MainWnd
 from gui.windows.login_dlg import LoginDialog
 from gui.windows.registration_dlg import RegistrationDialog
 from gui.windows.profiles_net_dlg import ProfilesNetDialog
+from gui.windows.statistics_wnd import StatisticsWindow
 
 
 class MultiPlayerMainWnd(MainWnd):
@@ -292,9 +293,61 @@ class MultiPlayerMainWnd(MainWnd):
                     after_msg='Настройки сохранены в локальный кэш'
                 )
 
+    def get_statistics(self) -> Profiles:
+        profiles = Profiles()
+
+        if self.curr_profile:
+            profiles.set_profile(self.profiles.get(self.curr_profile.uid))
+
+        # todo: тут получаем статистику с сервера и добавляем ее к профилям: ручка вернет список экземпляров Player,
+        #  но у них будет заполнена не вся инфа об игроке, а только то, что нужно для показа статистики:
+        #  Имя игрока, аватарка и поля статистики.
+        #  Ручка всегда вернет текущего авторизованного пользователя + 20 игроков с лучшими результатами
+        #  (пока только по очкам, но потом добавлю возможности сортировки в окне статистики так, чтоб он запрашивал
+        #  актуальные данные на сервере - потому что список лучших по деньгам и по очкам может отличаться)
+
+        return profiles
+
+    def show_statistics_dlg(self):
+        """ Показ окна игровой статистики. Статистика будет всегда грузиться с сервера """
+
+        if not self.connected:
+            QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
+            return
+
+        if not self._stat_wnd:
+            self._stat_wnd = StatisticsWindow()
+            self._stat_wnd.btn_reset.clicked.connect(self.on_reset_stat_click)
+
+        self._stat_wnd.set_data(self.get_statistics(), {}, self.curr_profile.uid if self.curr_profile else None)
+        self._stat_wnd.showMaximized()
+
     def on_reset_stat_click(self):
-        # тут будет обнуляться собственная статистика текущего игрока на сервере
-        pass
+        """ Сброс статистики текущего игрока. Обнуляет статистику игрока на сервере """
+
+        res = QMessageBox.question(
+            self._stat_wnd, 'Подтверждение',
+            'Вы хотите обнулить все свои результаты?\nЭто действие приведет к установке в 0 всех ваших '
+            'результатов. Оно повлияет только на ваши собственные результаты, остальных игроков это не затронет',
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if res == QMessageBox.No:
+            return
+
+        if not self.connected:
+            QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
+            return
+
+        # todo: локально статистику сбрасывать смысла нет - она всеравно нигде не используется, а подгружается
+        #  каждый раз с сервера. Будем обнулять статистику ручкой клиента
+        # self.curr_profile.reset_statistics()
+
+        self._stat_wnd.set_data(self.get_statistics(), {}, self.curr_profile.uid if self.curr_profile else None)
+
+        QMessageBox.information(
+            self._stat_wnd, 'Сообщение', 'Поздравляю! Все похерено успешно', QMessageBox.Ok
+        )
 
     def allow_change_profile_in_settings(self) -> bool:
         return False
