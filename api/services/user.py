@@ -173,11 +173,13 @@ class UserService:
         return False if user else True
 
     async def get_statistics(
-        self, user: User, include_user_ids: list[uuid.UUID] = None, sort_field: str = None, sord_desc: bool = None,
-        limit: int = None
+        self, user: User = None, include_user_ids: list[uuid.UUID] = None, sort_field: str = None,
+        sord_desc: bool = None, limit: int = None
     ) -> list[UserStatistics]:
         include_user_ids = include_user_ids or []
-        include_user_ids.append(user.uid)
+
+        if user and user.uid not in include_user_ids:
+            include_user_ids.append(user.uid)
 
         return await UserRepo.get_statistics(
             include_user_ids=include_user_ids, sort_field=sort_field or 'summary',

@@ -297,10 +297,9 @@ class MultiPlayerMainWnd(MainWnd):
         profiles = Profiles()
 
         profiles.profiles = self.game_server_cli.get_overall_statistics(
-            # include_user_ids=[p.uid for p in self.profiles.profiles],
+            include_user_ids=[p.uid for p in self.profiles.profiles],
             # sort_field='total_money',
-            # sort_desc=True,
-            # limit=15
+            limit=10
         )
 
         for player in profiles.profiles:
@@ -318,7 +317,7 @@ class MultiPlayerMainWnd(MainWnd):
         return profiles
 
     def show_statistics_dlg(self):
-        """ Показ окна игровой статистики. Статистика будет всегда грузиться с сервера """
+        """ Показ окна игровой статистики """
 
         if not self.connected:
             QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
@@ -333,6 +332,13 @@ class MultiPlayerMainWnd(MainWnd):
 
     def on_reset_stat_click(self):
         """ Сброс статистики текущего игрока. Обнуляет статистику игрока на сервере """
+
+        if not self.curr_profile:
+            QMessageBox.information(
+                self._stat_wnd, 'Сообщение', 'Чтобы сбросить свою статистику, сначала нужно авторизоваться',
+                QMessageBox.Ok
+            )
+            return
 
         res = QMessageBox.question(
             self._stat_wnd, 'Подтверждение',
