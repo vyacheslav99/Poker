@@ -297,11 +297,23 @@ class MultiPlayerMainWnd(MainWnd):
         profiles = Profiles()
 
         profiles.profiles = self.game_server_cli.get_overall_statistics(
-            include_user_ids=[p.uid for p in self.profiles.profiles],
-            sort_field='total_money',
-            sort_desc=True,
-            limit=15
+            # include_user_ids=[p.uid for p in self.profiles.profiles],
+            # sort_field='total_money',
+            # sort_desc=True,
+            # limit=15
         )
+
+        for player in profiles.profiles:
+            if player.avatar:
+                fldr = f'{const.PROFILES_DIR}/{player.uid}'
+
+                if not os.path.exists(fldr):
+                    os.makedirs(fldr)
+
+                try:
+                    self.game_server_cli.download_avatar(player.avatar, os.path.join(fldr, player.avatar))
+                except RequestException:
+                    pass
 
         return profiles
 
@@ -336,7 +348,7 @@ class MultiPlayerMainWnd(MainWnd):
             QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
             return
 
-        self.game_server_cli.reset_statistics()
+        self.game_server_cli.reset_user_statistics()
         self._stat_wnd.set_data(self.get_statistics(), {}, self.curr_profile.uid if self.curr_profile else None)
 
         QMessageBox.information(

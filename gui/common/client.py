@@ -321,6 +321,23 @@ class GameServerClient(BaseClient):
         self, include_user_ids: list[uuid.UUID] = None, sort_field: str = None, sort_desc: bool = None,
         limit: int = None
     ) -> list[Player]:
+        """
+        Получить статистику по всем игрокам
+
+        Вернет статистику по первым :limit: игрокам, отсортированным по полю :sort_field:
+        в указанном :sort_desc: порядке.
+        В списке всегда будет присутсвовать текущий авторизованный пользователь, независимо от его реального положения
+        в общем списке с учетом сортировки.
+        В список всегда будут включены пользователи с переданными в :include_user_ids: id пользователя, независимо от
+        их реального положения в общем списке с учетом сортировки.
+
+        :sort_field: поле сортировки на сервере, по умолчанию summary
+        :sort_desc: направление сортировки на сервере, по умолчанию true (descending)
+        :limit: сколько вернуть строк, по умолчанию 20. Вернет первые limit строк после применения сортировки
+            + дополнительно включенных пользователей (авторизованного и явно перечисленных), независимо от того -
+            попали они в limit или нет
+        """
+
         query = {}
 
         if include_user_ids:
@@ -337,5 +354,7 @@ class GameServerClient(BaseClient):
 
         return [Player(**row) for row in data['items']]
 
-    def reset_statistics(self):
+    def reset_user_statistics(self):
+        """ Сброс статистики текущего авторизованного пользователя """
+
         self.delete(f'{self.USER_PATH}/statistics')
