@@ -87,7 +87,7 @@ async def get_overall_statistics(
     sort_field: StatisticsSortFields = None, sort_desc: bool = None, limit: int = None
 ):
     data = await UserService().get_statistics(
-        curr_user, include_user_ids=include_user_ids, sort_field=sort_field, sord_desc=sort_desc, limit=limit
+        user=curr_user, include_user_ids=include_user_ids, sort_field=sort_field, sord_desc=sort_desc, limit=limit
     )
 
     return OverallStatisticsResponse(items=data, total=len(data))
