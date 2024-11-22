@@ -4,23 +4,31 @@ from PyQt5.QtCore import *
 
 from models.params import Profiles
 from gui.common import const
-from gui.common.graphics import Face2, Avatar, GridMoneyItemDelegate
+from gui.common.graphics import Face2, Avatar, GridMoneyItemDelegate, GridIntItemDelegate
 
 
 class StatisticsWindow(QWidget):
 
-    _columns_ = (('name', 'Игрок', ''), ('is_robot', 'ИИ?', 'Робот или Человек?'), ('started', 'Начато', 'Сколько партий начинал'),
-                 ('completed', 'Сыграно', 'Сколько партий доиграно до конца'), ('thrown', 'Брошено', 'Сколько партий брошено'),
-                 ('winned', 'Выиграно', 'Сколько партий выиграно'), ('lost', 'Проиграно', 'Сколько партий проиграно'),
-                 ('summary', 'Счет', 'Сумма очков за все игры'), ('total_money', 'Всего денег', 'Сумма денег за все игры'),
-                 ('last_scores', 'Последний\nвыигрыш\n(очки)', 'Очки, набранные в последней игре'),
-                 ('last_money', 'Последний\nвыигрыш\n(деньги)', 'Деньги, набранные в последней игре'),
-                 ('best_scores', 'Лучший\nвыигрыш\n(очки)', 'Самый большой выигрыш за все игры в очках'),
-                 ('best_money', 'Лучший\nвыигрыш\n(деньги)', 'Самый большой выигрыш за все игры в деньгах'),
-                 ('worse_scores', 'Худший\nрезультат\n(очки)', 'Самый маленький результат за все игры в очках'),
-                 ('worse_money', 'Худший\nпроигрыш\n(деньги)', 'Самый большой проигрыш за все игры в деньгах'))
+    _columns_ = (
+        ('name', 'Игрок', ''),
+        ('is_robot', 'ИИ?', 'Робот или Человек?'),
+        ('started', 'Начато', 'Сколько партий начинал'),
+        ('completed', 'Сыграно', 'Сколько партий доиграно до конца'),
+        ('thrown', 'Брошено', 'Сколько партий брошено'),
+        ('winned', 'Выиграно', 'Сколько партий выиграно'),
+        ('lost', 'Проиграно', 'Сколько партий проиграно'),
+        ('summary', 'Счет', 'Сумма очков за все игры'),
+        ('total_money', 'Всего денег', 'Сумма денег за все игры'),
+        ('last_scores', 'Последний\nвыигрыш\n(очки)', 'Очки, набранные в последней игре'),
+        ('last_money', 'Последний\nвыигрыш\n(деньги)', 'Деньги, набранные в последней игре'),
+        ('best_scores', 'Лучший\nвыигрыш\n(очки)', 'Самый большой выигрыш за все игры в очках'),
+        ('best_money', 'Лучший\nвыигрыш\n(деньги)', 'Самый большой выигрыш за все игры в деньгах'),
+        ('worse_scores', 'Худший\nрезультат\n(очки)', 'Самый маленький результат за все игры в очках'),
+        ('worse_money', 'Худший\nпроигрыш\n(деньги)', 'Самый большой проигрыш за все игры в деньгах')
+    )
 
     _money_cols_ = (8, 10, 12, 14)
+    _number_cols_ = (7, 9, 11, 13)
     _bg_colors_ = ('PaleTurquoise', 'PaleTurquoise', 'PaleGreen', 'PaleGreen', 'PaleGreen', 'PaleGreen', 'PaleGreen',
                    'Gold', 'YellowGreen', 'Violet', 'Violet', 'SpringGreen', 'SpringGreen', 'Tomato', 'Tomato')
 
@@ -88,13 +96,15 @@ class StatisticsWindow(QWidget):
 
             if i in self._money_cols_:
                 self._grid.setItemDelegateForColumn(i, GridMoneyItemDelegate(self._grid, bg_color=self._bg_colors_[i]))
+            elif i in self._number_cols_:
+                self._grid.setItemDelegateForColumn(i, GridIntItemDelegate(self._grid, bg_color=self._bg_colors_[i]))
 
         main_layout.addWidget(self._grid)
         main_layout.addLayout(buttons_box)
         self.setLayout(main_layout)
         btn_close.setFocus()
 
-    def set_data(self, profiles: Profiles, robots, curr_uid=None):
+    def set_data(self, profiles: Profiles, robots: dict[str, dict], curr_uid=None):
         self._curr_uid = curr_uid
         row = 0
         self._grid.setSortingEnabled(False)

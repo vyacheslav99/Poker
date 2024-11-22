@@ -71,14 +71,42 @@ class Security:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No public keys found')
 
     @staticmethod
-    async def check_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> User:
+    async def get_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> User:
+        """
+        Проверка авторизации по Bearer токену из заголовка Authorization. Авторизация обязательна
+
+        Токен из заголовка извлекает класс OAuth2PasswordBearer и передает его в параметре token в метод.
+        Если токен есть - проверит валидность и вернет объект пользователя.
+        Если токена нет - возникнет ошибка авторизации.
+        """
+
+        return await Security.check_auth(token)
+
+    @staticmethod
+    async def get_auth_optional(
+        token: str | None = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form', auto_error=False))
+    ) -> User | None:
+        """
+        Проверка авторизации по Bearer токену из заголовка Authorization. Авторизация не обязательна
+
+        Токен из заголовка извлекает класс OAuth2PasswordBearer и передает его в параметре token в метод.
+        Если токен есть - проверит валидность и вернет объект пользователя.
+        Если токена нет - вернет None.
+        """
+
+        if not token:
+            return None
+
+        return await Security.check_auth(token)
+
+    @staticmethod
+    async def check_auth(token: str) -> User:
         """
         Проверка авторизации по Bearer токену из заголовка Authorization.
 
-        Токен из заголовка извлекает класс OAuth2PasswordBearer и передает его в параметре token в метод.
         Токен - это зашифрованный jwt json-объект представление модели TokenPayload.
         Метод расшифровывает токен, выполняет все проверки его валидности, валидности сессии и пользователя,
-        после чего возвращает данные пользователя из БД
+        после чего возвращает данные пользователя из БД.
         """
 
         try:

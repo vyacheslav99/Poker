@@ -5,4 +5,5 @@ from api.services.security import Security
 from api.models.user import User
 
 
-CheckAuthProvider = Annotated[User, Depends(Security.check_auth)]
+RequiredAuthProvider = Annotated[User, Depends(Security.get_auth)]
+OptionalAuthProvider = Annotated[User, Depends(Security.get_auth_optional)]

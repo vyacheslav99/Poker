@@ -3,7 +3,7 @@ import uuid
 
 from api import db
 from api.db.expressions import condition
-from api.models.user import User, ClientParams, GameOptions
+from api.models.user import User, ClientParams, GameOptions, StatisticsItem, UserStatistics
 from api.models.security import Session
 from api.models.exceptions import NoChangesError
 
@@ -175,3 +175,61 @@ class UserRepo:
         """
 
         await db.execute(sql, uid=user_id, **options.model_dump())
+
+    @staticmethod
+    async def get_statistics(
+        include_user_ids: list[uuid.UUID] = None, sort_field: str = 'summary', sord_desc: bool = True, limit: int = 20
+    ) -> list[UserStatistics]:
+        sql = f"""
+        with stat1 as (
+            select s.uid, u.fullname as name, u.avatar, false as is_robot, s.started, s.completed, s.thrown, s.winned,
+                s.lost, s.summary, s.total_money, s.last_scores, s.last_money, s.best_scores, s.best_money,
+                s.worse_scores, s.worse_money
+            from statistics s
+                join users u on u.uid = s.uid
+            where s.uid = any(%(uids)s)
+        ),
+        stat2 as (
+            select s.uid, u.fullname as name, u.avatar, false as is_robot, s.started, s.completed, s.thrown, s.winned,
+                s.lost, s.summary, s.total_money, s.last_scores, s.last_money, s.best_scores, s.best_money,
+                s.worse_scores, s.worse_money
+            from statistics s
+                join users u on u.uid = s.uid
+            where not u.disabled
+            order by {sort_field} {'desc' if sord_desc else 'asc'}
+            limit {limit or 20}
+        )
+        select * from stat1
+        union
+        select * from stat2
+        order by {sort_field} {'desc' if sord_desc else 'asc'}
+        """
+
+        data = await db.fetchall(sql, uids=include_user_ids or [])
+        return [UserStatistics(**row) for row in data]
+
+    @staticmethod
+    async def set_user_statistics(user_id: uuid.UUID, item: StatisticsItem):
+        sql = """
+        insert into statistics (uid, started, completed, thrown, winned, lost, summary, total_money, last_scores,
+            last_money, best_scores, best_money, worse_scores, worse_money)
+        values (%(uid)s, %(started)s, %(completed)s, %(thrown)s, %(winned)s, %(lost)s, %(summary)s, %(total_money)s,
+            %(last_scores)s, %(last_money)s, %(best_scores)s, %(best_money)s, %(worse_scores)s, %(worse_money)s)
+        on conflict on constraint statistics_pk do update set
+            started = excluded.started,
+            completed = excluded.completed,
+            thrown = excluded.thrown,
+            winned = excluded.winned,
+            lost = excluded.lost,
+            summary = excluded.summary,
+            total_money = excluded.total_money,
+            last_scores = excluded.last_scores,
+            last_money = excluded.last_money,
+            best_scores = excluded.best_scores,
+            best_money = excluded.best_money,
+            worse_scores = excluded.worse_scores,
+            worse_money = excluded.worse_money,
+            updated_at = current_timestamp
+        """
+
+        await db.execute(sql, uid=user_id, **item.model_dump())

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 
-from api.handlers import CheckAuthProvider
+from api.handlers import RequiredAuthProvider
 from api.models.security import Session, Token, LoginBody
 from api.models.http import ContentType
 from api.models.common import SuccessResponse, DeletedResponse
@@ -29,22 +29,22 @@ async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends(
 
 
 @router.post('/logout', response_model=SuccessResponse)
-async def logout(curr_user: CheckAuthProvider):
+async def logout(curr_user: RequiredAuthProvider):
     await Security().do_logout(curr_user)
     return SuccessResponse()
 
 
 @router.get('/user/sessions')
-async def get_sessions(curr_user: CheckAuthProvider) -> list[Session]:
+async def get_sessions(curr_user: RequiredAuthProvider) -> list[Session]:
     return await Security().get_sessions(curr_user)
 
 
 @router.delete('/user/sessions', response_model=DeletedResponse)
-async def close_another_sessions(curr_user: CheckAuthProvider):
+async def close_another_sessions(curr_user: RequiredAuthProvider):
     return DeletedResponse(deleted=await Security().close_another_sessions(curr_user))
 
 
 @router.delete('/user/sessions/{session_id}', response_model=DeletedResponse)
-async def close_session(session_id: uuid.UUID, curr_user: CheckAuthProvider):
+async def close_session(session_id: uuid.UUID, curr_user: RequiredAuthProvider):
     await Security().close_session(curr_user, session_id)
     return DeletedResponse(deleted=1)
