@@ -4,16 +4,20 @@ from PyQt5.QtCore import *
 
 from models.params import Profiles
 from gui.common import const
-from gui.common.graphics import Face2, Avatar, GridMoneyItemDelegate
+from gui.common.graphics import Face2, Avatar, GridMoneyItemDelegate, GridIntItemDelegate
 
 
 class StatisticsWindow(QWidget):
 
     _columns_ = (
-        ('name', 'Игрок', ''), ('is_robot', 'ИИ?', 'Робот или Человек?'),
-        ('started', 'Начато', 'Сколько партий начинал'), ('completed', 'Сыграно', 'Сколько партий доиграно до конца'),
-        ('thrown', 'Брошено', 'Сколько партий брошено'), ('winned', 'Выиграно', 'Сколько партий выиграно'),
-        ('lost', 'Проиграно', 'Сколько партий проиграно'), ('summary', 'Счет', 'Сумма очков за все игры'),
+        ('name', 'Игрок', ''),
+        ('is_robot', 'ИИ?', 'Робот или Человек?'),
+        ('started', 'Начато', 'Сколько партий начинал'),
+        ('completed', 'Сыграно', 'Сколько партий доиграно до конца'),
+        ('thrown', 'Брошено', 'Сколько партий брошено'),
+        ('winned', 'Выиграно', 'Сколько партий выиграно'),
+        ('lost', 'Проиграно', 'Сколько партий проиграно'),
+        ('summary', 'Счет', 'Сумма очков за все игры'),
         ('total_money', 'Всего денег', 'Сумма денег за все игры'),
         ('last_scores', 'Последний\nвыигрыш\n(очки)', 'Очки, набранные в последней игре'),
         ('last_money', 'Последний\nвыигрыш\n(деньги)', 'Деньги, набранные в последней игре'),
@@ -24,6 +28,7 @@ class StatisticsWindow(QWidget):
     )
 
     _money_cols_ = (8, 10, 12, 14)
+    _number_cols_ = (7, 9, 11, 13)
     _bg_colors_ = ('PaleTurquoise', 'PaleTurquoise', 'PaleGreen', 'PaleGreen', 'PaleGreen', 'PaleGreen', 'PaleGreen',
                    'Gold', 'YellowGreen', 'Violet', 'Violet', 'SpringGreen', 'SpringGreen', 'Tomato', 'Tomato')
 
@@ -91,6 +96,8 @@ class StatisticsWindow(QWidget):
 
             if i in self._money_cols_:
                 self._grid.setItemDelegateForColumn(i, GridMoneyItemDelegate(self._grid, bg_color=self._bg_colors_[i]))
+            elif i in self._number_cols_:
+                self._grid.setItemDelegateForColumn(i, GridIntItemDelegate(self._grid, bg_color=self._bg_colors_[i]))
 
         main_layout.addWidget(self._grid)
         main_layout.addLayout(buttons_box)

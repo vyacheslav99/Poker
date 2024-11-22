@@ -197,7 +197,7 @@ class UserRepo:
                 join users u on u.uid = s.uid
             where not u.disabled
             order by {sort_field} {'desc' if sord_desc else 'asc'}
-            limit {(limit or 20) - len(include_user_ids or [])}
+            limit {limit or 20}
         )
         select * from stat1
         union

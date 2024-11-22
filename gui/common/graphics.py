@@ -180,12 +180,23 @@ class Area(QGraphicsRectItem):
         self.setZValue(-1)
 
 
-class GridMoneyItemDelegate(QItemDelegate):
+class GridNumberItemDelegate(QItemDelegate):
 
     def __init__(self, parent, bg_color=None):
         self._bg_color = bg_color
+        super().__init__(parent)
 
-        super(GridMoneyItemDelegate, self).__init__(parent)
+    def get_uid(self):
+        grid = self.parent()
+        if grid:
+            form = grid.parent()
+            if form:
+                return form._curr_uid
+
+        return None
+
+    def get_formatted_value(self, value: int | float) -> str:
+        return str(value)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         value = index.model().data(index, Qt.EditRole)
@@ -202,18 +213,21 @@ class GridMoneyItemDelegate(QItemDelegate):
             font = painter.font()
             font.setBold(uid is not None and curr_uid is not None and uid == curr_uid)
             painter.setFont(font)
-
-            money = '{0:.2f}'.format(value)
-            rub, kop = money.split('.')
-            painter.drawText(option.rect, Qt.AlignRight | Qt.AlignVCenter, f' {rub}р {kop}к ')
+            painter.drawText(option.rect, Qt.AlignRight | Qt.AlignVCenter, self.get_formatted_value(value))
         else:
-            super(GridMoneyItemDelegate, self).paint(painter, option, index)
+            super().paint(painter, option, index)
 
-    def get_uid(self):
-        grid = self.parent()
-        if grid:
-            form = grid.parent()
-            if form:
-                return form._curr_uid
 
-        return None
+class GridMoneyItemDelegate(GridNumberItemDelegate):
+
+    def get_formatted_value(self, value: int | float) -> str:
+        money = '{0:,.2f}'.format(value).replace(',', ' ')
+        rub, kop = money.split('.')
+        return f' {rub}р {kop}к '
+
+
+class GridIntItemDelegate(GridNumberItemDelegate):
+
+    def get_formatted_value(self, value: int | float) -> str:
+        val = '{0:,.0f}'.format(value).replace(',', ' ')
+        return f'{val} '

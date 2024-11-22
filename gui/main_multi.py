@@ -296,15 +296,12 @@ class MultiPlayerMainWnd(MainWnd):
     def get_statistics(self) -> Profiles:
         profiles = Profiles()
 
-        if self.curr_profile:
-            profiles.set_profile(self.profiles.get(self.curr_profile.uid))
-
-        # todo: тут получаем статистику с сервера и добавляем ее к профилям: ручка вернет список экземпляров Player,
-        #  но у них будет заполнена не вся инфа об игроке, а только то, что нужно для показа статистики:
-        #  Имя игрока, аватарка и поля статистики.
-        #  Ручка всегда вернет текущего авторизованного пользователя + 20 игроков с лучшими результатами
-        #  (пока только по очкам, но потом добавлю возможности сортировки в окне статистики так, чтоб он запрашивал
-        #  актуальные данные на сервере - потому что список лучших по деньгам и по очкам может отличаться)
+        profiles.profiles = self.game_server_cli.get_overall_statistics(
+            include_user_ids=[p.uid for p in self.profiles.profiles],
+            sort_field='total_money',
+            sort_desc=True,
+            limit=15
+        )
 
         return profiles
 
@@ -339,10 +336,7 @@ class MultiPlayerMainWnd(MainWnd):
             QMessageBox.warning(self, self.windowTitle(), 'Сервер недоступен')
             return
 
-        # todo: локально статистику сбрасывать смысла нет - она всеравно нигде не используется, а подгружается
-        #  каждый раз с сервера. Будем обнулять статистику ручкой клиента
-        # self.curr_profile.reset_statistics()
-
+        self.game_server_cli.reset_statistics()
         self._stat_wnd.set_data(self.get_statistics(), {}, self.curr_profile.uid if self.curr_profile else None)
 
         QMessageBox.information(

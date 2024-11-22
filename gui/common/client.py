@@ -1,5 +1,7 @@
 import os
 import platform
+import uuid
+
 import rsa
 import base64
 import requests
@@ -76,7 +78,7 @@ class BaseClient:
             if not text:
                 try:
                     text = response.text
-                except:
+                except Exception:
                     pass
 
             if not text:
@@ -85,9 +87,17 @@ class BaseClient:
             raise ClientException(response.status_code, text, response=response)
 
     def _request(
-        self, method: str, url: str, query: dict | None = None, json: dict | None = None, files = None,
+        self,
+        method: str,
+        endpoint: str,
+        by_api: bool = True,
+        query: dict | None = None,
+        json: dict | None = None,
+        files = None,
         headers: dict | None = None
     ) -> Response:
+        url = self._make_url(endpoint, by_api=by_api)
+
         try:
             resp = getattr(requests, method)(
                 url, params=query, json=json, files=files, headers=dict(self.get_default_headers(), **(headers or {})),
@@ -104,28 +114,39 @@ class BaseClient:
             logging.error('server error', exc_info=e)
             raise e
 
-    def _make_api_url(self, endpoint: str) -> str:
-        return f'{self._host}/api/{endpoint}'
+    def _make_url(self, endpoint: str, by_api: bool = True) -> str:
+        if by_api:
+            prefix = 'api/'
+        else:
+            prefix = ''
 
-    def _make_base_url(self, endpoint: str) -> str:
-        return f'{self._host}/{endpoint}'
+        return f"{self._host}/{prefix}{endpoint.lstrip('/')}"
 
-    def get(self, url: str, query: dict | None = None, headers: dict | None = None) -> Response:
-        return self._request('get', url, query=query, headers=headers)
+    def get(
+        self, endpoint: str, by_api: bool = True, query: dict | None = None, headers: dict | None = None
+    ) -> Response:
+        return self._request('get', endpoint, by_api=by_api, query=query, headers=headers)
 
-    def post(self, url: str, json: dict | None = None, files = None, headers: dict | None = None) -> Response:
-        return self._request('post', url, json=json, files=files, headers=headers)
+    def post(
+        self, endpoint: str, by_api: bool = True, json: dict | None = None, files = None, headers: dict | None = None
+    ) -> Response:
+        return self._request('post', endpoint, by_api=by_api, json=json, files=files, headers=headers)
 
-    def put(self, url: str, json: dict | None = None, files = None, headers: dict | None = None) -> Response:
-        return self._request('put', url, json=json, files=files, headers=headers)
+    def put(
+        self, endpoint: str, by_api: bool = True, json: dict | None = None, files = None, headers: dict | None = None
+    ) -> Response:
+        return self._request('put', endpoint, by_api=by_api, json=json, files=files, headers=headers)
 
-    def patch(self, url: str, json: dict | None = None, files = None, headers: dict | None = None) -> Response:
-        return self._request('patch', url, json=json, files=files, headers=headers)
+    def patch(
+        self, endpoint: str, by_api: bool = True, json: dict | None = None, files = None, headers: dict | None = None
+    ) -> Response:
+        return self._request('patch', endpoint, by_api=by_api, json=json, files=files, headers=headers)
 
     def delete(
-        self, url: str, query: dict | None = None, json: dict | None = None, headers: dict | None = None
+        self, endpoint: str, by_api: bool = True, query: dict | None = None, json: dict | None = None,
+        headers: dict | None = None
     ) -> Response:
-        return self._request('delete', url, query=query, json=json, headers=headers)
+        return self._request('delete', endpoint, by_api=by_api, query=query, json=json, headers=headers)
 
     def encrypt(self, plain_value: str) -> str:
         if not self._public_key:
@@ -137,17 +158,21 @@ class BaseClient:
         return b64_value.decode()
 
     def load_public_key(self):
-        resp = self.get(self._make_api_url('public-key'))
+        resp = self.get('public-key')
         self._public_key = resp.text
 
 
 class GameServerClient(BaseClient):
 
-    FILES_BASE_PATH = 'static/files'
+    FILES_BASE_PATH = '/static/files'
+    USER_PATH = '/user'
+    USER_AVATAR_PATH = f'{USER_PATH}/avatar'
+    USER_PARAMS_PATH = f'{USER_PATH}/params'
+    USER_OPTIONS_PATH = f'{USER_PATH}/game_options'
 
     def is_alive(self) -> tuple[bool, str]:
         try:
-            resp = self.get(self._make_base_url('is_alive'))
+            resp = self.get('/is_alive', by_api=False)
             data = resp.json()
 
             if {'server', 'version', 'status'} == set(data.keys()):
@@ -158,11 +183,11 @@ class GameServerClient(BaseClient):
             return False, 'Server unavailable'
 
     def username_is_free(self, username: str) -> bool:
-        resp = self.get(self._make_api_url('is_free_username'), query={'username': username})
+        resp = self.get('/is_free_username', query={'username': username})
         data = resp.json()
         return data['success']
 
-    def _make_player(self, data: dict, set_current_token: bool = True) -> Player:
+    def _load_player(self, data: dict, set_current_token: bool = True) -> Player:
         return Player(
             uid=data['uid'],
             login=data['username'],
@@ -186,12 +211,12 @@ class GameServerClient(BaseClient):
             'password': self.encrypt(password)
         }
 
-        resp = self.post(self._make_api_url('user'), json=payload)
-        return self._make_player(resp.json(), set_current_token=False)
+        resp = self.post(self.USER_PATH, json=payload)
+        return self._load_player(resp.json(), set_current_token=False)
 
     def get_user(self) -> Player:
-        resp = self.get(self._make_api_url('user'))
-        return self._make_player(resp.json())
+        resp = self.get(self.USER_PATH)
+        return self._load_player(resp.json())
 
     def authorize_safe(self, username: str, password: str) -> str:
         payload = {
@@ -199,13 +224,13 @@ class GameServerClient(BaseClient):
             'password': self.encrypt(password)
         }
 
-        resp = self.post(self._make_api_url('login'), json=payload)
+        resp = self.post('/login', json=payload)
         data = resp.json()
         self.token = data.get('access_token')
         return self.token
 
     def logout(self):
-        self.post(self._make_api_url('logout'))
+        self.post('/logout')
         self.token = None
 
     def delete_user(self, password: str):
@@ -213,7 +238,7 @@ class GameServerClient(BaseClient):
             'password': self.encrypt(password)
         }
 
-        self.delete(self._make_api_url('user'), json=payload)
+        self.delete(self.USER_PATH, json=payload)
         self.token = None
 
     def change_username(self, new_username: str) -> str:
@@ -225,7 +250,7 @@ class GameServerClient(BaseClient):
         """
 
         payload = {'new_username': new_username}
-        resp = self.patch(self._make_api_url('user/username'), json=payload)
+        resp = self.patch(f'{self.USER_PATH}/username', json=payload)
         data = resp.json()
         self.token = data.get('access_token')
         return self.token
@@ -237,27 +262,27 @@ class GameServerClient(BaseClient):
             'close_sessions': close_sessions
         }
 
-        self.patch(self._make_api_url('user/passwd'), json=payload)
+        self.patch(f'{self.USER_PATH}/passwd', json=payload)
 
     def save_user_data(self, user: Player) -> Player:
-        resp = self.patch(self._make_api_url('user'), json=self._dump_player(user))
-        return self._make_player(resp.json())
+        resp = self.patch(self.USER_PATH, json=self._dump_player(user))
+        return self._load_player(resp.json())
 
     def save_avatar(self, file_path: str) -> Player:
         files = {
             'file': (os.path.split(file_path)[1], open(file_path, 'rb'))
         }
 
-        resp = self.put(self._make_api_url('user/avatar'), files=files)
-        return self._make_player(resp.json())
+        resp = self.put(self.USER_AVATAR_PATH, files=files)
+        return self._load_player(resp.json())
 
     def clear_avatar(self) -> Player:
-        resp = self.delete(self._make_api_url('user/avatar'))
-        return self._make_player(resp.json())
+        resp = self.delete(self.USER_AVATAR_PATH)
+        return self._load_player(resp.json())
 
     def get_params(self) -> dict:
         try:
-            resp = self.get(self._make_api_url('user/params'))
+            resp = self.get(self.USER_PARAMS_PATH)
         except ClientException as err:
             if err.status_code != 404:
                 raise
@@ -267,11 +292,11 @@ class GameServerClient(BaseClient):
         return resp.json()
 
     def set_params(self, params: Params):
-        self.put(self._make_api_url('user/params'), json=params.as_dict())
+        self.put(self.USER_PARAMS_PATH, json=params.as_dict())
 
     def get_game_options(self) -> dict:
         try:
-            resp = self.get(self._make_api_url('user/game_options'))
+            resp = self.get(self.USER_OPTIONS_PATH)
         except ClientException as err:
             if err.status_code != 404:
                 raise
@@ -281,13 +306,36 @@ class GameServerClient(BaseClient):
         return resp.json()
 
     def set_game_options(self, options: Options):
-        self.put(self._make_api_url('user/game_options'), json=options.as_dict())
+        self.put(self.USER_OPTIONS_PATH, json=options.as_dict())
 
     def download_avatar(self, remote_path: str, save_to_path: str):
-        resp = self.get(self._make_base_url(f'{self.FILES_BASE_PATH}/{remote_path}'))
+        resp = self.get(f'{self.FILES_BASE_PATH}/{remote_path}', by_api=False)
 
         if len(resp.content) > 0:
             with open(save_to_path, 'wb') as f:
                 f.write(resp.content)
         else:
             raise ClientException(500, 'No content', response=resp)
+
+    def get_overall_statistics(
+        self, include_user_ids: list[uuid.UUID] = None, sort_field: str = None, sort_desc: bool = None,
+        limit: int = None
+    ) -> list[Player]:
+        query = {}
+
+        if include_user_ids:
+            query['include_user_ids'] = include_user_ids
+        if sort_field:
+            query['sort_field'] = sort_field
+        if sort_desc:
+            query['sort_desc'] = sort_desc
+        if limit:
+            query['limit'] = limit
+
+        resp = self.get('/statistics', query=query)
+        data = resp.json()
+
+        return [Player(**row) for row in data['items']]
+
+    def reset_statistics(self):
+        self.delete(f'{self.USER_PATH}/statistics')
