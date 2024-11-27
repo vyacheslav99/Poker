@@ -158,9 +158,9 @@ class Security:
             raise UnauthorizedException(detail='Incorrect username or password')
 
         session = Session(
-            sid = uuid.uuid4(),
-            uid = user.uid,
-            client_info = {
+            sid=uuid.uuid4(),
+            uid=user.uid,
+            client_info={
                 'addr': request.client.host,
                 'user_agent': request.headers.get('User-Agent')
             }

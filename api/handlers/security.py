@@ -7,44 +7,88 @@ from fastapi.security import OAuth2PasswordRequestForm
 from api.handlers import RequiredAuthProvider
 from api.models.security import Session, Token, LoginBody
 from api.models.http import ContentType
-from api.models.common import SuccessResponse, DeletedResponse
+from api.models.common import SuccessResponse, DeletedResponse, error_responses
 from api.services.security import Security
 
 router = APIRouter(prefix='/api', tags=['security'])
 
 
-@router.get('/public-key', response_model=str)
+@router.get(
+    path='/public-key',
+    response_model=str,
+    summary='Публичный ключ шифрования',
+    description='Получить публичный ключ сервера для шифрования им данных на клиенте, которые надо отправлять на '
+                'сервер в зашифрованном виде',
+    response_description='Публичный ключ, тип ответа: `application/x-pem-file`',
+    responses=error_responses()
+)
 def get_public_key():
     return Response(Security.get_public_key(), media_type=ContentType.CONTENT_TYPE_PEM)
 
 
-@router.post('/login')
-async def authorize(body: LoginBody, request: Request) -> Token:
+@router.post(
+    path='/login',
+    response_model=Token,
+    summary='Авторизация (безопасная)',
+    description='Авторизация пользователя защищенная шифрованием. Пароль принимает в зашифрованном виде. '
+                'Шифрование публичным ключем, выдаваемым сервером по ручке `get /public-key`',
+    responses=error_responses()
+)
+async def authorize(body: LoginBody, request: Request):
     return await Security().do_authorize_safe(body.username, body.password, request=request)
 
 
-@router.post('/login-form')
-async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], request: Request) -> Token:
+@router.post(
+    path='/login-form',
+    response_model=Token,
+    summary='Авторизация (открытая)',
+    description='Авторизация пользователя с передачей пароля в открытом виде',
+    responses=error_responses()
+)
+async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], request: Request):
     return await Security().do_authorize_unsafe(form_data.username, form_data.password, request=request)
 
 
-@router.post('/logout', response_model=SuccessResponse)
+@router.post(
+    path='/logout',
+    response_model=SuccessResponse,
+    summary='Разлогиниться',
+    description='Разлогиниться и удалить текущий сеанс с сервера',
+    responses=error_responses()
+)
 async def logout(curr_user: RequiredAuthProvider):
     await Security().do_logout(curr_user)
     return SuccessResponse()
 
 
-@router.get('/user/sessions')
+@router.get(
+    path='/user/sessions',
+    response_model=list[Session],
+    summary='Активные сеансы пользователя',
+    description='Список активных сеансов текущего пользователя',
+    responses=error_responses()
+)
 async def get_sessions(curr_user: RequiredAuthProvider) -> list[Session]:
     return await Security().get_sessions(curr_user)
 
 
-@router.delete('/user/sessions', response_model=DeletedResponse)
+@router.delete(
+    path='/user/sessions',
+    response_model=DeletedResponse,
+    summary='Завершить другие сеансы пользователя',
+    description='Завершить все прочие сеансы пользователя, кроме текущего - т.е. разлогинить все остальные сеансы',
+    responses=error_responses()
+)
 async def close_another_sessions(curr_user: RequiredAuthProvider):
     return DeletedResponse(deleted=await Security().close_another_sessions(curr_user))
 
 
-@router.delete('/user/sessions/{session_id}', response_model=DeletedResponse)
+@router.delete(
+    path='/user/sessions/{session_id}',
+    response_model=DeletedResponse,
+    summary='Завершить конкретный сеанс',
+    responses=error_responses()
+)
 async def close_session(session_id: uuid.UUID, curr_user: RequiredAuthProvider):
     await Security().close_session(curr_user, session_id)
     return DeletedResponse(deleted=1)
