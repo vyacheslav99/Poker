@@ -162,6 +162,13 @@ class MainWnd(QMainWindow):
         self.menu_actions.profiles_group.triggered.connect(self.change_profile_action)
         self.fill_profile_change_menu()
 
+        # О программе
+        menu = menubar.addMenu('Справка')
+        actn = QAction(QIcon(f'{const.RES_DIR}/app.ico'), 'О программе', self)
+        # actn.setShortcut('F1')
+        actn.triggered.connect(self.show_version_info)
+        menu.addAction(actn)
+
     def fill_profile_change_menu(self):
         for a in self.menu_actions.profiles_group.actions():
             self.menu_actions.profiles_group.removeAction(a)
@@ -1389,3 +1396,6 @@ class MainWnd(QMainWindow):
             self._bike_timer.stop()
             self.bike_area.setText('')
             self._bike_timer = utils.IntervalTimer(float(random.randint(*const.BIKE_TIMER_INTERVAL)), self.show_bike)
+
+    def show_version_info(self):
+        QMessageBox.information(self, 'О программе', f'Расписной покер, версия: {const.VERSION}')
