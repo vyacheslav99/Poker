@@ -62,6 +62,8 @@ def create_app() -> FastAPI:
         os.makedirs(config.FILESTORE_DIR, exist_ok=True)
     if not os.path.exists(config.DATA_DIR):
         os.makedirs(config.DATA_DIR, exist_ok=True)
+    if not os.path.exists(config.LOGS_DIR):
+        os.makedirs(config.LOGS_DIR, exist_ok=True)
 
     app = FastAPI(
         debug=config.DEBUG,

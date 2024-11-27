@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import uvicorn
 from fastapi import FastAPI
 
@@ -8,7 +9,8 @@ app: FastAPI = create_app()
 
 
 def main():
-    logging.basicConfig(**config.LOGGING)
+    # logging.basicConfig(**config.LOGGING)
+    logging.config.dictConfig(config.LOGGING)
     logging.debug('Enabled DEDUG mode logging level!')
 
     uvicorn.run(
@@ -17,7 +19,7 @@ def main():
         host=config.LISTEN_ADDR,
         port=config.LISTEN_PORT,
         workers=config.WORKERS,
-        log_level=logging.getLevelName(config.LOGGING['level']).lower(),
+        log_level=logging.getLevelName(config.LOG_LEVEL).lower(),
     )
 
 

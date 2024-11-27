@@ -1,6 +1,10 @@
 import os
+import sys
 import logging
 
+from datetime import time, timezone
+from logging import FileHandler, StreamHandler
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 
 # server
 SERVER_NAME = 'Poker game server'
@@ -37,13 +41,68 @@ YOYO_DB_DSN = DB_CONNECTIONS['default']['dsn']
 DOCUMENT_ROOT = os.path.normpath(os.path.join(os.path.expanduser('~'), '.poker', 'server'))
 DATA_DIR = os.path.join(DOCUMENT_ROOT, 'data')
 FILESTORE_DIR = os.path.join(DATA_DIR, 'files')
+LOGS_DIR = os.path.join(DOCUMENT_ROOT, 'logs')
 
 # logging
+LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
+
+# use: logging.basicConfig(**LOGGING)
+# LOGGING = {
+#     'filename': None,
+#     'level': LOG_LEVEL,
+#     'format': '[%(asctime)s] %(levelname).1s  ::  %(message)s',
+#     'datefmt': '%Y.%m.%d %H:%M:%S'
+# }
+
+# use: logging.config.dictConfig(LOGGING)
 LOGGING = {
-    'filename': None,
-    'level': logging.DEBUG if DEBUG else logging.INFO,
-    'format': '[%(asctime)s] %(levelname).1s %(message)s',
-    'datefmt': '%Y.%m.%d %H:%M:%S'
+    'version': 1,
+    'loggers': {
+        'root': {
+            'level': LOG_LEVEL,
+            'handlers': ['console', 'timed_rotate']
+        }
+    },
+    'formatters': {
+        'generic': {
+            'format': '[%(asctime)s] %(levelname).1s  ::  %(message)s',
+            'datefmt': '%Y.%m.%d %H:%M:%S'
+        }
+    },
+    'handlers': {
+        'console': {
+            'class': StreamHandler,
+            'formatter': 'generic',
+            'stream': sys.stdout
+        },
+        'file': {
+            'class': FileHandler,
+            'formatter': 'generic',
+            'filename': os.path.join(LOGS_DIR, 'server.log'),
+            'mode': 'a',
+            'delay': True
+        },
+        'rotate': {
+            'class': RotatingFileHandler,
+            'formatter': 'generic',
+            'filename': os.path.join(LOGS_DIR, 'server.log'),
+            'mode': 'a',
+            'delay': True,
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 30
+        },
+        'timed_rotate': {
+            'class': TimedRotatingFileHandler,
+            'formatter': 'generic',
+            'filename': os.path.join(LOGS_DIR, 'server.log'),
+            'delay': True,
+            'when': 'D',
+            'interval': 1,
+            'utc': True,
+            'atTime': time(0, 0, 0, 0, tzinfo=timezone.utc),
+            'backupCount': 30
+        }
+    }
 }
 
 # security
