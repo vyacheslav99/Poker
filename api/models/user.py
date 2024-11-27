@@ -4,6 +4,8 @@ from enum import StrEnum
 from datetime import datetime
 from pydantic import BaseModel
 
+from api.models.model import ModelMixin
+
 
 class UserPublic(BaseModel):
     uid: uuid.UUID
@@ -38,7 +40,10 @@ class DeleteUserBody(BaseModel):
     password: str
 
 
-class ClientParams(BaseModel):
+class ClientParams(BaseModel, ModelMixin):
+
+    _json_fields = {'custom_decoration'}
+
     color_theme: str
     style: str
     deck_type: str

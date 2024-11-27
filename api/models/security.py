@@ -3,6 +3,8 @@ import uuid
 from datetime import datetime
 from pydantic import BaseModel
 
+from api.models.model import ModelMixin
+
 
 class Token(BaseModel):
     access_token: str
@@ -20,7 +22,10 @@ class LoginBody(BaseModel):
     password: str
 
 
-class Session(BaseModel):
+class Session(BaseModel, ModelMixin):
+
+    _json_fields = {'client_info'}
+
     sid: uuid.UUID
     uid: uuid.UUID
     username: str | None = None
