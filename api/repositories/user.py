@@ -1,4 +1,3 @@
-import json
 import uuid
 
 from api import db
@@ -74,7 +73,7 @@ class UserRepo:
         """
 
         row = await db.fetchone(sql, sid=session_id)
-        return Session(**dict(row, client_info=json.loads(row['client_info']))) if row else None
+        return Session.make(dict(row)) if row else None
 
     @staticmethod
     async def get_user_sessions(user_id: uuid.UUID) -> list[Session]:
@@ -86,7 +85,7 @@ class UserRepo:
         """
 
         data = await db.fetchall(sql, uid=user_id)
-        return [Session(**dict(row, client_info=json.loads(row['client_info']))) for row in data]
+        return [Session.make(dict(row)) for row in data]
 
     @staticmethod
     async def create_session(session: Session):
@@ -95,9 +94,7 @@ class UserRepo:
         values (%(sid)s, %(uid)s, %(client_info)s)
         """
 
-        await db.execute(
-            sql, client_info=json.dumps(session.client_info), **session.model_dump(exclude={'client_info'})
-        )
+        await db.execute(sql, **session.dump())
 
     @staticmethod
     async def delete_sessions(session_ids: list[uuid.UUID]):
@@ -108,7 +105,7 @@ class UserRepo:
         sql = 'select * from user_params where uid = %(uid)s'
 
         row = await db.fetchone(sql, uid=user_id)
-        return ClientParams(**dict(row, custom_decoration=json.loads(row['custom_decoration']))) if row else None
+        return ClientParams.make(dict(row)) if row else None
 
     @staticmethod
     async def set_user_params(user_id: uuid.UUID, params: ClientParams):
@@ -130,10 +127,7 @@ class UserRepo:
             updated_at = current_timestamp
         """
 
-        await db.execute(
-            sql, uid=user_id, custom_decoration=json.dumps(params.custom_decoration),
-            **params.model_dump(exclude={'custom_decoration'})
-        )
+        await db.execute(sql, uid=user_id, **params.dump())
 
     @staticmethod
     async def get_user_game_options(user_id: uuid.UUID) -> GameOptions | None:

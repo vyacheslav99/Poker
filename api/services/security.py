@@ -6,15 +6,17 @@ import uuid
 
 from datetime import timedelta, datetime, timezone
 from jwt.exceptions import InvalidTokenError
-from fastapi import Request, Depends, HTTPException, status
+from fastapi import Request, Depends, status
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.exceptions import RequestValidationError
 from passlib.context import CryptContext
 from pydantic import ValidationError
+from binascii import Error as Base64DecodeError
 
 from api import config
 from api.models.user import User
 from api.models.security import  Token, TokenPayload, Session
-from api.models.exceptions import UnauthorizedException
+from api.models.exceptions import BadRequestError, UnauthorizedError, NotFoundError, ForbiddenError
 from api.repositories.user import UserRepo
 
 
@@ -36,8 +38,17 @@ class Security:
         """
 
         private_key = rsa.PrivateKey.load_pkcs1(config.RSA_PRIVATE_KEY.encode())
-        encrypted_pwd = base64.urlsafe_b64decode(password_b64.encode())
-        decrypted_pwd = rsa.decrypt(encrypted_pwd, private_key).decode()
+
+        try:
+            encrypted_pwd = base64.urlsafe_b64decode(password_b64.encode())
+            decrypted_pwd = rsa.decrypt(encrypted_pwd, private_key).decode()
+        except Base64DecodeError as e:
+            logging.error('Decryption error: incorrect base64 string', exc_info=e)
+            raise RequestValidationError([{'password': 'Unsupported data type. Data is not a base64 encoded string'}])
+        except rsa.DecryptionError as e:
+            logging.error('Decryption error: encrypted with the wrong public key', exc_info=e)
+            raise RequestValidationError([{'password': 'Wrong encryptrd data'}])
+
         return decrypted_pwd
 
     def create_access_token(self, username: str, session_id: uuid.UUID, expires_delta: timedelta = None) -> str:
@@ -68,7 +79,7 @@ class Security:
         if config.RSA_PUBLIC_KEY:
             return config.RSA_PUBLIC_KEY
 
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No public keys found')
+        raise NotFoundError(detail='No public keys found')
 
     @staticmethod
     async def get_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> User:
@@ -115,23 +126,23 @@ class Security:
             user = await UserRepo.get_user(username=payload.sub)
 
             if not session:
-                raise UnauthorizedException(detail='Session is closed')
+                raise UnauthorizedError(detail='Session is closed')
 
             if not user or session.uid != user.uid:
-                raise UnauthorizedException(detail='Invalid token')
+                raise UnauthorizedError(detail='Invalid token')
 
             if user.disabled:
-                raise UnauthorizedException(detail='User is blocked')
+                raise UnauthorizedError(detail='User is blocked')
 
             if datetime.now(tz=timezone.utc) > datetime.fromtimestamp(payload.exp, tz=timezone.utc):
                 await UserRepo.delete_sessions([session.sid])
-                raise UnauthorizedException(detail='Session has been expired')
+                raise UnauthorizedError(detail='Session has been expired')
 
             user.curr_sid = session.sid
             return user
         except (InvalidTokenError, ValidationError) as e:
             logging.error('Cannot decode token!', exc_info=e)
-            raise UnauthorizedException(detail='Invalid token')
+            raise UnauthorizedError(detail='Invalid token')
 
     async def do_authorize_safe(self, username: str, passwd_encrypted: str, request: Request = None) -> Token:
         """
@@ -155,12 +166,12 @@ class Security:
         user = await UserRepo.get_user(username=username)
 
         if not user or user.disabled or not self.verify_hash(passwd_plain, user.password):
-            raise UnauthorizedException(detail='Incorrect username or password')
+            raise ForbiddenError(detail='Incorrect username or password')
 
         session = Session(
-            sid = uuid.uuid4(),
-            uid = user.uid,
-            client_info = {
+            sid=uuid.uuid4(),
+            uid=user.uid,
+            client_info={
                 'addr': request.client.host,
                 'user_agent': request.headers.get('User-Agent')
             }
@@ -191,14 +202,14 @@ class Security:
         session = await UserRepo.get_session(session_id)
 
         if not session:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Session not exists')
+            raise NotFoundError(detail='Session not exists')
 
         if session.uid != user.uid:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Access denied')
+            raise ForbiddenError(detail='Access denied')
 
         if session.sid == user.curr_sid:
-            raise HTTPException(
-                status.HTTP_406_NOT_ACCEPTABLE,
+            raise BadRequestError(
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 detail='This is the current session. To close this, use the `logout`'
             )
 
