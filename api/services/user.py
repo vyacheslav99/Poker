@@ -1,14 +1,14 @@
 import os
 import uuid
 
-from fastapi import HTTPException, status, UploadFile
+from fastapi import status, UploadFile
 from fastapi.exceptions import RequestValidationError
 from asyncpg.exceptions import UniqueViolationError
 
 from api import config
 from api.models.user import User, UserPatchBody, ClientParams, GameOptions, UserStatistics, StatisticsItem
 from api.models.security import Token, LoginBody
-from api.models.exceptions import NoChangesError
+from api.models.exceptions import NoChangesError, BadRequestError, NotFoundError, ForbiddenError
 from api.models.http import AVAILABLE_IMAGE_TYPES
 from api.services.security import Security
 from api.repositories.user import UserRepo
@@ -50,7 +50,7 @@ class UserService:
         """
 
         if not self._sec.verify_hash(self._sec.decrypt_password(passwd_encrypted), user.password):
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
+            raise ForbiddenError(detail='Incorrect password')
 
         await self.clear_avatar(user)
         # todo: Не забывать при появлении новых связей по пользователю добавлять сюда их удаление
@@ -69,7 +69,7 @@ class UserService:
         old_passwd = self._sec.decrypt_password(old_pwd_encrypted)
 
         if not self._sec.verify_hash(old_passwd, user.password):
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail='Incorrect password')
+            raise ForbiddenError(detail='Incorrect password')
 
         await UserRepo.update_user(
             user.uid, password=self._sec.calc_hash(self._sec.decrypt_password(new_pwd_encrypted))
@@ -92,7 +92,10 @@ class UserService:
         try:
             _user = await UserRepo.update_user(user.uid, username=new_username)
         except UniqueViolationError:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=f'Username <{new_username}> already exists')
+            raise BadRequestError(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f'Username <{new_username}> already exists'
+            )
 
         await self._sec.close_another_sessions(user)
         return Token(access_token=self._sec.create_access_token(_user.username, user.curr_sid))
@@ -106,7 +109,7 @@ class UserService:
         try:
             return await UserRepo.update_user(user.uid, **data.model_dump(exclude_unset=True))
         except NoChangesError as e:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
+            raise BadRequestError(detail=str(e))
 
     async def change_avatar(self, user: User, file: UploadFile) -> User:
         """
@@ -118,7 +121,7 @@ class UserService:
 
         if ext.lower() not in AVAILABLE_IMAGE_TYPES:
             raise RequestValidationError(
-                [{'file': f"Usupported file type. Acceptable types: {', '.join(AVAILABLE_IMAGE_TYPES)}"}]
+                [{'file': f"Unsupported file type. Acceptable types: {', '.join(AVAILABLE_IMAGE_TYPES)}"}]
             )
 
         file_name = f'{str(user.uid)}{ext}'
@@ -150,7 +153,7 @@ class UserService:
         params = await UserRepo.get_user_params(user.uid)
 
         if not params:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No saved params found')
+            raise NotFoundError(detail='No saved params found')
 
         return params
 
@@ -161,7 +164,7 @@ class UserService:
         opts = await UserRepo.get_user_game_options(user.uid)
 
         if not opts:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='No saved game options found')
+            raise NotFoundError(detail='No saved game options found')
 
         return opts
 

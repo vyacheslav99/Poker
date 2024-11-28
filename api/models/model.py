@@ -20,6 +20,13 @@ class ModelMixin:
 
     @classmethod
     def make(cls, data: dict[str, Any]):
+        """
+        Метод предназначен для лоада объектов пришедших из БД (типа asyncpg.Record), для таблиц,
+        содержащих jsonb поля, значения из которых приходят в виде json строки (asyncpg не преобразует их в dict).
+        Создает экземпляр класса модели, аналогично как при вызове стандартного конструктора Model(**data), только
+        json-строки предварительно раскодирует в dict.
+        """
+
         for k in cls.__get_json_fields():
             if k in data:
                 if isinstance(data[k], str):
@@ -42,6 +49,13 @@ class ModelMixin:
         warnings: bool | Literal['none', 'warn', 'error'] = True,
         serialize_as_any: bool = False,
     ) -> dict[str, Any]:
+        """
+        Метод предназначен для дампа объектов для записи в БД, для таблиц, содержащих jsonb поля, значения в которые
+        нужно передавать в виде json строки (asyncpg не преобразует автоматически dict-параметры json-строки).
+        Создает словарь представление объекта модели, аналогично как при вызове метода экземпляра
+        BaseModel.model_dump(), но поля типа dict дампит в json-строку.
+        """
+
         json_fields = self.__get_json_fields()
 
         data = self.model_dump(
