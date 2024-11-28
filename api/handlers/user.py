@@ -160,7 +160,7 @@ async def set_user_game_options(user: RequiredAuthProvider, body: GameOptions):
     response_model=SuccessResponse,
     summary='Проверить логин',
     description='Проверить, свободен ли переданный логин. Полезно сделать перед регистрацией пользователя на клиенте, '
-                'чтоб не получить ошибку регистрации пользователя.',
+                'чтоб не получить ошибку регистрации пользователя',
     response_description='Вернет `success: false` если логин занят иначе `true`',
     responses=error_responses()
 )
