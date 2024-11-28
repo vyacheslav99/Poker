@@ -1,7 +1,7 @@
 import uuid
 
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api.models.model import ModelMixin
 
@@ -18,8 +18,9 @@ class TokenPayload(BaseModel):
 
 
 class LoginBody(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=3,
+                          description='Может содержать только буквы английского алфавита, цифры и спец символы')
+    password: str = Field(description='Значение должно быть зашифровано и закодировано в base64')
 
 
 class Session(BaseModel, ModelMixin):

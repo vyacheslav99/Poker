@@ -34,7 +34,7 @@ def get_public_key():
                 'Шифрование публичным ключем, выдаваемым сервером по ручке `get /public-key`',
     responses=error_responses()
 )
-async def authorize(body: LoginBody, request: Request):
+async def authorize(request: Request, body: LoginBody):
     return await Security().do_authorize_safe(body.username, body.password, request=request)
 
 
@@ -45,7 +45,7 @@ async def authorize(body: LoginBody, request: Request):
     description='Авторизация пользователя с передачей пароля в открытом виде',
     responses=error_responses()
 )
-async def login_by_form(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], request: Request):
+async def login_by_form(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     return await Security().do_authorize_unsafe(form_data.username, form_data.password, request=request)
 
 
@@ -89,6 +89,6 @@ async def close_another_sessions(curr_user: RequiredAuthProvider):
     summary='Завершить конкретный сеанс',
     responses=error_responses()
 )
-async def close_session(session_id: uuid.UUID, curr_user: RequiredAuthProvider):
+async def close_session(curr_user: RequiredAuthProvider, session_id: uuid.UUID):
     await Security().close_session(curr_user, session_id)
     return DeletedResponse(deleted=1)

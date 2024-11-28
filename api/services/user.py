@@ -5,6 +5,7 @@ from fastapi import status, UploadFile
 from fastapi.exceptions import RequestValidationError
 from asyncpg.exceptions import UniqueViolationError
 
+from gui.common.const import LOGIN_ALLOW_LITERALS
 from api import config
 from api.models.user import User, UserPatchBody, ClientParams, GameOptions, UserStatistics, StatisticsItem
 from api.models.security import Token, LoginBody
@@ -27,12 +28,21 @@ class UserService:
         Возвращает модель пользователя.
         """
 
-        return await UserRepo.create_user(User(
-            uid=uuid.uuid4(),
-            username=user.username,
-            password=self._sec.calc_hash(self._sec.decrypt_password(user.password)),
-            fullname=user.username
-        ))
+        if not set(user.username).issubset(set(LOGIN_ALLOW_LITERALS)):
+            raise RequestValidationError([{'username': 'Contains invalid characters'}])
+
+        try:
+            return await UserRepo.create_user(User(
+                uid=uuid.uuid4(),
+                username=user.username,
+                password=self._sec.calc_hash(self._sec.decrypt_password(user.password)),
+                fullname=user.username
+            ))
+        except UniqueViolationError:
+            raise BadRequestError(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f'Username <{user.username}> already exists'
+            )
 
     async def delete_user(self, user: User, passwd_encrypted: str):
         """

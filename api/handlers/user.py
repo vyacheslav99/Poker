@@ -43,7 +43,7 @@ async def get_current_user(curr_user: RequiredAuthProvider):
                 'остальные остаются без изменений',
     responses=error_responses()
 )
-async def change_user(body: UserPatchBody, curr_user: RequiredAuthProvider):
+async def change_user(curr_user: RequiredAuthProvider, body: UserPatchBody):
     return await UserService().change_user(curr_user, body)
 
 
@@ -54,7 +54,7 @@ async def change_user(body: UserPatchBody, curr_user: RequiredAuthProvider):
     description='Загрузить файл аватарки текущему пользователю',
     responses=error_responses()
 )
-async def change_avatar(file: UploadFile, curr_user: RequiredAuthProvider):
+async def change_avatar(curr_user: RequiredAuthProvider, file: UploadFile):
     return await UserService().change_avatar(curr_user, file)
 
 
@@ -78,7 +78,7 @@ async def clear_avatar(curr_user: RequiredAuthProvider):
                 '`get /public-key`. Опционально завершает все остальные активные сеансы пользователя',
     responses=error_responses()
 )
-async def change_password(body: ChangePasswordBody, curr_user: RequiredAuthProvider):
+async def change_password(curr_user: RequiredAuthProvider, body: ChangePasswordBody):
     await UserService().change_password(curr_user, body.password, body.new_password, close_sessions=body.close_sessions)
     return SuccessResponse()
 
@@ -92,7 +92,7 @@ async def change_password(body: ChangePasswordBody, curr_user: RequiredAuthProvi
                 'пользователя будут завершены',
     responses=error_responses()
 )
-async def change_username(body: ChangeUsernameBody, curr_user: RequiredAuthProvider):
+async def change_username(curr_user: RequiredAuthProvider, body: ChangeUsernameBody):
     return await UserService().change_username(curr_user, body.new_username)
 
 
@@ -104,7 +104,7 @@ async def change_username(body: ChangeUsernameBody, curr_user: RequiredAuthProvi
                 'Для подтверждения этой операции требует передачи текущего пароля (в зашифрованном виде)',
     responses=error_responses()
 )
-async def delete_user(body: DeleteUserBody, curr_user: RequiredAuthProvider):
+async def delete_user(curr_user: RequiredAuthProvider, body: DeleteUserBody):
     await UserService().delete_user(curr_user, body.password)
     return SuccessResponse()
 
@@ -127,7 +127,7 @@ async def get_user_params(curr_user: RequiredAuthProvider):
     description='Сохранить на сервере настройки игрового клиента в данных текущего пользователя',
     responses=error_responses()
 )
-async def set_user_params(body: ClientParams, curr_user: RequiredAuthProvider):
+async def set_user_params(curr_user: RequiredAuthProvider, body: ClientParams):
     await UserService().set_user_params(curr_user, body)
     return SuccessResponse()
 
@@ -150,7 +150,7 @@ async def get_user_game_options(curr_user: RequiredAuthProvider):
     description='Сохранить на сервере игровые договоренности в данных текущего пользователя',
     responses=error_responses()
 )
-async def set_user_game_options(body: GameOptions, curr_user: RequiredAuthProvider):
+async def set_user_game_options(curr_user: RequiredAuthProvider, body: GameOptions):
     await UserService().set_user_game_options(curr_user, body)
     return SuccessResponse()
 
