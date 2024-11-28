@@ -31,8 +31,8 @@ async def create_user(body: LoginBody):
     description='Получить текущего авторизованного пользователя',
     responses=error_responses()
 )
-async def get_current_user(curr_user: RequiredAuthProvider):
-    return curr_user
+async def get_current_user(user: RequiredAuthProvider):
+    return user
 
 
 @router.patch(
@@ -43,8 +43,8 @@ async def get_current_user(curr_user: RequiredAuthProvider):
                 'остальные остаются без изменений',
     responses=error_responses()
 )
-async def change_user(curr_user: RequiredAuthProvider, body: UserPatchBody):
-    return await UserService().change_user(curr_user, body)
+async def change_user(user: RequiredAuthProvider, body: UserPatchBody):
+    return await UserService().change_user(user, body)
 
 
 @router.put(
@@ -54,8 +54,8 @@ async def change_user(curr_user: RequiredAuthProvider, body: UserPatchBody):
     description='Загрузить файл аватарки текущему пользователю',
     responses=error_responses()
 )
-async def change_avatar(curr_user: RequiredAuthProvider, file: UploadFile):
-    return await UserService().change_avatar(curr_user, file)
+async def change_avatar(user: RequiredAuthProvider, file: UploadFile):
+    return await UserService().change_avatar(user, file)
 
 
 @router.delete(
@@ -65,8 +65,8 @@ async def change_avatar(curr_user: RequiredAuthProvider, file: UploadFile):
     description='Удалить изображение аватарки текущего пользователя',
     responses=error_responses()
 )
-async def clear_avatar(curr_user: RequiredAuthProvider):
-    return await UserService().clear_avatar(curr_user)
+async def clear_avatar(user: RequiredAuthProvider):
+    return await UserService().clear_avatar(user)
 
 
 @router.patch(
@@ -78,8 +78,8 @@ async def clear_avatar(curr_user: RequiredAuthProvider):
                 '`get /public-key`. Опционально завершает все остальные активные сеансы пользователя',
     responses=error_responses()
 )
-async def change_password(curr_user: RequiredAuthProvider, body: ChangePasswordBody):
-    await UserService().change_password(curr_user, body.password, body.new_password, close_sessions=body.close_sessions)
+async def change_password(user: RequiredAuthProvider, body: ChangePasswordBody):
+    await UserService().change_password(user, body.password, body.new_password, close_sessions=body.close_sessions)
     return SuccessResponse()
 
 
@@ -92,8 +92,8 @@ async def change_password(curr_user: RequiredAuthProvider, body: ChangePasswordB
                 'пользователя будут завершены',
     responses=error_responses()
 )
-async def change_username(curr_user: RequiredAuthProvider, body: ChangeUsernameBody):
-    return await UserService().change_username(curr_user, body.new_username)
+async def change_username(user: RequiredAuthProvider, body: ChangeUsernameBody):
+    return await UserService().change_username(user, body.new_username)
 
 
 @router.delete(
@@ -104,8 +104,8 @@ async def change_username(curr_user: RequiredAuthProvider, body: ChangeUsernameB
                 'Для подтверждения этой операции требует передачи текущего пароля (в зашифрованном виде)',
     responses=error_responses()
 )
-async def delete_user(curr_user: RequiredAuthProvider, body: DeleteUserBody):
-    await UserService().delete_user(curr_user, body.password)
+async def delete_user(user: RequiredAuthProvider, body: DeleteUserBody):
+    await UserService().delete_user(user, body.password)
     return SuccessResponse()
 
 
@@ -116,8 +116,8 @@ async def delete_user(curr_user: RequiredAuthProvider, body: DeleteUserBody):
     description='Получить сохраненные на сервере настройки игрового клиента по текущему пользователю',
     responses=error_responses()
 )
-async def get_user_params(curr_user: RequiredAuthProvider):
-    return await UserService().get_user_params(curr_user)
+async def get_user_params(user: RequiredAuthProvider):
+    return await UserService().get_user_params(user)
 
 
 @router.put(
@@ -127,8 +127,8 @@ async def get_user_params(curr_user: RequiredAuthProvider):
     description='Сохранить на сервере настройки игрового клиента в данных текущего пользователя',
     responses=error_responses()
 )
-async def set_user_params(curr_user: RequiredAuthProvider, body: ClientParams):
-    await UserService().set_user_params(curr_user, body)
+async def set_user_params(user: RequiredAuthProvider, body: ClientParams):
+    await UserService().set_user_params(user, body)
     return SuccessResponse()
 
 
@@ -139,8 +139,8 @@ async def set_user_params(curr_user: RequiredAuthProvider, body: ClientParams):
     description='Получить сохраненные на сервере игровые договоренности по текущему пользователю',
     responses=error_responses()
 )
-async def get_user_game_options(curr_user: RequiredAuthProvider):
-    return await UserService().get_user_game_options(curr_user)
+async def get_user_game_options(user: RequiredAuthProvider):
+    return await UserService().get_user_game_options(user)
 
 
 @router.put(
@@ -150,8 +150,8 @@ async def get_user_game_options(curr_user: RequiredAuthProvider):
     description='Сохранить на сервере игровые договоренности в данных текущего пользователя',
     responses=error_responses()
 )
-async def set_user_game_options(curr_user: RequiredAuthProvider, body: GameOptions):
-    await UserService().set_user_game_options(curr_user, body)
+async def set_user_game_options(user: RequiredAuthProvider, body: GameOptions):
+    await UserService().set_user_game_options(user, body)
     return SuccessResponse()
 
 
@@ -178,11 +178,11 @@ async def username_is_free(username: str):
     responses=error_responses()
 )
 async def get_overall_statistics(
-    curr_user: OptionalAuthProvider, include_user_ids: Annotated[list[str] | None, Query()] = None,
+    user: OptionalAuthProvider, include_user_ids: Annotated[list[str] | None, Query()] = None,
     sort_field: StatisticsSortFields = None, sort_desc: bool = None, limit: int = None
 ):
     data = await UserService().get_statistics(
-        user=curr_user, include_user_ids=include_user_ids, sort_field=sort_field, sord_desc=sort_desc, limit=limit
+        user=user, include_user_ids=include_user_ids, sort_field=sort_field, sord_desc=sort_desc, limit=limit
     )
 
     return OverallStatisticsResponse(items=data, total=len(data))
@@ -195,6 +195,6 @@ async def get_overall_statistics(
     description='Обнулить игровую статистику текущего пользователя',
     responses=error_responses()
 )
-async def reset_user_statistics(curr_user: RequiredAuthProvider):
-    await UserService().reset_user_statistics(curr_user)
+async def reset_user_statistics(user: RequiredAuthProvider):
+    await UserService().reset_user_statistics(user)
     return SuccessResponse()

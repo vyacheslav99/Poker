@@ -56,8 +56,8 @@ async def login_by_form(request: Request, form_data: Annotated[OAuth2PasswordReq
     description='Разлогиниться и удалить текущий сеанс с сервера',
     responses=error_responses()
 )
-async def logout(curr_user: RequiredAuthProvider):
-    await Security().do_logout(curr_user)
+async def logout(user: RequiredAuthProvider):
+    await Security().do_logout(user)
     return SuccessResponse()
 
 
@@ -68,8 +68,8 @@ async def logout(curr_user: RequiredAuthProvider):
     description='Список активных сеансов текущего пользователя',
     responses=error_responses()
 )
-async def get_sessions(curr_user: RequiredAuthProvider) -> list[Session]:
-    return await Security().get_sessions(curr_user)
+async def get_sessions(user: RequiredAuthProvider) -> list[Session]:
+    return await Security().get_sessions(user)
 
 
 @router.delete(
@@ -79,8 +79,8 @@ async def get_sessions(curr_user: RequiredAuthProvider) -> list[Session]:
     description='Завершить все прочие сеансы пользователя, кроме текущего - т.е. разлогинить все остальные сеансы',
     responses=error_responses()
 )
-async def close_another_sessions(curr_user: RequiredAuthProvider):
-    return DeletedResponse(deleted=await Security().close_another_sessions(curr_user))
+async def close_another_sessions(user: RequiredAuthProvider):
+    return DeletedResponse(deleted=await Security().close_another_sessions(user))
 
 
 @router.delete(
@@ -89,6 +89,6 @@ async def close_another_sessions(curr_user: RequiredAuthProvider):
     summary='Завершить конкретный сеанс',
     responses=error_responses()
 )
-async def close_session(curr_user: RequiredAuthProvider, session_id: uuid.UUID):
-    await Security().close_session(curr_user, session_id)
+async def close_session(user: RequiredAuthProvider, session_id: uuid.UUID):
+    await Security().close_session(user, session_id)
     return DeletedResponse(deleted=1)
