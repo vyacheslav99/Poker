@@ -7,8 +7,9 @@ class BadRequestError(HTTPException):
     detail = 'Bad request'
 
     def __init__(self, status_code: int = None, detail: Any = None):
+        self.status_code = status_code or self.status_code
         self.detail = detail or self.detail
-        super().__init__(status_code or self.status_code, detail=self.detail)
+        super().__init__(self.status_code, detail=self.detail)
 
 
 class UnauthorizedError(HTTPException):
