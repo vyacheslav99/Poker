@@ -68,7 +68,7 @@ async def logout(user: RequiredAuthProvider):
     description='Список активных сеансов текущего пользователя',
     responses=error_responses()
 )
-async def get_sessions(user: RequiredAuthProvider) -> list[Session]:
+async def get_sessions(user: RequiredAuthProvider):
     return await Security().get_sessions(user)
 
 
