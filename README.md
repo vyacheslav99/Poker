@@ -33,7 +33,7 @@
   
 ## Приложения
 
-#### gui
+#### gui (singleplayer)
 
 Требования:
 * python 3.10
@@ -44,7 +44,14 @@
 * утановить/обновить зависимости командой:
   * `pipenv install`
   * `pipenv update`
+* создать файл настроек `poker.ini` скопировав `poker.ini.tmpl` в `poker.ini`
+* настроить все что надо в полученном файле
 * запустить игру:
   `python poker.py`
   * или для запуска через `pipenv`:
   `pipenv run python poker.py`
+
+#### gui (multiplayer)
+
+* все то же самое, что и в singleplayer, только запускать приложение с параметром `--mp`
+  `pipenv run python poker.py --mp`
