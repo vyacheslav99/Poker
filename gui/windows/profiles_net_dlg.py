@@ -10,6 +10,7 @@ from gui.common import const
 from gui.common.utils import handle_client_exception
 from gui.common.client import GameServerClient
 from gui.common.graphics import Face2
+from gui.windows.sessions_dlg import SessionsDialog
 
 
 class ProfilesNetDialog(QDialog):
@@ -200,6 +201,13 @@ class ProfilesNetDialog(QDialog):
         self._avatar = QLabel()
         l2.addWidget(self._avatar_btn)
         layout.addLayout(l2, 1, 2, row, 1, Qt.AlignTop)
+
+        # кнопка Просмотр сеансов
+        btn = QPushButton(' Сеансы пользователя')
+        btn.setFixedWidth(190)
+        btn.setToolTip('Просмотр и управление сеансами пользователя')
+        btn.clicked.connect(self._show_sessions)
+        layout.addWidget(btn, row, 2, 1, 1, Qt.AlignBottom | Qt.AlignRight)
 
         group.setLayout(layout)
         main_layout.addWidget(group)
@@ -459,3 +467,11 @@ class ProfilesNetDialog(QDialog):
             pixmap = pixmap.copy(x, y, const.USER_FACE_SIZE[0], const.USER_FACE_SIZE[1])
 
         return pixmap
+
+    def _show_sessions(self):
+        dlg = SessionsDialog(self, self.game_svc_cli)
+
+        try:
+            dlg.exec()
+        finally:
+            dlg.destroy()
