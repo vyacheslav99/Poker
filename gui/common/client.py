@@ -12,6 +12,7 @@ from requests.exceptions import RequestException
 
 from gui import config
 from gui.common import const
+from gui.common.models import Session
 from models.params import Params, Options
 from models.player import Player
 
@@ -169,6 +170,7 @@ class GameServerClient(BaseClient):
     USER_AVATAR_PATH = f'{USER_PATH}/avatar'
     USER_PARAMS_PATH = f'{USER_PATH}/params'
     USER_OPTIONS_PATH = f'{USER_PATH}/game_options'
+    SESSIONS_PATH = f'{USER_PATH}/sessions'
 
     def is_alive(self) -> tuple[bool, str]:
         try:
@@ -358,3 +360,15 @@ class GameServerClient(BaseClient):
         """ Сброс статистики текущего авторизованного пользователя """
 
         self.delete(f'{self.USER_PATH}/statistics')
+
+    def get_sessions(self) -> list[Session]:
+        resp = self.get(self.SESSIONS_PATH)
+        return [Session(**session) for session in resp.json()]
+
+    def close_another_sessions(self) -> int:
+        resp = self.delete(self.SESSIONS_PATH)
+        data = resp.json()
+        return data.get('deleted')
+
+    def close_session(self, session_id: uuid.UUID | str):
+        self.delete(f'{self.SESSIONS_PATH}/{session_id}')
