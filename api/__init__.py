@@ -12,6 +12,7 @@ from api import db, config
 from .handlers.common import router as common_router
 from .handlers.security import router as security_router
 from .handlers.user import router as user_router
+from .handlers.game import router as game_router
 
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ def get_api_routers() -> APIRouter:
     router.include_router(common_router)
     router.include_router(security_router)
     router.include_router(user_router)
+    router.include_router(game_router)
     return router
 
 

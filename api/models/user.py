@@ -1,5 +1,4 @@
-import uuid
-
+from uuid import UUID
 from enum import StrEnum
 from datetime import datetime
 from pydantic import BaseModel
@@ -8,7 +7,7 @@ from api.models.model import ModelMixin
 
 
 class UserPublic(BaseModel):
-    uid: uuid.UUID
+    uid: UUID
     username: str
     fullname: str
     avatar: str | None = None
@@ -17,7 +16,7 @@ class UserPublic(BaseModel):
 class User(UserPublic):
     password: str
     disabled: bool = False
-    curr_sid: uuid.UUID | None = None
+    curr_sid: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -109,7 +108,7 @@ class StatisticsItem(BaseModel):
 
 
 class UserStatistics(StatisticsItem):
-    uid: uuid.UUID
+    uid: UUID
     name: str
     avatar: str | None = None
     is_robot: bool = False

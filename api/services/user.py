@@ -1,6 +1,6 @@
 import os
-import uuid
 
+from uuid import UUID, uuid4
 from fastapi import status, UploadFile
 from fastapi.exceptions import RequestValidationError
 from asyncpg.exceptions import UniqueViolationError
@@ -33,7 +33,7 @@ class UserService:
 
         try:
             return await UserRepo.create_user(User(
-                uid=uuid.uuid4(),
+                uid=uuid4(),
                 username=user.username,
                 password=self._sec.calc_hash(self._sec.decrypt_password(user.password)),
                 fullname=user.username
@@ -190,8 +190,8 @@ class UserService:
         return False if user else True
 
     async def get_statistics(
-        self, user: User = None, include_user_ids: list[uuid.UUID] = None, sort_field: str = None,
-        sord_desc: bool = None, limit: int = None
+        self, user: User = None, include_user_ids: list[UUID] = None, sort_field: str = None, sord_desc: bool = None,
+        limit: int = None
     ) -> list[UserStatistics]:
         include_user_ids = include_user_ids or []
 

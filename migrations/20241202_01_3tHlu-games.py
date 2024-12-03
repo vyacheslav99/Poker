@@ -20,7 +20,7 @@ create table public.games
         constraint games_users_uid_fk
             references public.users
             on update cascade on delete cascade,
-    status      varchar(16)                           not null,
+    status      varchar(32)                           not null,
     created_at  timestamptz default current_timestamp not null,
     started_at  timestamptz,
     paused_at   timestamptz,

@@ -15,7 +15,6 @@ class CompositeExpression:
     def __init__(
         self, type: CompositeExpressionType, *expressions: typing.Union['CompositeExpression', str],
     ):
-
         self.type = type
         self.expressions: typing.List[typing.Union[CompositeExpression, str]] = []
 

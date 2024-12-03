@@ -1,5 +1,4 @@
-import uuid
-
+from uuid import UUID
 from api import db
 from api.db.expressions import condition
 from api.models.user import User, ClientParams, GameOptions, StatisticsItem, UserStatistics
@@ -12,7 +11,7 @@ class UserRepo:
     _protected_user_fileds = ['uid']
 
     @staticmethod
-    async def get_user(user_id: uuid.UUID | str = None, username: str = None) -> User | None:
+    async def get_user(user_id: UUID | str = None, username: str = None) -> User | None:
         if not user_id and not username:
             raise Exception('Один из параметров должен быть передан: user_id or username')
 
@@ -38,7 +37,7 @@ class UserRepo:
         return User(**res) if res else None
 
     @staticmethod
-    async def update_user(user_id: uuid.UUID, **data) -> User:
+    async def update_user(user_id: UUID, **data) -> User:
         fields = db.expressions.set()
 
         for k, v in data.items():
@@ -60,11 +59,11 @@ class UserRepo:
         return User(**row) if row else None
 
     @staticmethod
-    async def delete_user(user_id: uuid.UUID):
+    async def delete_user(user_id: UUID):
         await db.execute('delete from users where uid = %(uid)s', uid=user_id)
 
     @staticmethod
-    async def get_session(session_id: uuid.UUID) -> Session | None:
+    async def get_session(session_id: UUID) -> Session | None:
         sql = """
         select s.*, u.username
         from session s
@@ -76,7 +75,7 @@ class UserRepo:
         return Session.make(dict(row)) if row else None
 
     @staticmethod
-    async def get_user_sessions(user_id: uuid.UUID) -> list[Session]:
+    async def get_user_sessions(user_id: UUID) -> list[Session]:
         sql = """
         select s.*, u.username
         from session s
@@ -97,18 +96,18 @@ class UserRepo:
         await db.execute(sql, **session.dump())
 
     @staticmethod
-    async def delete_sessions(session_ids: list[uuid.UUID]):
+    async def delete_sessions(session_ids: list[UUID]):
         await db.execute('delete from session where sid = any(%(session_ids)s)', session_ids=session_ids)
 
     @staticmethod
-    async def get_user_params(user_id: uuid.UUID) -> ClientParams | None:
+    async def get_user_params(user_id: UUID) -> ClientParams | None:
         sql = 'select * from user_params where uid = %(uid)s'
 
         row = await db.fetchone(sql, uid=user_id)
         return ClientParams.make(dict(row)) if row else None
 
     @staticmethod
-    async def set_user_params(user_id: uuid.UUID, params: ClientParams):
+    async def set_user_params(user_id: UUID, params: ClientParams):
         sql = """
         insert into user_params (uid, color_theme, style, deck_type, back_type, sort_order, lear_order, start_type,
             custom_decoration, show_bikes)
@@ -130,14 +129,14 @@ class UserRepo:
         await db.execute(sql, uid=user_id, **params.dump())
 
     @staticmethod
-    async def get_user_game_options(user_id: uuid.UUID) -> GameOptions | None:
+    async def get_user_game_options(user_id: UUID) -> GameOptions | None:
         sql = 'select * from user_game_options where uid = %(uid)s'
 
         row = await db.fetchone(sql, uid=user_id)
         return GameOptions(**row) if row else None
 
     @staticmethod
-    async def set_user_game_options(user_id: uuid.UUID, options: GameOptions):
+    async def set_user_game_options(user_id: UUID, options: GameOptions):
         sql = """
         insert into user_game_options (uid, game_sum_by_diff, dark_allowed, third_pass_limit, fail_subtract_all,
             no_joker, joker_give_at_par, joker_demand_peak, pass_factor, gold_mizer_factor, dark_notrump_factor,
@@ -172,7 +171,7 @@ class UserRepo:
 
     @staticmethod
     async def get_statistics(
-        include_user_ids: list[uuid.UUID] = None, sort_field: str = 'summary', sord_desc: bool = True, limit: int = 20
+        include_user_ids: list[UUID] = None, sort_field: str = 'summary', sord_desc: bool = True, limit: int = 20
     ) -> list[UserStatistics]:
         sql = f"""
         with stat1 as (
@@ -203,7 +202,7 @@ class UserRepo:
         return [UserStatistics(**row) for row in data]
 
     @staticmethod
-    async def set_user_statistics(user_id: uuid.UUID, item: StatisticsItem):
+    async def set_user_statistics(user_id: UUID, item: StatisticsItem):
         sql = """
         insert into statistics (uid, started, completed, thrown, winned, lost, summary, total_money, last_scores,
             last_money, best_scores, best_money, worse_scores, worse_money)

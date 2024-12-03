@@ -1,5 +1,4 @@
-import uuid
-
+from uuid import UUID
 from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
@@ -89,6 +88,6 @@ async def close_another_sessions(user: RequiredAuthProvider):
     summary='Завершить конкретный сеанс',
     responses=error_responses()
 )
-async def close_session(user: RequiredAuthProvider, session_id: uuid.UUID):
+async def close_session(user: RequiredAuthProvider, session_id: UUID):
     await Security().close_session(user, session_id)
     return DeletedResponse(deleted=1)
