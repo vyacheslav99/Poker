@@ -3,7 +3,8 @@ from fastapi import APIRouter, status, UploadFile, Query
 
 from api.handlers import RequiredAuthProvider, OptionalAuthProvider
 from api.models.user import (UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody,
-                             ClientParams, GameOptions, OverallStatisticsResponse, StatisticsSortFields)
+                             ClientParams, OverallStatisticsResponse, StatisticsSortFields)
+from api.models.game import GameOptions
 from api.models.security import Token, LoginBody
 from api.models.common import SuccessResponse, error_responses
 from api.services.user import UserService

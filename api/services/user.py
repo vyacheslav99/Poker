@@ -7,7 +7,8 @@ from asyncpg.exceptions import UniqueViolationError
 
 from gui.common.const import LOGIN_ALLOW_LITERALS
 from api import config
-from api.models.user import User, UserPatchBody, ClientParams, GameOptions, UserStatistics, StatisticsItem
+from api.models.user import User, UserPatchBody, ClientParams, UserStatistics, StatisticsItem
+from api.models.game import GameOptions
 from api.models.security import Token, LoginBody
 from api.models.exceptions import NoChangesError, BadRequestError, NotFoundError, ForbiddenError
 from api.models.http import AVAILABLE_IMAGE_TYPES

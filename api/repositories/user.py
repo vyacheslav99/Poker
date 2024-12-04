@@ -1,7 +1,8 @@
 from uuid import UUID
 from api import db
 from api.db.expressions import condition
-from api.models.user import User, ClientParams, GameOptions, StatisticsItem, UserStatistics
+from api.models.user import User, ClientParams, StatisticsItem, UserStatistics
+from api.models.game import GameOptions
 from api.models.security import Session
 from api.models.exceptions import NoChangesError
 

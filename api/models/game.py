@@ -53,3 +53,24 @@ class GamePatchBody(BaseModel):
     code: str = Field(min_length=1, default=None)
     name: str = Field(min_length=3, default=None)
     players_cnt: int = Field(ge=3, le=4, default=None)
+
+
+class GameOptions(BaseModel):
+    game_sum_by_diff: bool
+    dark_allowed: bool
+    third_pass_limit: bool
+    fail_subtract_all: bool
+    no_joker: bool
+    joker_give_at_par: bool
+    joker_demand_peak: bool
+    pass_factor: int
+    gold_mizer_factor: int
+    dark_notrump_factor: int
+    brow_factor: int
+    dark_mult: int
+    gold_mizer_on_null: bool
+    on_all_order: bool
+    take_block_bonus: bool
+    bet: int
+    players_cnt: int
+    deal_types: list[int]
