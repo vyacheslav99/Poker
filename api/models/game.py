@@ -74,3 +74,8 @@ class GameOptions(BaseModel):
     bet: int
     players_cnt: int
     deal_types: list[int]
+
+
+class PlayerAddBody(BaseModel):
+    user_id: UUID = Field(default=None)
+    username: str = Field(default=None)

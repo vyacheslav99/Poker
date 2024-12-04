@@ -1,15 +1,16 @@
 from fastapi import APIRouter, status
 
 from api.handlers import RequiredAuthProvider
-from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions
+from api.models.user import UserPublic
+from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody
 from api.models.common import SuccessResponse, error_responses
 from api.services.game import GameService
 
-router = APIRouter(prefix='/api', tags=['game'])
+router = APIRouter(prefix='/api/game', tags=['game'])
 
 
 @router.post(
-    path='/game',
+    path='',
     response_model=GameModel,
     status_code=status.HTTP_201_CREATED,
     summary='Создать новую игру',
@@ -21,7 +22,7 @@ async def create_game(user: RequiredAuthProvider, body: GameCreateBody):
 
 
 @router.get(
-    path='/game/{game_id}',
+    path='/{game_id}',
     response_model=GameModel,
     summary='Получить шапку игры',
     responses=error_responses()
@@ -31,7 +32,7 @@ async def get_game(user: RequiredAuthProvider, game_id: int):
 
 
 @router.patch(
-    path='/game/{game_id}',
+    path='/{game_id}',
     response_model=SuccessResponse,
     summary='Сохранить данные шапки игры',
     responses=error_responses()
@@ -42,7 +43,7 @@ async def set_game_data(user: RequiredAuthProvider, game_id: int, body: GamePatc
 
 
 @router.get(
-    path='/game/{game_id}/options',
+    path='/{game_id}/options',
     response_model=GameOptions,
     summary='Получить договоренности',
     description='Получить договоренности по игре',
@@ -53,7 +54,7 @@ async def get_game_options(user: RequiredAuthProvider, game_id: int):
 
 
 @router.put(
-    path='/game/{game_id}/options',
+    path='/{game_id}/options',
     response_model=SuccessResponse,
     summary='Сохранить договоренности',
     description='Сохранить договоренности по игре',
@@ -62,3 +63,14 @@ async def get_game_options(user: RequiredAuthProvider, game_id: int):
 async def set_game_options(user: RequiredAuthProvider, game_id: int, body: GameOptions):
     await GameService().set_game_options(user, game_id, body)
     return SuccessResponse()
+
+
+@router.put(
+    path='/{game_id}/player',
+    response_model=list[UserPublic],
+    summary='Добавить игрока в игру',
+    description='Добавить в игру еще одного игрока. Доступно добавление только игрока-ИИ (робота)',
+    responses=error_responses()
+)
+async def add_player(user: RequiredAuthProvider, game_id: int, body: PlayerAddBody):
+    return await GameService().add_player(user, game_id, body)

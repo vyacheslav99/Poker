@@ -30,9 +30,9 @@ class GameRepo:
     async def get_game(game_id: int) -> GameModel | None:
         sql = """
         select g.*,
-            jsonb_agg(
-                json_build_object('uid', u.uid, 'username', u.username, 'fullname', u.fullname, 'avatar', u.avatar)
-            ) as players
+            jsonb_agg(json_build_object(
+                'uid', u.uid, 'username', u.username, 'fullname', u.fullname, 'avatar', u.avatar, 'is_robot', u.is_robot
+            )) as players
         from games g
             left join game_players gp on gp.game_id = g.id
             left join users u on u.uid = gp.player_id
@@ -46,7 +46,7 @@ class GameRepo:
     @staticmethod
     async def get_game_players(game_id: int) -> list[UserPublic]:
         sql = """
-        select u.uid, u.username, u.fullname, u.avatar
+        select u.uid, u.username, u.fullname, u.avatar, u.is_robot
         from game_players gp
             join users u on u.uid = gp.player_id
         where gp.game_id = %(game_id)s
@@ -113,3 +113,8 @@ class GameRepo:
         """
 
         await db.execute(sql, game_id=game_id, **options.model_dump())
+
+    @staticmethod
+    async def add_player(game_id: int, player_id: UUID):
+        sql = 'insert into game_players (game_id, player_id) values (%(game_id)s, %(player_id)s)'
+        await db.execute(sql, game_id=game_id, player_id=player_id)
