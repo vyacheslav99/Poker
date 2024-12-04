@@ -1,19 +1,18 @@
-from typing import Annotated
-from fastapi import APIRouter, status, UploadFile, Query
+from fastapi import APIRouter, status, UploadFile
 
-from api.handlers import RequiredAuthProvider, OptionalAuthProvider
+from api.handlers import RequiredAuthProvider
 from api.models.user import (UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody,
-                             ClientParams, OverallStatisticsResponse, StatisticsSortFields)
+                             ClientParams)
 from api.models.game import GameOptions
 from api.models.security import Token, LoginBody
 from api.models.common import SuccessResponse, error_responses
 from api.services.user import UserService
 
-router = APIRouter(prefix='/api', tags=['user'])
+router = APIRouter(prefix='/api/user', tags=['user'])
 
 
 @router.post(
-    path='/user',
+    path='',
     response_model=UserPublic,
     status_code=status.HTTP_201_CREATED,
     summary='Зарегистрировать нового пользователя',
@@ -26,7 +25,7 @@ async def create_user(body: LoginBody):
 
 
 @router.get(
-    path='/user',
+    path='',
     response_model=UserPublic,
     summary='Текущий пользователь',
     description='Получить текущего авторизованного пользователя',
@@ -37,7 +36,7 @@ async def get_current_user(user: RequiredAuthProvider):
 
 
 @router.patch(
-    path='/user',
+    path='',
     response_model=UserPublic,
     summary='Изменить данные пользователя',
     description='Изменить данные текущего пользователя. Меняет только те поля, что переданы в запросе, '
@@ -49,7 +48,7 @@ async def change_user(user: RequiredAuthProvider, body: UserPatchBody):
 
 
 @router.put(
-    path='/user/avatar',
+    path='/avatar',
     response_model=UserPublic,
     summary='Загрузить аватарку пользователя',
     description='Загрузить файл аватарки текущему пользователю',
@@ -60,7 +59,7 @@ async def change_avatar(user: RequiredAuthProvider, file: UploadFile):
 
 
 @router.delete(
-    path='/user/avatar',
+    path='/avatar',
     response_model=UserPublic,
     summary='Удалить аватарку',
     description='Удалить изображение аватарки текущего пользователя',
@@ -71,7 +70,7 @@ async def clear_avatar(user: RequiredAuthProvider):
 
 
 @router.patch(
-    path='/user/passwd',
+    path='/passwd',
     response_model=SuccessResponse,
     summary='Сменить пароль пользователя',
     description='Изменить пароль текущего пользователя на новый. Требует передачи корректного текущего пароля. '
@@ -85,7 +84,7 @@ async def change_password(user: RequiredAuthProvider, body: ChangePasswordBody):
 
 
 @router.patch(
-    path='/user/username',
+    path='/username',
     response_model=Token,
     summary='Изменение логина пользователя',
     description='Изменяет логин текущего пользователя на переданный. Из-за изменения логина текущий токен сессии '
@@ -98,7 +97,7 @@ async def change_username(user: RequiredAuthProvider, body: ChangeUsernameBody):
 
 
 @router.delete(
-    path='/user',
+    path='',
     response_model=SuccessResponse,
     summary='Удалить текущего пользователя',
     description='Физически удаляет текущего пользователя и все его данные с сервера. Без возможности восстановления! '
@@ -111,7 +110,7 @@ async def delete_user(user: RequiredAuthProvider, body: DeleteUserBody):
 
 
 @router.get(
-    path='/user/params',
+    path='/params',
     response_model=ClientParams,
     summary='Получить настройки gui-клиента',
     description='Получить сохраненные на сервере настройки игрового клиента по текущему пользователю',
@@ -122,7 +121,7 @@ async def get_user_params(user: RequiredAuthProvider):
 
 
 @router.put(
-    path='/user/params',
+    path='/params',
     response_model=SuccessResponse,
     summary='Сохранить настройки gui-клиента',
     description='Сохранить на сервере настройки игрового клиента в данных текущего пользователя',
@@ -134,7 +133,7 @@ async def set_user_params(user: RequiredAuthProvider, body: ClientParams):
 
 
 @router.get(
-    path='/user/game_options',
+    path='/game_options',
     response_model=GameOptions,
     summary='Получить игровые договоренности',
     description='Получить сохраненные на сервере игровые договоренности по текущему пользователю',
@@ -145,7 +144,7 @@ async def get_user_game_options(user: RequiredAuthProvider):
 
 
 @router.put(
-    path='/user/game_options',
+    path='/game_options',
     response_model=SuccessResponse,
     summary='Сохранить игровые договоренности',
     description='Сохранить на сервере игровые договоренности в данных текущего пользователя',
@@ -156,41 +155,8 @@ async def set_user_game_options(user: RequiredAuthProvider, body: GameOptions):
     return SuccessResponse()
 
 
-@router.get(
-    path='/is_free_username',
-    response_model=SuccessResponse,
-    summary='Проверить логин',
-    description='Проверить, свободен ли переданный логин. Полезно сделать перед регистрацией пользователя на клиенте, '
-                'чтоб не получить ошибку регистрации пользователя',
-    response_description='Вернет `success: false` если логин занят иначе `true`',
-    responses=error_responses()
-)
-async def username_is_free(username: str):
-    is_free = await UserService().username_is_free(username)
-    return SuccessResponse(success=is_free)
-
-
-@router.get(
-    path='/statistics',
-    response_model=OverallStatisticsResponse,
-    summary='Статистика игроков (таблица лучших)',
-    description='Получить статистику по результатам лучших игроков + текущего авторизованного пользователя, '
-                'если авторизован + переданных на вход игроков по их id',
-    responses=error_responses()
-)
-async def get_overall_statistics(
-    user: OptionalAuthProvider, include_user_ids: Annotated[list[str] | None, Query()] = None,
-    sort_field: StatisticsSortFields = None, sort_desc: bool = None, limit: int = None
-):
-    data = await UserService().get_statistics(
-        user=user, include_user_ids=include_user_ids, sort_field=sort_field, sord_desc=sort_desc, limit=limit
-    )
-
-    return OverallStatisticsResponse(items=data, total=len(data))
-
-
 @router.delete(
-    path='/user/statistics',
+    path='/statistics',
     response_model=SuccessResponse,
     summary='Сброс статистики пользователя',
     description='Обнулить игровую статистику текущего пользователя',
