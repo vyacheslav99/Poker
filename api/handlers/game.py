@@ -18,3 +18,13 @@ router = APIRouter(prefix='/api', tags=['game'])
 )
 async def create_game(user: RequiredAuthProvider, body: GameCreateBody):
     return await GameService().create_game(user, body)
+
+
+@router.get(
+    path='/game/{game_id}',
+    response_model=GameModel,
+    summary='Получить данные игры',
+    responses=error_responses()
+)
+async def get_game(user: RequiredAuthProvider, game_id: int):
+    return await GameService().get_game(user, game_id)

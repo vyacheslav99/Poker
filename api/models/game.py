@@ -3,6 +3,7 @@ from enum import StrEnum
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+from api.models.model import ModelMixin
 from api.models.user import UserPublic
 
 
@@ -30,7 +31,10 @@ class GameCreateBody(BaseModel):
     players_cnt: int = Field(ge=3, le=4)
 
 
-class GameModel(BaseModel):
+class GameModel(BaseModel, ModelMixin):
+
+    _json_fields = {'players'}
+
     id: int
     code: str
     name: str

@@ -26,6 +26,23 @@ class GameRepo:
         return res
 
     @staticmethod
+    async def get_game(game_id: int) -> GameModel | None:
+        sql = """
+        select g.*,
+            jsonb_agg(
+                json_build_object('uid', u.uid, 'username', u.username, 'fullname', u.fullname, 'avatar', u.avatar)
+            ) as players
+        from games g
+            left join game_players gp on gp.game_id = g.id
+            left join users u on u.uid = gp.player_id
+        where g.id = 1
+        group by g.id        
+        """
+
+        row = await db.fetchone(sql, game_id=game_id)
+        return GameModel.make(dict(row)) if row else None
+
+    @staticmethod
     async def get_game_players(game_id: int) -> list[UserPublic]:
         sql = """
         select u.uid, u.username, u.fullname, u.avatar
