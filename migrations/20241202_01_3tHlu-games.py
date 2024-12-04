@@ -94,5 +94,10 @@ create table game_options
     created_at          timestamp with time zone default CURRENT_TIMESTAMP,
     updated_at          timestamp with time zone
 );
+    """),
+
+    step("""
+alter table public.users
+    add is_robot boolean not null default false;    
     """)
 ]
