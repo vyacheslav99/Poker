@@ -3,6 +3,7 @@ from uuid import UUID
 from api import db
 from api.db.expressions import condition
 from api.models.game import GameCreateBody, GameModel, GameStatusEnum
+from api.models.exceptions import NoChangesError
 from api.models.user import UserPublic
 
 
@@ -53,3 +54,21 @@ class GameRepo:
 
         data = await db.fetchall(sql, game_id=game_id)
         return [UserPublic(**row) for row in data]
+
+    @staticmethod
+    async def set_game_data(game_id: int, **data):
+        fields = db.expressions.set()
+
+        for k, v in data.items():
+            fields.field(k, v)
+
+        if not fields.values:
+            raise NoChangesError('Nothing to change')
+
+        sql = f"""
+        update games set
+            {fields}
+        where id = %(game_id)s
+        """
+
+        await db.execute(sql, game_id=game_id, **fields.values)

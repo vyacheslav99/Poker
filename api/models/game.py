@@ -36,7 +36,7 @@ class GameModel(BaseModel, ModelMixin):
     _json_fields = {'players'}
 
     id: int
-    code: str
+    code: str | None
     name: str
     owner_id: UUID
     status: GameStatusEnum
@@ -47,3 +47,9 @@ class GameModel(BaseModel, ModelMixin):
     paused_at: datetime | None = None
     resumed_at: datetime | None = None
     finished_at: datetime | None = None
+
+
+class GamePatchBody(BaseModel):
+    code: str = Field(min_length=1, default=None)
+    name: str = Field(min_length=3, default=None)
+    players_cnt: int = Field(ge=3, le=4, default=None)
