@@ -15,6 +15,7 @@ class UserPublic(BaseModel):
 class User(UserPublic):
     password: str
     disabled: bool = False
+    is_robot: bool = False
     curr_sid: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

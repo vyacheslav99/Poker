@@ -131,7 +131,7 @@ class Security:
             if not user or session.uid != user.uid:
                 raise UnauthorizedError(detail='Invalid token')
 
-            if user.disabled:
+            if user.disabled or user.is_robot:
                 raise UnauthorizedError(detail='User is blocked')
 
             if datetime.now(tz=timezone.utc) > datetime.fromtimestamp(payload.exp, tz=timezone.utc):
@@ -165,7 +165,7 @@ class Security:
 
         user = await UserRepo.get_user(username=username)
 
-        if not user or user.disabled or not self.verify_hash(passwd_plain, user.password):
+        if not user or user.disabled or user.is_robot or not self.verify_hash(passwd_plain, user.password):
             raise ForbiddenError(detail='Incorrect username or password')
 
         session = Session(
