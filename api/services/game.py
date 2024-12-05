@@ -84,7 +84,6 @@ class GameService:
 
     async def get_game_options(self, user: User, game_id: int) -> GameOptions:
         await self.get_game(user, game_id)
-
         opts = await GameRepo.get_game_options(game_id)
 
         if not opts:
