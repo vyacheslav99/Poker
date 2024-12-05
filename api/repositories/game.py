@@ -36,7 +36,7 @@ class GameRepo:
         from games g
             left join game_players gp on gp.game_id = g.id
             left join users u on u.uid = gp.player_id
-        where g.id = 1
+        where g.id = %(game_id)s
         group by g.id        
         """
 
