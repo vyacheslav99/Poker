@@ -159,14 +159,15 @@ class BaseClient:
         return b64_value.decode()
 
     def load_public_key(self):
-        resp = self.get('public-key')
+        resp = self.get('/v1/public-key')
         self._public_key = resp.text
 
 
 class GameServerClient(BaseClient):
 
     FILES_BASE_PATH = '/static/files'
-    USER_PATH = '/user'
+    V1_PATH = '/v1'
+    USER_PATH = f'{V1_PATH}/user'
     USER_AVATAR_PATH = f'{USER_PATH}/avatar'
     USER_PARAMS_PATH = f'{USER_PATH}/params'
     USER_OPTIONS_PATH = f'{USER_PATH}/game_options'
@@ -185,7 +186,7 @@ class GameServerClient(BaseClient):
             return False, 'Server unavailable'
 
     def username_is_free(self, username: str) -> bool:
-        resp = self.get('/is_free_username', query={'username': username})
+        resp = self.get('/v1/is_free_username', query={'username': username})
         data = resp.json()
         return data['success']
 
@@ -226,13 +227,13 @@ class GameServerClient(BaseClient):
             'password': self.encrypt(password)
         }
 
-        resp = self.post('/login', json=payload)
+        resp = self.post('/v1/login', json=payload)
         data = resp.json()
         self.token = data.get('access_token')
         return self.token
 
     def logout(self):
-        self.post('/logout')
+        self.post('/v1/logout')
         self.token = None
 
     def delete_user(self, password: str):
@@ -351,7 +352,7 @@ class GameServerClient(BaseClient):
         if limit:
             query['limit'] = limit
 
-        resp = self.get('/statistics', query=query)
+        resp = self.get('/v1/statistics', query=query)
         data = resp.json()
 
         return [Player(**row) for row in data['items']]
