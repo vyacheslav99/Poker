@@ -52,9 +52,7 @@ create table public.game_players
     scores     integer,
     money      double precision,
     is_winner  boolean     default false,
-    created_at timestamptz default current_timestamp not null,
-    constraint game_players_pk
-        unique (game_id, player_id)
+    created_at timestamptz default current_timestamp not null
 );
 
 create index game_players_game_id_idx
