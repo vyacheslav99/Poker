@@ -6,7 +6,6 @@ from api.models.statistics import OverallStatisticsResponse, StatisticsSortField
 from api.models.common import SuccessResponse, error_responses
 from api.services.misc import MiscService
 
-
 router = APIRouter(tags=['misc'])
 
 
