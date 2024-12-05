@@ -118,3 +118,8 @@ class GameRepo:
     async def add_player(game_id: int, player_id: UUID):
         sql = 'insert into game_players (game_id, player_id) values (%(game_id)s, %(player_id)s)'
         await db.execute(sql, game_id=game_id, player_id=player_id)
+
+    @staticmethod
+    async def del_player(game_id: int, player_id: UUID):
+        sql = 'delete from game_players where game_id = %(game_id)s and player_id = %(player_id)s'
+        await db.execute(sql, game_id=game_id, player_id=player_id)

@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, status
 
 from api.handlers import RequiredAuthProvider
@@ -74,3 +75,13 @@ async def set_game_options(user: RequiredAuthProvider, game_id: int, body: GameO
 )
 async def add_player(user: RequiredAuthProvider, game_id: int, body: PlayerAddBody):
     return await GameService().add_player(user, game_id, body)
+
+
+@router.delete(
+    path='/{game_id}/player/{player_id}',
+    response_model=list[UserPublic],
+    summary='Выгнать игрока из игры',
+    responses=error_responses()
+)
+async def del_player(user: RequiredAuthProvider, game_id: int, player_id: UUID):
+    return await GameService().del_player(user, game_id, player_id)

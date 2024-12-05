@@ -1,5 +1,7 @@
 import secrets
 
+from uuid import UUID
+
 from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody
 from api.models.user import User, UserPublic
 from api.models.exceptions import NotFoundError, ForbiddenError, NoChangesError, BadRequestError
@@ -85,4 +87,9 @@ class GameService:
                 raise BadRequestError(detail='Такой игрок уже есть среди участников игры')
 
         await GameRepo.add_player(game_id, player.uid)
+        return await GameRepo.get_game_players(game_id)
+
+    async def del_player(self, user: User, game_id: int, player_id: UUID) -> list[UserPublic]:
+        await self.get_game(user, game_id, access_only_owner=True)
+        await GameRepo.del_player(game_id, player_id)
         return await GameRepo.get_game_players(game_id)
