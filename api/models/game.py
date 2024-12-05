@@ -13,8 +13,6 @@ class GameStatusEnum(StrEnum):
     DRAFT = 'draft'
     # Ожидание игроков. Этап присоединения игроков. Видят все
     WAITING = 'waiting'
-    # Готова к старту. Игра настроена и готова к старту, все игроки присоединились. Видят только участники
-    READY = 'ready'
     # Игра начата
     STARTED = 'started'
     # Пауза (приостановлена)
@@ -23,6 +21,18 @@ class GameStatusEnum(StrEnum):
     FINISHED = 'finished'
     # Игра брошена (один или несколько игроков покинули игру и не стали доигрывать)
     ABORTED = 'aborted'
+
+    @classmethod
+    def editing_statuses(cls):
+        return {cls.DRAFT, cls.WAITING}
+
+    @classmethod
+    def playing_statuses(cls):
+        return {cls.STARTED, cls.PAUSED}
+
+    @classmethod
+    def finished_statuses(cls):
+        return {cls.FINISHED, cls.ABORTED}
 
 
 class GameCreateBody(BaseModel):
@@ -47,6 +57,9 @@ class GameModel(BaseModel, ModelMixin):
     paused_at: datetime | None = None
     resumed_at: datetime | None = None
     finished_at: datetime | None = None
+
+    def allow_edit(self) -> bool:
+        return self.status in GameStatusEnum.editing_statuses()
 
 
 class GamePatchBody(BaseModel):
