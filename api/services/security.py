@@ -2,8 +2,8 @@ import jwt
 import logging
 import base64
 import rsa
-import uuid
 
+from uuid import UUID, uuid4
 from datetime import timedelta, datetime, timezone
 from jwt.exceptions import InvalidTokenError
 from fastapi import Request, Depends, status
@@ -51,7 +51,7 @@ class Security:
 
         return decrypted_pwd
 
-    def create_access_token(self, username: str, session_id: uuid.UUID, expires_delta: timedelta = None) -> str:
+    def create_access_token(self, username: str, session_id: UUID, expires_delta: timedelta = None) -> str:
         """
         Создает Bearer токен для авторизации по нему на стороне клиента (клиент будет передавать его в хедере
         Authorization авторизованных запросов)
@@ -82,7 +82,7 @@ class Security:
         raise NotFoundError(detail='No public keys found')
 
     @staticmethod
-    async def get_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> User:
+    async def get_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/v1/login-form'))) -> User:
         """
         Проверка авторизации по Bearer токену из заголовка Authorization. Авторизация обязательна
 
@@ -95,7 +95,7 @@ class Security:
 
     @staticmethod
     async def get_auth_optional(
-        token: str | None = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form', auto_error=False))
+        token: str | None = Depends(OAuth2PasswordBearer(tokenUrl='/api/v1/login-form', auto_error=False))
     ) -> User | None:
         """
         Проверка авторизации по Bearer токену из заголовка Authorization. Авторизация не обязательна
@@ -122,7 +122,7 @@ class Security:
 
         try:
             payload = TokenPayload(**jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM]))
-            session = await UserRepo.get_session(uuid.UUID(payload.sid))
+            session = await UserRepo.get_session(UUID(payload.sid))
             user = await UserRepo.get_user(username=payload.sub)
 
             if not session:
@@ -131,7 +131,7 @@ class Security:
             if not user or session.uid != user.uid:
                 raise UnauthorizedError(detail='Invalid token')
 
-            if user.disabled:
+            if user.disabled or user.is_robot:
                 raise UnauthorizedError(detail='User is blocked')
 
             if datetime.now(tz=timezone.utc) > datetime.fromtimestamp(payload.exp, tz=timezone.utc):
@@ -165,11 +165,11 @@ class Security:
 
         user = await UserRepo.get_user(username=username)
 
-        if not user or user.disabled or not self.verify_hash(passwd_plain, user.password):
+        if not user or user.disabled or user.is_robot or not self.verify_hash(passwd_plain, user.password):
             raise ForbiddenError(detail='Incorrect username or password')
 
         session = Session(
-            sid=uuid.uuid4(),
+            sid=uuid4(),
             uid=user.uid,
             client_info={
                 'addr': request.client.host,
@@ -196,7 +196,7 @@ class Security:
 
         return len(another_sessions)
 
-    async def close_session(self, user: User, session_id: uuid.UUID):
+    async def close_session(self, user: User, session_id: UUID):
         """ Завершить указанный сеанс. Проверяет, что сеанс принадлежит текущему пользователю """
 
         session = await UserRepo.get_session(session_id)

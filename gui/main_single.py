@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import *
 
 from core import const as core_const, engine
 from models.params import Options, RobotStatItem
-
 from gui.common import const, utils
 from gui.main_base import MainWnd
 from gui.windows.service_info import ServiceInfoDialog

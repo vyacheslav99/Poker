@@ -20,5 +20,8 @@ create table public.session
 alter table public.session
     add constraint session_user_fk foreign key (uid) references public.users
         on update cascade on delete cascade;
+        
+create index session_uid_idx
+    on session (uid);
     """)
 ]

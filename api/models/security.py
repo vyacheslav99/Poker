@@ -1,5 +1,4 @@
-import uuid
-
+from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -27,8 +26,8 @@ class Session(BaseModel, ModelMixin):
 
     _json_fields = {'client_info'}
 
-    sid: uuid.UUID
-    uid: uuid.UUID
+    sid: UUID
+    uid: UUID
     username: str | None = None
     client_info: dict | None = None
     created_at: datetime | None = None

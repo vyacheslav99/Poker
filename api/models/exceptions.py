@@ -40,5 +40,14 @@ class NotFoundError(BadRequestError):
         super().__init__(self.status_code, detail=self.detail)
 
 
+class ConflictError(BadRequestError):
+    status_code = status.HTTP_409_CONFLICT
+    detail = 'Conflict'
+
+    def __init__(self, detail: Any = None):
+        self.detail = detail or self.detail
+        super().__init__(self.status_code, detail=self.detail)
+
+
 class NoChangesError(Exception):
     pass
