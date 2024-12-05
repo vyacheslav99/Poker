@@ -23,16 +23,37 @@ class GameStatusEnum(StrEnum):
     ABORTED = 'aborted'
 
     @classmethod
-    def editing_statuses(cls):
+    def editing_statuses(cls) -> set["GameStatusEnum"]:
         return {cls.DRAFT, cls.WAITING}
 
     @classmethod
-    def playing_statuses(cls):
+    def playing_statuses(cls) -> set["GameStatusEnum"]:
         return {cls.STARTED, cls.PAUSED}
 
     @classmethod
-    def finished_statuses(cls):
+    def finished_statuses(cls) -> set["GameStatusEnum"]:
         return {cls.FINISHED, cls.ABORTED}
+
+    @classmethod
+    def status_transitions(cls) -> dict["GameStatusEnum", set["GameStatusEnum"]]:
+        """
+        Вернет словарь с какого на какой статус можно перейти: ключ - статус С которого переходим, значение -
+        список статусов НА которые можно перейти
+        """
+
+        return {
+            cls.DRAFT: {cls.WAITING},
+            cls.WAITING: {cls.STARTED},
+            cls.STARTED: {cls.PAUSED, cls.FINISHED, cls.ABORTED},
+            cls.PAUSED: {cls.STARTED, cls.ABORTED},
+            cls.FINISHED: set(),
+            cls.ABORTED: set()
+        }
+
+    def allow_pass_to(self, new_status: "GameStatusEnum") -> bool:
+        """ Возможно ли перейти с текущего статуса (экземпляра enum-а) на переданный """
+
+        return new_status in self.status_transitions()[self]
 
 
 class GameCreateBody(BaseModel):
@@ -92,3 +113,7 @@ class GameOptions(BaseModel):
 class PlayerAddBody(BaseModel):
     user_id: UUID = Field(default=None)
     username: str = Field(default=None)
+
+
+class SetGameStatusBody(BaseModel):
+    status: GameStatusEnum

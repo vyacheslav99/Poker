@@ -1,8 +1,9 @@
 import secrets
 
+from datetime import datetime, timezone
 from uuid import UUID
 
-from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody
+from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody, GameStatusEnum
 from api.models.user import User, UserPublic
 from api.models.exceptions import NotFoundError, ForbiddenError, NoChangesError, ConflictError, BadRequestError
 from api.repositories.game import GameRepo
@@ -53,6 +54,31 @@ class GameService:
 
         try:
             await GameRepo.set_game_data(game_id, **data.model_dump(exclude_unset=True))
+        except NoChangesError as e:
+            raise BadRequestError(detail=str(e))
+
+    async def set_game_status(self, user: User, game_id: int, status: GameStatusEnum):
+        game = await self.get_game(user, game_id, access_only_owner=True)
+
+        if status == game.status:
+            return
+
+        if not game.status.allow_pass_to(status):
+            raise ConflictError('Невозможно перейти на данный статус')
+
+        extra_data = {}
+
+        if status == GameStatusEnum.STARTED and not game.status in GameStatusEnum.playing_statuses():
+            extra_data['started_at'] = datetime.now(tz=timezone.utc)
+        elif status == GameStatusEnum.STARTED and game.status == GameStatusEnum.PAUSED:
+            extra_data['resumed_at'] = datetime.now(tz=timezone.utc)
+        elif status == GameStatusEnum.PAUSED and game.status == GameStatusEnum.STARTED:
+            extra_data['paused_at'] = datetime.now(tz=timezone.utc)
+        elif status in (GameStatusEnum.FINISHED, GameStatusEnum.ABORTED):
+            extra_data['finished_at'] = datetime.now(tz=timezone.utc)
+
+        try:
+            await GameRepo.set_game_data(game_id, status=status, **extra_data)
         except NoChangesError as e:
             raise BadRequestError(detail=str(e))
 
