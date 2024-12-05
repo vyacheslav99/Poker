@@ -75,7 +75,7 @@ class UserService:
         )
 
         for game in games:
-            players = [p for p in game.players if p.uid != user.uid and not p.is_robot]
+            players = [p for p in game.players if p.uid and p.uid != user.uid and not p.is_robot]
 
             if players:
                 await GameRepo.set_game_data(game.id, owner_id=players[0].uid)
