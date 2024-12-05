@@ -1,13 +1,13 @@
 from typing import Annotated
 from fastapi import APIRouter, Query
 
-from api.handlers import OptionalAuthProvider
+from api.handlers.auth import OptionalAuthProvider
 from api.models.statistics import OverallStatisticsResponse, StatisticsSortFields
 from api.models.common import SuccessResponse, error_responses
 from api.services.misc import MiscService
 
 
-router = APIRouter(prefix='/api', tags=['misc'])
+router = APIRouter(tags=['misc'])
 
 
 @router.get(

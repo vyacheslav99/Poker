@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status, UploadFile
 
-from api.handlers import RequiredAuthProvider
+from api.handlers.auth import RequiredAuthProvider
 from api.models.user import (UserPublic, ChangePasswordBody, ChangeUsernameBody, UserPatchBody, DeleteUserBody,
                              ClientParams)
 from api.models.game import GameOptions
@@ -8,7 +8,7 @@ from api.models.security import Token, LoginBody
 from api.models.common import SuccessResponse, error_responses
 from api.services.user import UserService
 
-router = APIRouter(prefix='/api/user', tags=['user'])
+router = APIRouter(prefix='/user', tags=['user'])
 
 
 @router.post(

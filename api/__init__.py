@@ -9,11 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.errors import ServerErrorMiddleware
 
 from api import db, config
-from .handlers.base import router as base_router
-from .handlers.security import router as security_router
-from .handlers.user import router as user_router
-from .handlers.misc import router as misc_router
-from .handlers.game import router as game_router
+from .handlers import base_router, v1_router
 
 
 @asynccontextmanager
@@ -37,10 +33,7 @@ async def setup_infrastructure(app: FastAPI):
 def get_api_routers() -> APIRouter:
     router = APIRouter()
     router.include_router(base_router)
-    router.include_router(security_router)
-    router.include_router(user_router)
-    router.include_router(misc_router)
-    router.include_router(game_router)
+    router.include_router(v1_router, prefix='/api')
     return router
 
 

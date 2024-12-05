@@ -82,7 +82,7 @@ class Security:
         raise NotFoundError(detail='No public keys found')
 
     @staticmethod
-    async def get_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form'))) -> User:
+    async def get_auth(token: str = Depends(OAuth2PasswordBearer(tokenUrl='/api/v1/login-form'))) -> User:
         """
         Проверка авторизации по Bearer токену из заголовка Authorization. Авторизация обязательна
 
@@ -95,7 +95,7 @@ class Security:
 
     @staticmethod
     async def get_auth_optional(
-        token: str | None = Depends(OAuth2PasswordBearer(tokenUrl='/api/login-form', auto_error=False))
+        token: str | None = Depends(OAuth2PasswordBearer(tokenUrl='/api/v1/login-form', auto_error=False))
     ) -> User | None:
         """
         Проверка авторизации по Bearer токену из заголовка Authorization. Авторизация не обязательна

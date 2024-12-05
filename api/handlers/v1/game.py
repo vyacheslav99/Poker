@@ -1,13 +1,13 @@
 from uuid import UUID
 from fastapi import APIRouter, status
 
-from api.handlers import RequiredAuthProvider
+from api.handlers.auth import RequiredAuthProvider
 from api.models.user import UserPublic
 from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody
 from api.models.common import SuccessResponse, error_responses
 from api.services.game import GameService
 
-router = APIRouter(prefix='/api/game', tags=['game'])
+router = APIRouter(prefix='/game', tags=['game'])
 
 
 @router.post(
