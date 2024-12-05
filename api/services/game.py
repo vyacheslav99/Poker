@@ -3,8 +3,9 @@ import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
-from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody, GameStatusEnum
-from api.models.user import User, UserPublic
+from api.models.game import (GameCreateBody, GameModel, GamePatchBody, GameOptions, Player, PlayerAddBody,
+                             GameStatusEnum, GameDateFilterFields, GameSortFields)
+from api.models.user import User
 from api.models.exceptions import NotFoundError, ForbiddenError, NoChangesError, ConflictError, BadRequestError
 from api.repositories.game import GameRepo
 from api.repositories.user import UserRepo
@@ -39,6 +40,38 @@ class GameService:
             raise ForbiddenError()
 
         return game
+
+    async def get_games_list(
+        self,
+        game_ids: list[int] = None,
+        code: str = None,
+        name: str = None,
+        owner_id: UUID | str = None,
+        owner_name: str = None,
+        statuses: list[GameStatusEnum] = None,
+        date_from: datetime = None,
+        date_to: datetime = None,
+        date_field: GameDateFilterFields = None,
+        sort_field: GameSortFields = None,
+        sort_desc: bool = None,
+        limit: int = None,
+        offset: int = None
+    ) -> tuple[int, list[GameModel]]:
+        return await GameRepo.get_games_list(
+            game_ids=game_ids,
+            code=code,
+            name=name,
+            owner_id=owner_id,
+            owner_name=owner_name,
+            statuses=statuses,
+            date_from=date_from,
+            date_to=date_to,
+            date_field=date_field,
+            sort_field=sort_field,
+            sort_desc=sort_desc,
+            limit=limit,
+            offset=offset
+        )
 
     async def set_game_data(self, user: User, game_id: int, data: GamePatchBody):
         game = await self.get_game(user, game_id, access_only_owner=True)
@@ -99,7 +132,7 @@ class GameService:
 
         await GameRepo.set_game_options(game_id, options)
 
-    async def add_player(self, user: User, game_id: int, data: PlayerAddBody) -> list[UserPublic]:
+    async def add_player(self, user: User, game_id: int, data: PlayerAddBody) -> list[Player]:
         game = await self.get_game(user, game_id, access_only_owner=True)
 
         if not game.allow_edit():
@@ -120,10 +153,10 @@ class GameService:
             if p.uid == player.uid:
                 raise ConflictError('Такой игрок уже есть среди участников игры')
 
-        await GameRepo.add_player(game_id, player.uid)
+        await GameRepo.add_player(game_id, player.uid, player.fullname)
         return await GameRepo.get_game_players(game_id)
 
-    async def del_player(self, user: User, game_id: int, player_id: UUID) -> list[UserPublic]:
+    async def del_player(self, user: User, game_id: int, player_id: UUID) -> list[Player]:
         game = await self.get_game(user, game_id, access_only_owner=True)
 
         if not game.allow_edit():

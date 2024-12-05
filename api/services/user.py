@@ -9,12 +9,13 @@ from gui.common.const import LOGIN_ALLOW_LITERALS
 from api import config
 from api.models.user import User, UserPatchBody, ClientParams
 from api.models.statistics import StatisticsItem
-from api.models.game import GameOptions
+from api.models.game import GameOptions, GameStatusEnum
 from api.models.security import Token, LoginBody
 from api.models.exceptions import NoChangesError, BadRequestError, NotFoundError, ForbiddenError
 from api.models.http import AVAILABLE_IMAGE_TYPES
 from api.services.security import Security
 from api.repositories.user import UserRepo
+from api.repositories.game import GameRepo
 
 
 class UserService:
@@ -54,9 +55,10 @@ class UserService:
         - сессиями
         - статистикой
         - файлами (аватаркой)
-        - играми, где он создатель/владелец
-        - удаление его как участника из игр, где он участник
-        - что-то еще?
+        - черновиками игр, где он создатель/владелец
+        - замена владельца на одного из участников в играемых/завершенных играх, где он создатель/владелец
+        - удаление его как участника из игр, где он участник (запись участника остается, но id игрока в ней
+            становится null)
 
         На всякий случай при удалении проверяем текущий пароль
         """
@@ -64,13 +66,21 @@ class UserService:
         if not self._sec.verify_hash(self._sec.decrypt_password(passwd_encrypted), user.password):
             raise ForbiddenError(detail='Incorrect password')
 
+        # Перед удалением делаем владельцем игр, которые в процессе/завершены, одного из других
+        # участников (не роботов), чтобы игра не удалялась вместе с владельцем, а оставалась для истории.
+        # Если участников людей не осталось или игра на начальных статусах - ничего не делать и игра удалится
+        # каскадно с владельцем
+        _, games = await GameRepo.get_games_list(
+            owner_id=user.uid, statuses=list(GameStatusEnum.playing_statuses() | GameStatusEnum.finished_statuses())
+        )
+
+        for game in games:
+            players = [p for p in game.players if p.uid != user.uid and not p.is_robot]
+
+            if players:
+                await GameRepo.set_game_data(game.id, owner_id=players[0].uid)
+
         await self.clear_avatar(user)
-        # todo: Не забывать при появлении новых связей по пользователю добавлять сюда их удаление
-        #  (если они не каскадные):
-        #  Перед удалением делать владельцем игр, которые в процессе/завершены (не брошены), одного из других
-        #  участников (не роботов), чтобы игра не удалялась вместе с владельцем, а оставалась для истории.
-        #  Если же участников людей не осталось - ничего не делать и игра удалится каскадно с владельцем (
-        #  как и черновики и брошенные игры)
         await UserRepo.delete_user(user.uid)
 
     async def change_password(

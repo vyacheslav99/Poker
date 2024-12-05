@@ -4,7 +4,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from api.models.model import ModelMixin
-from api.models.user import UserPublic
 
 
 class GameStatusEnum(StrEnum):
@@ -56,10 +55,12 @@ class GameStatusEnum(StrEnum):
         return new_status in self.status_transitions()[self]
 
 
-class GameCreateBody(BaseModel):
-    code: str | None = Field(min_length=1)
-    name: str = Field(min_length=3)
-    players_cnt: int = Field(ge=3, le=4)
+class Player(BaseModel):
+    uid: UUID | None = None
+    username: str | None = None
+    fullname: str | None = None
+    avatar: str | None = None
+    is_robot: bool = False
 
 
 class GameModel(BaseModel, ModelMixin):
@@ -72,7 +73,7 @@ class GameModel(BaseModel, ModelMixin):
     owner_id: UUID
     status: GameStatusEnum
     players_cnt: int
-    players: list[UserPublic]
+    players: list[Player]
     created_at: datetime
     started_at: datetime | None = None
     paused_at: datetime | None = None
@@ -83,10 +84,20 @@ class GameModel(BaseModel, ModelMixin):
         return self.status in GameStatusEnum.editing_statuses()
 
 
+class GameCreateBody(BaseModel):
+    code: str | None = Field(min_length=1)
+    name: str = Field(min_length=3)
+    players_cnt: int = Field(ge=3, le=4)
+
+
 class GamePatchBody(BaseModel):
     code: str = Field(min_length=1, default=None)
     name: str = Field(min_length=3, default=None)
     players_cnt: int = Field(ge=3, le=4, default=None)
+
+
+class SetGameStatusBody(BaseModel):
+    status: GameStatusEnum
 
 
 class GameOptions(BaseModel):
@@ -115,5 +126,17 @@ class PlayerAddBody(BaseModel):
     username: str = Field(default=None)
 
 
-class SetGameStatusBody(BaseModel):
-    status: GameStatusEnum
+class GameDateFilterFields(StrEnum):
+    created_at = 'created_at'
+    started_at = 'started_at'
+    finished_at = 'finished_at'
+
+
+class GameSortFields(StrEnum):
+    created_at = 'created_at'
+    started_at = 'started_at'
+    paused_at = 'paused_at'
+    resumed_at = 'resumed_at'
+    finished_at = 'finished_at'
+    name = 'name'
+    owner_name = 'owner_name'

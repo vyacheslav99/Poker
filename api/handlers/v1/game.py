@@ -2,8 +2,8 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from api.handlers.auth import RequiredAuthProvider
-from api.models.user import UserPublic
-from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody, SetGameStatusBody
+from api.models.game import (GameCreateBody, GameModel, GamePatchBody, GameOptions, Player, PlayerAddBody,
+                             SetGameStatusBody)
 from api.models.common import SuccessResponse, error_responses
 from api.services.game import GameService
 
@@ -79,7 +79,7 @@ async def set_game_options(user: RequiredAuthProvider, game_id: int, body: GameO
 
 @router.put(
     path='/{game_id}/player',
-    response_model=list[UserPublic],
+    response_model=list[Player],
     summary='Добавить игрока в игру',
     description='Добавить в игру еще одного игрока. Доступно добавление только игрока-ИИ (робота)',
     responses=error_responses()
@@ -90,7 +90,7 @@ async def add_player(user: RequiredAuthProvider, game_id: int, body: PlayerAddBo
 
 @router.delete(
     path='/{game_id}/player/{player_id}',
-    response_model=list[UserPublic],
+    response_model=list[Player],
     summary='Выгнать игрока из игры',
     responses=error_responses()
 )

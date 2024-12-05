@@ -49,6 +49,7 @@ create table public.game_players
         constraint game_players_users_uid_fk
             references public.users
             on update cascade on delete set null,
+    fullname   varchar,
     scores     integer,
     money      double precision,
     is_winner  boolean     default false,
