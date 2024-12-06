@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from api import db
-from api.db.expressions import condition
 from api.models.user import User, ClientParams
 from api.models.statistics import  StatisticsItem
 from api.models.game import GameOptions

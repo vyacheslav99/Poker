@@ -1,10 +1,10 @@
+from datetime import date
 from uuid import UUID
 
 from api import db
-from api.db.expressions import condition
-from api.models.game import GameCreateBody, GameModel, GameStatusEnum, GameOptions
+from api.models.game import (GameCreateBody, GameModel, GameStatusEnum, Player, GameOptions, GameDateFilterFields,
+                             GameSortFields)
 from api.models.exceptions import NoChangesError
-from api.models.user import UserPublic
 
 
 class GameRepo:
@@ -17,7 +17,11 @@ class GameRepo:
         returning *
         """
 
-        sql_add_player = 'insert into game_players (game_id, player_id) values (%(game_id)s, %(player_id)s)'
+        sql_add_player = """
+        insert into game_players (game_id, player_id, fullname)
+        select %(game_id)s, uid, fullname from users
+        where uid = %(player_id)s
+        """
 
         async with db.connection() as con, con.transaction():
             row = await con.fetchone(sql, owner_id=owner_id, status=GameStatusEnum.DRAFT, **params.model_dump())
@@ -31,29 +35,104 @@ class GameRepo:
         sql = """
         select g.*,
             jsonb_agg(json_build_object(
-                'uid', u.uid, 'username', u.username, 'fullname', u.fullname, 'avatar', u.avatar, 'is_robot', u.is_robot
+                'uid', u.uid, 'username', u.username, 'fullname', coalesce(u.fullname, gp.fullname), 'avatar', u.avatar,
+                'is_robot', coalesce(u.is_robot, false)
             )) as players
         from games g
             left join game_players gp on gp.game_id = g.id
             left join users u on u.uid = gp.player_id
         where g.id = %(game_id)s
-        group by g.id        
+        group by g.id
         """
 
         row = await db.fetchone(sql, game_id=game_id)
         return GameModel.make(dict(row)) if row else None
 
     @staticmethod
-    async def get_game_players(game_id: int) -> list[UserPublic]:
+    async def get_games_list(
+        game_ids: list[int] = None,
+        code: str = None,
+        name: str = None,
+        owner_id: UUID | str = None,
+        owner_name: str = None,
+        statuses: list[GameStatusEnum] = None,
+        date_from: date = None,
+        date_to: date = None,
+        date_field: GameDateFilterFields = None,
+        sort_field: GameSortFields = None,
+        sort_desc: bool = None,
+        limit: int = None,
+        offset: int = None
+    ) -> tuple[int, list[GameModel]]:
+        conditions = db.expressions.condition()
+
+        if game_ids:
+            conditions.and_x('g.id = any(%(game_ids)s)', game_ids=game_ids)
+        if code:
+            conditions.and_x('g.code = %(code)s', code=code)
+        if name:
+            conditions.and_x('lower(g.name) like %(name)s', name=f'%{name}%'.lower())
+        if owner_id:
+            conditions.and_x('g.owner_id = %(owner_id)s', owner_id=owner_id)
+        if owner_name:
+            cond = db.expressions.condition()
+            cond.or_x('lower(u.username) like %(username)s', username=f'%{owner_name}%'.lower())
+            cond.or_x('lower(u.fullname) like %(fullname)s', fullname=f'%{owner_name}%'.lower())
+            conditions.and_x(cond, **cond.values)
+        if statuses:
+            conditions.and_x('g.status = any(%(statuses)s)', statuses=statuses)
+        if date_from and date_field:
+            conditions.and_x(f'g.{date_field} >= %(date_from)s', date_from=date_from)
+        if date_to and date_field:
+            conditions.and_x(f'g.{date_field} <= %(date_to)s', date_to=date_to)
+
+        if sort_field:
+            if sort_field == GameSortFields.owner_name:
+                sort_field = 'u.fullname'
+            else:
+                sort_field = f'g.{sort_field}'
+
+            order_str = f"order by {sort_field} {'desc' if sort_desc else ''}"
+        else:
+            order_str = ''
+
+        limit_str = f'limit {limit}' if limit is not None else ''
+        offset_str = f'offset {offset}' if offset is not None else ''
+
+        sql = f"""
+        select g.id, null as code, g.name, g.players_cnt, g.owner_id, g.status, g.created_at, g.started_at, g.paused_at,
+            g.resumed_at, g.finished_at,
+            jsonb_agg(json_build_object(
+                'uid', u.uid, 'username', u.username, 'fullname', coalesce(u.fullname, gp.fullname), 'avatar', u.avatar,
+                'is_robot', coalesce(u.is_robot, false)
+            )) as players
+        from games g
+            left join game_players gp on gp.game_id = g.id
+            left join users u on u.uid = gp.player_id
+        where {conditions}
+        group by g.id
+        """
+
+        sql_total = f'select count(*) from ({sql}) as q'
+        sql = f'{sql} {order_str} {limit_str} {offset_str}'
+
+        total = await db.fetchval(sql_total, **conditions.values)
+        data = await db.fetchall(sql, **conditions.values)
+
+        return total, [GameModel.make(dict(row)) for row in data]
+
+    @staticmethod
+    async def get_game_players(game_id: int) -> list[Player]:
         sql = """
-        select u.uid, u.username, u.fullname, u.avatar, u.is_robot
+        select u.uid, u.username, coalesce(u.fullname, gp.fullname) as fullname, u.avatar,
+            coalesce(u.is_robot, false) as is_robot
         from game_players gp
-            join users u on u.uid = gp.player_id
+            left join users u on u.uid = gp.player_id
         where gp.game_id = %(game_id)s
         """
 
         data = await db.fetchall(sql, game_id=game_id)
-        return [UserPublic(**row) for row in data]
+        return [Player(**row) for row in data]
 
     @staticmethod
     async def set_game_data(game_id: int, **data):
@@ -115,9 +194,13 @@ class GameRepo:
         await db.execute(sql, game_id=game_id, **options.model_dump())
 
     @staticmethod
-    async def add_player(game_id: int, player_id: UUID):
-        sql = 'insert into game_players (game_id, player_id) values (%(game_id)s, %(player_id)s)'
-        await db.execute(sql, game_id=game_id, player_id=player_id)
+    async def add_player(game_id: int, player_id: UUID, fullname: str):
+        sql = """
+        insert into game_players (game_id, player_id, fullname)
+        values (%(game_id)s, %(player_id)s, %(fullname)s)
+        """
+
+        await db.execute(sql, game_id=game_id, player_id=player_id, fullname=fullname)
 
     @staticmethod
     async def del_player(game_id: int, player_id: UUID):

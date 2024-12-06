@@ -1,13 +1,15 @@
 from uuid import UUID
-from fastapi import APIRouter, status
+from datetime import date
+from fastapi import APIRouter, status, Query
 
 from api.handlers.auth import RequiredAuthProvider
-from api.models.user import UserPublic
-from api.models.game import GameCreateBody, GameModel, GamePatchBody, GameOptions, PlayerAddBody, SetGameStatusBody
+from api.models.game import (GameCreateBody, GameModel, GamePatchBody, GameOptions, Player, PlayerAddBody,
+                             SetGameStatusBody, GameDateFilterFields, GameSortFields, GamesListResponse,
+                             GameStatusEnum, JoinToGameBody)
 from api.models.common import SuccessResponse, error_responses
 from api.services.game import GameService
 
-router = APIRouter(prefix='/game', tags=['game'])
+router = APIRouter(prefix='/games', tags=['game'])
 
 
 @router.post(
@@ -20,6 +22,56 @@ router = APIRouter(prefix='/game', tags=['game'])
 )
 async def create_game(user: RequiredAuthProvider, body: GameCreateBody):
     return await GameService().create_game(user, body)
+
+
+@router.get(
+    path='',
+    response_model=GamesListResponse,
+    summary='Список игр',
+    description='Список игр с фильтрами и пагинацией. Поля фильтрации объединяются через AND',
+    responses=error_responses()
+)
+async def get_games_list(
+    user: RequiredAuthProvider,
+    # game_ids: list[int] | None = Query(default=None, description='Список id игр'),
+    code: str | None = Query(default=None, min_length=1, description='Код игры. Полное совпадение'),
+    name: str | None = Query(default=None, min_length=3, description='Название игры. Поиск по частичному совпадению'),
+    owner_id: UUID | None = Query(default=None, description='id пользователя владельца игры'),
+    owner_name: str | None = Query(
+        default=None, min_length=3, description='Имя пользователя владельца игры, поиск по частичномк совпадению'
+    ),
+    statuses: list[GameStatusEnum] | None = Query(default=None, description='Коды статусов игры'),
+    date_from: date | None = Query(default=None, description='Дата "с" по полю date_field'),
+    date_to: date | None = Query(default=None, description='Дата "по" по полю date_field'),
+    date_field: GameDateFilterFields | None = Query(
+        default=None, description='Поле дат, по которому фильтровать при помощи параметров date_from, date_to'
+    ),
+    sort_field: GameSortFields | None = Query(
+        default='id', description='Поле сортировки. По умолчанию последние созданные игры сверху'
+    ),
+    sort_desc: bool | None = Query(default=True, description='Направление сортировки. По умолчанию "по убыванию"'),
+    limit: int | None = Query(default=30, gt=0, description='Пагинация: количество строк на страницу. По умолчанию 30'),
+    page: int | None = Query(
+        default=1, gt=0, description='Пагинация: номер страницы, которую надо вернуть (по limit строк на странице, '
+                                     'отсчет начинается с 1). По умолчанию 1'
+    )
+):
+    return await GameService().get_games_list(
+        user,
+        # game_ids=game_ids,
+        code=code,
+        name=name,
+        owner_id=owner_id,
+        owner_name=owner_name,
+        statuses=statuses,
+        date_from=date_from,
+        date_to=date_to,
+        date_field=date_field,
+        sort_field=sort_field,
+        sort_desc=sort_desc,
+        limit=limit,
+        page=page
+    )
 
 
 @router.get(
@@ -79,7 +131,7 @@ async def set_game_options(user: RequiredAuthProvider, game_id: int, body: GameO
 
 @router.put(
     path='/{game_id}/player',
-    response_model=list[UserPublic],
+    response_model=list[Player],
     summary='Добавить игрока в игру',
     description='Добавить в игру еще одного игрока. Доступно добавление только игрока-ИИ (робота)',
     responses=error_responses()
@@ -90,9 +142,31 @@ async def add_player(user: RequiredAuthProvider, game_id: int, body: PlayerAddBo
 
 @router.delete(
     path='/{game_id}/player/{player_id}',
-    response_model=list[UserPublic],
+    response_model=list[Player],
     summary='Выгнать игрока из игры',
     responses=error_responses()
 )
 async def del_player(user: RequiredAuthProvider, game_id: int, player_id: UUID):
     return await GameService().del_player(user, game_id, player_id)
+
+
+@router.post(
+    path='/{game_id}/join',
+    response_model=list[Player],
+    summary='Присоединиться к игре',
+    description='Присоединение к участникам игры текущим пользователем',
+    responses=error_responses()
+)
+async def join_to_game(user: RequiredAuthProvider, game_id: int, body: JoinToGameBody):
+    return await GameService().join_to_game(user, game_id, body.code)
+
+
+@router.post(
+    path='/{game_id}/leave',
+    response_model=list[Player],
+    summary='Покинуть игру',
+    description='Удалить себя из списка участников игры',
+    responses=error_responses()
+)
+async def leave_game(user: RequiredAuthProvider, game_id: int):
+    return await GameService().del_player(user, game_id, user.uid)
