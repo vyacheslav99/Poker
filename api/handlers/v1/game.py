@@ -1,13 +1,14 @@
 from uuid import UUID
-from fastapi import APIRouter, status
+from datetime import date
+from fastapi import APIRouter, status, Query
 
 from api.handlers.auth import RequiredAuthProvider
 from api.models.game import (GameCreateBody, GameModel, GamePatchBody, GameOptions, Player, PlayerAddBody,
-                             SetGameStatusBody)
+                             SetGameStatusBody, GameDateFilterFields, GameSortFields, GamesListResponse, GameStatusEnum)
 from api.models.common import SuccessResponse, error_responses
 from api.services.game import GameService
 
-router = APIRouter(prefix='/game', tags=['game'])
+router = APIRouter(prefix='/games', tags=['game'])
 
 
 @router.post(
@@ -20,6 +21,56 @@ router = APIRouter(prefix='/game', tags=['game'])
 )
 async def create_game(user: RequiredAuthProvider, body: GameCreateBody):
     return await GameService().create_game(user, body)
+
+
+@router.get(
+    path='',
+    response_model=GamesListResponse,
+    summary='Список игр',
+    description='Список игр с фильтрами и пагинацией. Поля фильтрации объединяются через AND',
+    responses=error_responses()
+)
+async def get_games_list(
+    user: RequiredAuthProvider,
+    # game_ids: list[int] | None = Query(default=None, description='Список id игр'),
+    code: str | None = Query(default=None, min_length=1, description='Код игры. Полное совпадение'),
+    name: str | None = Query(default=None, min_length=3, description='Название игры. Поиск по частичному совпадению'),
+    owner_id: UUID | None = Query(default=None, description='id пользователя владельца игры'),
+    owner_name: str | None = Query(
+        default=None, min_length=3, description='Имя пользователя владельца игры, поиск по частичномк совпадению'
+    ),
+    statuses: list[GameStatusEnum] | None = Query(default=None, description='Коды статусов игры'),
+    date_from: date | None = Query(default=None, description='Дата "с" по полю date_field'),
+    date_to: date | None = Query(default=None, description='Дата "по" по полю date_field'),
+    date_field: GameDateFilterFields | None = Query(
+        default=None, description='Поле дат, по которому фильтровать при помощи параметров date_from, date_to'
+    ),
+    sort_field: GameSortFields | None = Query(
+        default='id', description='Поле сортировки. По умолчанию последние созданные игры сверху'
+    ),
+    sort_desc: bool | None = Query(default=True, description='Направление сортировки. По умолчанию "по убыванию"'),
+    limit: int | None = Query(default=30, gt=0, description='Пагинация: количество строк на страницу. По умолчанию 30'),
+    page: int | None = Query(
+        default=1, gt=0, description='Пагинация: номер страницы, которую надо вернуть (по limit строк на странице, '
+                                     'отсчет начинается с 1). По умолчанию 1'
+    )
+):
+    return await GameService().get_games_list(
+        user,
+        # game_ids=game_ids,
+        code=code,
+        name=name,
+        owner_id=owner_id,
+        owner_name=owner_name,
+        statuses=statuses,
+        date_from=date_from,
+        date_to=date_to,
+        date_field=date_field,
+        sort_field=sort_field,
+        sort_desc=sort_desc,
+        limit=limit,
+        page=page
+    )
 
 
 @router.get(

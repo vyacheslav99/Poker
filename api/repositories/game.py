@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from uuid import UUID
 
 from api import db
@@ -56,8 +56,8 @@ class GameRepo:
         owner_id: UUID | str = None,
         owner_name: str = None,
         statuses: list[GameStatusEnum] = None,
-        date_from: datetime = None,
-        date_to: datetime = None,
+        date_from: date = None,
+        date_to: date = None,
         date_field: GameDateFilterFields = None,
         sort_field: GameSortFields = None,
         sort_desc: bool = None,

@@ -1,10 +1,10 @@
 import secrets
 
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
 from uuid import UUID
 
 from api.models.game import (GameCreateBody, GameModel, GamePatchBody, GameOptions, Player, PlayerAddBody,
-                             GameStatusEnum, GameDateFilterFields, GameSortFields)
+                             GameStatusEnum, GameDateFilterFields, GameSortFields, GamesListResponse)
 from api.models.user import User
 from api.models.exceptions import NotFoundError, ForbiddenError, NoChangesError, ConflictError, BadRequestError
 from api.repositories.game import GameRepo
@@ -43,21 +43,32 @@ class GameService:
 
     async def get_games_list(
         self,
+        user: User,
         game_ids: list[int] = None,
         code: str = None,
         name: str = None,
         owner_id: UUID | str = None,
         owner_name: str = None,
         statuses: list[GameStatusEnum] = None,
-        date_from: datetime = None,
-        date_to: datetime = None,
+        date_from: date = None,
+        date_to: date = None,
         date_field: GameDateFilterFields = None,
         sort_field: GameSortFields = None,
         sort_desc: bool = None,
         limit: int = None,
-        offset: int = None
-    ) -> tuple[int, list[GameModel]]:
-        return await GameRepo.get_games_list(
+        page: int = None
+    ) -> GamesListResponse:
+        limit = limit if limit is not None else 30
+        page = page or 1
+        offset = (page - 1) * limit
+
+        if GameStatusEnum.DRAFT in (statuses or []):
+            owner_id = user.uid
+
+        if owner_id and owner_name:
+            owner_name = None
+
+        total, items = await GameRepo.get_games_list(
             game_ids=game_ids,
             code=code,
             name=name,
@@ -67,10 +78,14 @@ class GameService:
             date_from=date_from,
             date_to=date_to,
             date_field=date_field,
-            sort_field=sort_field,
-            sort_desc=sort_desc,
+            sort_field=sort_field or GameSortFields.game_id,
+            sort_desc=sort_desc if sort_desc is not None else True,
             limit=limit,
             offset=offset
+        )
+
+        return GamesListResponse(
+            items=items, total=total, limit=limit, page=page, skip=total if total < offset else offset
         )
 
     async def set_game_data(self, user: User, game_id: int, data: GamePatchBody):

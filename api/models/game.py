@@ -133,10 +133,17 @@ class GameDateFilterFields(StrEnum):
 
 
 class GameSortFields(StrEnum):
+    game_id = 'id'
     created_at = 'created_at'
     started_at = 'started_at'
-    paused_at = 'paused_at'
-    resumed_at = 'resumed_at'
     finished_at = 'finished_at'
     name = 'name'
     owner_name = 'owner_name'
+
+
+class GamesListResponse(BaseModel):
+    items: list[GameModel]
+    total: int
+    limit: int
+    page: int
+    skip: int
