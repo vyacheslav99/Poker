@@ -58,7 +58,7 @@ class GameService:
         limit: int = None,
         page: int = None
     ) -> GamesListResponse:
-        limit = limit if limit is not None else 30
+        limit = limit or 30
         page = page or 1
         offset = (page - 1) * limit
 
