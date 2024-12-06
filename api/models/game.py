@@ -137,7 +137,7 @@ class GameSortFields(StrEnum):
     created_at = 'created_at'
     started_at = 'started_at'
     finished_at = 'finished_at'
-    name = 'name'
+    game_name = 'name'
     owner_name = 'owner_name'
 
 
