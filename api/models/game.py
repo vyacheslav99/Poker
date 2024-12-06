@@ -147,3 +147,7 @@ class GamesListResponse(BaseModel):
     limit: int
     page: int
     skip: int
+
+
+class JoinToGameBody(BaseModel):
+    code: str | None = Field(min_length=1)

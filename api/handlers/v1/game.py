@@ -4,7 +4,8 @@ from fastapi import APIRouter, status, Query
 
 from api.handlers.auth import RequiredAuthProvider
 from api.models.game import (GameCreateBody, GameModel, GamePatchBody, GameOptions, Player, PlayerAddBody,
-                             SetGameStatusBody, GameDateFilterFields, GameSortFields, GamesListResponse, GameStatusEnum)
+                             SetGameStatusBody, GameDateFilterFields, GameSortFields, GamesListResponse,
+                             GameStatusEnum, JoinToGameBody)
 from api.models.common import SuccessResponse, error_responses
 from api.services.game import GameService
 
@@ -147,3 +148,25 @@ async def add_player(user: RequiredAuthProvider, game_id: int, body: PlayerAddBo
 )
 async def del_player(user: RequiredAuthProvider, game_id: int, player_id: UUID):
     return await GameService().del_player(user, game_id, player_id)
+
+
+@router.post(
+    path='/{game_id}/join',
+    response_model=list[Player],
+    summary='Присоединиться к игре',
+    description='Присоединение к участникам игры текущим пользователем',
+    responses=error_responses()
+)
+async def join_to_game(user: RequiredAuthProvider, game_id: int, body: JoinToGameBody):
+    return await GameService().join_to_game(user, game_id, body.code)
+
+
+@router.post(
+    path='/{game_id}/leave',
+    response_model=list[Player],
+    summary='Покинуть игру',
+    description='Удалить себя из списка участников игры',
+    responses=error_responses()
+)
+async def leave_game(user: RequiredAuthProvider, game_id: int):
+    return await GameService().del_player(user, game_id, user.uid)

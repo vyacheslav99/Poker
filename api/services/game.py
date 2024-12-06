@@ -33,11 +33,11 @@ class GameService:
             else:
                 game.code = None
 
-        for uid in set([u.uid for u in game.players] + [game.owner_id]):
-            if uid == user.uid:
-                break
-        else:
-            raise ForbiddenError()
+                for uid in set([u.uid for u in game.players] + [game.owner_id]):
+                    if uid == user.uid:
+                        break
+                else:
+                    raise ForbiddenError()
 
         return game
 
@@ -147,15 +147,22 @@ class GameService:
 
         await GameRepo.set_game_options(game_id, options)
 
-    async def add_player(self, user: User, game_id: int, data: PlayerAddBody) -> list[Player]:
-        game = await self.get_game(user, game_id, access_only_owner=True)
-
+    async def _add_player(self, game: GameModel, player: Player) -> list[Player]:
         if not game.allow_edit():
             raise ConflictError('Изменение игры на данном статусе запрещено')
 
         if len(game.players) >= game.players_cnt:
             raise ConflictError('Все места в игре уже заполнены')
 
+        for p in game.players:
+            if p.uid == player.uid:
+                raise ConflictError('Такой игрок уже есть среди участников игры')
+
+        await GameRepo.add_player(game.id, player.uid, player.fullname)
+        return await GameRepo.get_game_players(game.id)
+
+    async def add_player(self, user: User, game_id: int, data: PlayerAddBody) -> list[Player]:
+        game = await self.get_game(user, game_id, access_only_owner=True)
         player = await UserRepo.get_user(user_id=data.user_id, username=data.username)
 
         if not player:
@@ -164,18 +171,29 @@ class GameService:
         if not player.is_robot:
             raise ConflictError('Вы можете добавлять только игроков-ИИ (роботов)')
 
-        for p in game.players:
-            if p.uid == player.uid:
-                raise ConflictError('Такой игрок уже есть среди участников игры')
-
-        await GameRepo.add_player(game_id, player.uid, player.fullname)
-        return await GameRepo.get_game_players(game_id)
+        return await self._add_player(game, Player(**player.model_dump()))
 
     async def del_player(self, user: User, game_id: int, player_id: UUID) -> list[Player]:
-        game = await self.get_game(user, game_id, access_only_owner=True)
+        game = await self.get_game(user, game_id, access_only_owner=user.uid != player_id)
 
         if not game.allow_edit():
             raise ConflictError('Изменение игры на данном статусе запрещено')
 
         await GameRepo.del_player(game_id, player_id)
         return await GameRepo.get_game_players(game_id)
+
+    async def join_to_game(self, user: User, game_id: int, code: str | None) -> list[Player]:
+        game = await GameRepo.get_game(game_id)
+
+        if not game:
+            raise NotFoundError(detail='Game not found')
+
+        player = await UserRepo.get_user(user_id=user.uid)
+
+        if not player:
+            raise NotFoundError('Такого игрока не существует')
+
+        if game.code != code:
+            raise ForbiddenError('Неверный код для присоединения к игре')
+
+        return await self._add_player(game, Player(**player.model_dump()))
