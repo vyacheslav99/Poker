@@ -50,6 +50,7 @@ create table public.game_players
             references public.users
             on update cascade on delete set null,
     fullname   varchar,
+    risk_level integer,
     scores     integer,
     money      double precision,
     is_winner  boolean     default false,

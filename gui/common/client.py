@@ -12,7 +12,7 @@ from requests.exceptions import RequestException
 
 from gui import config
 from gui.common import const
-from gui.common.models import Session
+from gui.common.models import Session, GameModel
 from models.params import Params, Options
 from models.player import Player
 
@@ -172,6 +172,7 @@ class GameServerClient(BaseClient):
     USER_PARAMS_PATH = f'{USER_PATH}/params'
     USER_OPTIONS_PATH = f'{USER_PATH}/game_options'
     SESSIONS_PATH = f'{USER_PATH}/sessions'
+    GAMES_PATH = f'{V1_PATH}/games'
 
     def is_alive(self) -> tuple[bool, str]:
         try:
@@ -297,7 +298,7 @@ class GameServerClient(BaseClient):
     def set_params(self, params: Params):
         self.put(self.USER_PARAMS_PATH, json=params.as_dict())
 
-    def get_game_options(self) -> dict:
+    def get_user_game_options(self) -> dict:
         try:
             resp = self.get(self.USER_OPTIONS_PATH)
         except ClientException as err:
@@ -308,7 +309,7 @@ class GameServerClient(BaseClient):
 
         return resp.json()
 
-    def set_game_options(self, options: Options):
+    def set_user_game_options(self, options: Options):
         self.put(self.USER_OPTIONS_PATH, json=options.as_dict())
 
     def download_avatar(self, remote_path: str, save_to_path: str):
@@ -373,3 +374,7 @@ class GameServerClient(BaseClient):
 
     def close_session(self, session_id: uuid.UUID | str):
         self.delete(f'{self.SESSIONS_PATH}/{session_id}')
+
+    def get_game(self, game_id: int) -> GameModel:
+        resp = self.get(f'{self.GAMES_PATH}/{game_id}')
+        return GameModel(**resp.json())

@@ -192,13 +192,6 @@ class MainWnd(QMainWindow):
         self.menu_actions.start_actn.setEnabled(self.curr_profile is not None)
         self.menu_actions.throw_actn.setEnabled(self.started())
 
-        if self.started():
-            self.menu_actions.start_actn.setText('Отложить партию')
-            self.menu_actions.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
-        else:
-            self.menu_actions.start_actn.setText('Новая партия')
-            self.menu_actions.start_actn.setStatusTip('Начать новую партию')
-
     def center(self):
         screen = QDesktopWidget().screenGeometry()
         size = self.geometry()

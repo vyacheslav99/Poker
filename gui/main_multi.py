@@ -13,6 +13,7 @@ from gui.windows.login_dlg import LoginDialog
 from gui.windows.registration_dlg import RegistrationDialog
 from gui.windows.profiles_net_dlg import ProfilesNetDialog
 from gui.windows.statistics_wnd import StatisticsWindow
+from gui.windows.create_game_dlg import CreateGameDialog
 
 
 class MultiPlayerMainWnd(MainWnd):
@@ -69,6 +70,13 @@ class MultiPlayerMainWnd(MainWnd):
         """ Акуализация состояния игрового меню """
 
         super().refresh_menu_actions()
+
+        if self.started():
+            self.menu_actions.start_actn.setText('Отложить партию')
+            self.menu_actions.start_actn.setStatusTip('Отложить партию.\nВы сможете продолжить ее позднее')
+        else:
+            self.menu_actions.start_actn.setText('Создать')
+            self.menu_actions.start_actn.setStatusTip('Создать новую игру')
 
         self.menu_actions.menu_user.setEnabled(self.connected)
         self.menu_actions.logout_actn.setEnabled(self.curr_profile is not None)
@@ -260,7 +268,7 @@ class MultiPlayerMainWnd(MainWnd):
         if remote and self.curr_profile and self.connected:
             try:
                 self.params.set(**self.game_server_cli.get_params())
-                self.options.set(**self.game_server_cli.get_game_options())
+                self.options.set(**self.game_server_cli.get_user_game_options())
             except RequestException as err:
                 handle_client_exception(
                     self, err,
@@ -285,7 +293,7 @@ class MultiPlayerMainWnd(MainWnd):
         if not local_only and self.curr_profile and self.connected:
             try:
                 self.game_server_cli.set_params(self.params)
-                self.game_server_cli.set_game_options(self.options)
+                self.game_server_cli.set_user_game_options(self.options)
             except RequestException as err:
                 handle_client_exception(
                     self, err,
@@ -385,7 +393,9 @@ class MultiPlayerMainWnd(MainWnd):
         pass
 
     def start_game(self):
-        pass
+        dlg = CreateGameDialog(self, 8)
+        dlg.exec()
+        dlg.destroy()
 
     def stop_game(self, flag=None):
         pass

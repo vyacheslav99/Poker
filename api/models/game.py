@@ -61,6 +61,7 @@ class Player(BaseModel):
     fullname: str | None = None
     avatar: str | None = None
     is_robot: bool = False
+    risk_level: int | None = None
 
 
 class GameModel(BaseModel, ModelMixin):

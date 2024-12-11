@@ -36,7 +36,7 @@ class GameRepo:
         select g.*,
             jsonb_agg(json_build_object(
                 'uid', u.uid, 'username', u.username, 'fullname', coalesce(u.fullname, gp.fullname), 'avatar', u.avatar,
-                'is_robot', coalesce(u.is_robot, false)
+                'is_robot', coalesce(u.is_robot, false), 'risk_level', gp.risk_level
             )) as players
         from games g
             left join game_players gp on gp.game_id = g.id
