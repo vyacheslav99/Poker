@@ -4,9 +4,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-#pyqt5designer = "*"
-#auto-py-to-exe = "*"
+# pyqt5designer = "*"
 pyqt5-stubs = "*"
+auto-py-to-exe = "*"
 
 [packages]
 "psycopg[binary]" = "*"
