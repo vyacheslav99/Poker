@@ -3,7 +3,7 @@ from uuid import UUID
 
 from api import db
 from api.models.game import (GameCreateBody, GameModel, GameStatusEnum, Player, GameOptions, GameDateFilterFields,
-                             GameSortFields)
+                             GameSortFields, RiskLevelEnum)
 from api.models.exceptions import NoChangesError
 
 
@@ -104,7 +104,7 @@ class GameRepo:
             g.resumed_at, g.finished_at,
             jsonb_agg(json_build_object(
                 'uid', u.uid, 'username', u.username, 'fullname', coalesce(u.fullname, gp.fullname), 'avatar', u.avatar,
-                'is_robot', coalesce(u.is_robot, false)
+                'is_robot', coalesce(u.is_robot, false), 'risk_level', gp.risk_level
             )) as players
         from games g
             left join game_players gp on gp.game_id = g.id
@@ -125,7 +125,7 @@ class GameRepo:
     async def get_game_players(game_id: int) -> list[Player]:
         sql = """
         select u.uid, u.username, coalesce(u.fullname, gp.fullname) as fullname, u.avatar,
-            coalesce(u.is_robot, false) as is_robot
+            coalesce(u.is_robot, false) as is_robot, gp.risk_level
         from game_players gp
             left join users u on u.uid = gp.player_id
         where gp.game_id = %(game_id)s
@@ -194,13 +194,13 @@ class GameRepo:
         await db.execute(sql, game_id=game_id, **options.model_dump())
 
     @staticmethod
-    async def add_player(game_id: int, player_id: UUID, fullname: str):
+    async def add_player(game_id: int, player_id: UUID, fullname: str, risk_level: RiskLevelEnum):
         sql = """
-        insert into game_players (game_id, player_id, fullname)
-        values (%(game_id)s, %(player_id)s, %(fullname)s)
+        insert into game_players (game_id, player_id, fullname, risk_level)
+        values (%(game_id)s, %(player_id)s, %(fullname)s, %(risk_level)s)
         """
 
-        await db.execute(sql, game_id=game_id, player_id=player_id, fullname=fullname)
+        await db.execute(sql, game_id=game_id, player_id=player_id, fullname=fullname, risk_level=risk_level)
 
     @staticmethod
     async def del_player(game_id: int, player_id: UUID):

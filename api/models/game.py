@@ -1,5 +1,5 @@
 from uuid import UUID
-from enum import StrEnum
+from enum import StrEnum, IntEnum
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -55,13 +55,19 @@ class GameStatusEnum(StrEnum):
         return new_status in self.status_transitions()[self]
 
 
+class RiskLevelEnum(IntEnum):
+    CAREFUL = 0  # Осторожный
+    MEDIUM = 1  # Умеренный
+    RISKY = 2  # Рискованный
+
+
 class Player(BaseModel):
     uid: UUID | None = None
     username: str | None = None
     fullname: str | None = None
     avatar: str | None = None
     is_robot: bool = False
-    risk_level: int | None = None
+    risk_level: RiskLevelEnum | None = None
 
 
 class GameModel(BaseModel, ModelMixin):

@@ -1,4 +1,5 @@
 import secrets
+import random
 
 from datetime import datetime, date, timezone
 from uuid import UUID
@@ -158,7 +159,7 @@ class GameService:
             if p.uid == player.uid:
                 raise ConflictError('Такой игрок уже есть среди участников игры')
 
-        await GameRepo.add_player(game.id, player.uid, player.fullname)
+        await GameRepo.add_player(game.id, player.uid, player.fullname, player.risk_level)
         return await GameRepo.get_game_players(game.id)
 
     async def add_player(self, user: User, game_id: int, data: PlayerAddBody) -> list[Player]:
@@ -171,7 +172,7 @@ class GameService:
         if not player.is_robot:
             raise ConflictError('Вы можете добавлять только игроков-ИИ (роботов)')
 
-        return await self._add_player(game, Player(**player.model_dump()))
+        return await self._add_player(game, Player(**player.model_dump(), risk_level=random.randint(0, 2)))
 
     async def del_player(self, user: User, game_id: int, player_id: UUID) -> list[Player]:
         game = await self.get_game(user, game_id, access_only_owner=user.uid != player_id)
