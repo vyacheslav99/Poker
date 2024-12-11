@@ -170,7 +170,7 @@ class GameService:
             raise NotFoundError('Такого игрока не существует')
 
         if not player.is_robot:
-            raise ConflictError('Вы можете добавлять только игроков-ИИ (роботов)')
+            raise ConflictError('Вы можете добавлять только игроков-ботов')
 
         return await self._add_player(game, Player(**player.model_dump(), risk_level=random.randint(0, 2)))
 

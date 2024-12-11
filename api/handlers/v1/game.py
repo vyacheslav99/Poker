@@ -133,7 +133,7 @@ async def set_game_options(user: RequiredAuthProvider, game_id: int, body: GameO
     path='/{game_id}/player',
     response_model=list[Player],
     summary='Добавить игрока в игру',
-    description='Добавить в игру еще одного игрока. Доступно добавление только игрока-ИИ (робота)',
+    description='Добавить в игру еще одного игрока. Доступно добавление только игрока-бота',
     responses=error_responses()
 )
 async def add_player(user: RequiredAuthProvider, game_id: int, body: PlayerAddBody):

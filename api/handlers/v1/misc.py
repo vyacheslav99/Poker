@@ -1,9 +1,10 @@
 from typing import Annotated
 from fastapi import APIRouter, Query
 
-from api.handlers.auth import OptionalAuthProvider
+from api.handlers.auth import OptionalAuthProvider, RequiredAuthProvider
 from api.models.statistics import OverallStatisticsResponse, StatisticsSortFields
 from api.models.common import SuccessResponse, error_responses
+from api.models.user import UserPublic
 from api.services.misc import MiscService
 
 router = APIRouter(tags=['misc'])
@@ -40,3 +41,14 @@ async def get_overall_statistics(
     )
 
     return OverallStatisticsResponse(items=data, total=len(data))
+
+
+@router.get(
+    path='/robots',
+    response_model=list[UserPublic],
+    summary='Список игроков-ботов',
+    description='Получить список доступных игроков-ботов для добавления их в игру, если не хватает людей',
+    responses=error_responses()
+)
+async def get_robots(user: RequiredAuthProvider):
+    return await MiscService().get_robots()

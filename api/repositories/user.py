@@ -196,3 +196,8 @@ class UserRepo:
         """
 
         await db.execute(sql, uid=user_id, **item.model_dump())
+
+    @staticmethod
+    async def get_robots() -> list[User]:
+        data = await db.fetchall('select * from users where is_robot')
+        return [User(**row) for row in data]

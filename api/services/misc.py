@@ -25,3 +25,6 @@ class MiscService:
             include_user_ids=include_user_ids, sort_field=sort_field or 'summary',
             sord_desc=sord_desc if sord_desc is not None else True, limit=limit or 20
         )
+
+    async def get_robots(self) -> list[User]:
+        return await UserRepo.get_robots()
