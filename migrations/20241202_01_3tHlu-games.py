@@ -98,6 +98,9 @@ create table game_options
 
     step("""
 alter table public.users
-    add is_robot boolean not null default false;    
+    add is_robot boolean not null default false;
+
+create index users_robot_idx
+    on public.users (is_robot);
     """)
 ]
